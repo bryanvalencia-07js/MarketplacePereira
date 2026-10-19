@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usuarios - Reactiva Pereira</title>
+
+    
+    <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+
+    
+    <header class="barra">
+        <div class="barra-contenido">
+            <div>
+                <h1>Reactiva Pereira</h1>
+                <p class="subtitulo">Panel de gestión de usuarios</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="contenedor">
+
+        
+        <div class="encabezado-seccion">
+            <div>
+                <h2>Usuarios</h2>
+                <p id="totalUsuarios" class="total">Cargando...</p>
+            </div>
+            <button id="btnNuevo" class="btn btn-principal">+ Nuevo usuario</button>
+        </div>
+
+        <!-- TABLA -->
+        <div class="tarjeta">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Correo</th>
+                        <th>Teléfono</th>
+                        <th>Rol</th>
+                        <th class="derecha">Acciones</th>
+                    </tr>
+                </thead>
+               
+                <tbody id="tablaUsuarios"></tbody>
+            </table>
+        </div>
+    </main>
+
+    
+    <div id="modal" class="fondo-modal oculto">
+        <div class="modal">
+
+            <div class="modal-cabecera">
+                <h3 id="tituloModal">Nuevo usuario</h3>
+                <button type="button" id="btnCerrar" class="btn-cerrar">&times;</button>
+            </div>
+
+            <form id="formUsuario">
+                
+                <input type="hidden" id="idUsuario">
+
+                <div class="fila-doble">
+                    <div>
+                        <label for="nombre">Nombre</label>
+                        <input type="text" id="nombre" placeholder="Ej: Laura" required>
+                    </div>
+                    <div>
+                        <label for="apellido">Apellido</label>
+                        <input type="text" id="apellido" placeholder="Ej: Gómez" required>
+                    </div>
+                </div>
+
+                <label for="correo">Correo</label>
+                <input type="email" id="correo" placeholder="correo@ejemplo.com" required>
+
+                <div class="fila-doble">
+                    <div>
+                        <label for="telefono">Teléfono</label>
+                        <input type="text" id="telefono" placeholder="3001234567">
+                    </div>
+                    <div>
+                        <label for="rol">Rol</label>
+                        <select id="rol">
+                            <option value="Cliente">Cliente</option>
+                            <option value="Administrador">Administrador</option>
+                        </select>
+                    </div>
+                </div>
+
+                
+                <p id="errorFormulario" class="error-form"></p>
+
+                <div class="modal-botones">
+                    <button type="button" id="btnCancelar" class="btn btn-gris">Cancelar</button>
+                    <button type="submit" id="btnGuardar" class="btn btn-principal">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+   
+    <div id="aviso" class="aviso oculto"></div>
+
+    
+    <script src="script.js"></script>
+</body>
+</html>

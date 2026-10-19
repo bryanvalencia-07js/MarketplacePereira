@@ -8,12 +8,12 @@ const app = express();
 const PORT = 3000;
 
 
-// Middleware para recibir datos JSON
 app.use(express.json());
 
 
-// Middleware para permitir peticiones desde otros orígenes
+
 app.use(cors());
+app.use(express.static("public"));
 
 
 // Ruta de prueba
@@ -25,11 +25,11 @@ app.get("/", (req, res) => {
 
 });
 
-//Rutas del modulo usuarios
+
 
 app.use("/api/usuarios", usuarioRoutes);
 
-// Iniciar servidor
+
 app.listen(PORT, () => {
 
     console.log(
