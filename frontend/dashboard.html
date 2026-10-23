@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Dashboard | Reactiva Pereira</title>
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/estilos.css"
+    >
+</head>
+
+
+<body class="pagina-dashboard">
+
+    <!-- HEADER -->
+
+    <header class="dashboard-header">
+
+        <div class="contenedor dashboard-nav">
+
+            <a
+                href="dashboard.html"
+                class="marca"
+            >
+
+                <span class="marca-icono">
+                    RP
+                </span>
+
+                <div>
+
+                    <span class="marca-nombre">
+                        Reactiva Pereira
+                    </span>
+
+                    <span class="marca-subtitulo">
+                        Panel principal
+                    </span>
+
+                </div>
+
+            </a>
+
+
+            <div class="dashboard-usuario">
+
+                <div>
+
+                    <strong id="nombreUsuario">
+                        Usuario
+                    </strong>
+
+                    <span id="rolUsuario">
+                        Rol
+                    </span>
+
+                </div>
+
+
+                <button
+                    class="boton boton-salir"
+                    onclick="cerrarSesion()"
+                >
+                    Cerrar sesión
+                </button>
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+
+    <!-- CONTENIDO -->
+
+    <main class="dashboard-main">
+
+        <div class="contenedor">
+
+            <!-- BIENVENIDA -->
+
+            <section class="dashboard-bienvenida">
+
+                <span class="etiqueta">
+                    Panel principal
+                </span>
+
+                <h1 id="bienvenida">
+                    Bienvenido
+                </h1>
+
+                <p>
+                    Administra la información de Reactiva Pereira
+                    desde un solo lugar.
+                </p>
+
+            </section>
+
+
+
+            <!-- MÓDULOS -->
+
+            <section 
+                id="modulosDashboard   "
+                class="dashboard-modulos"
+            >
+                <!-- USUARIOS -->
+
+                <article 
+                    class="modulo-card"
+                    id="moduloUsuarios"
+                >
+                    <div class="modulo-icono">
+                        U
+                    </div>
+
+                    <div>
+
+                        <span class="modulo-tipo">
+                            Administración
+                        </span>
+
+                        <h2>
+                            Usuarios
+                        </h2>
+
+                        <p>
+                            Consulta, registra, edita y administra
+                            los usuarios de la plataforma.
+                        </p>
+
+                    </div>
+
+                    <a
+                        href="usuarios.html"
+                        class="boton boton-primario"
+                    >
+                        Ir al módulo
+                    </a>
+
+                </article>
+
+
+
+                <!-- NEGOCIOS -->
+
+                <article 
+                    class="modulo-card"
+                    id="moduloNegocios"
+                > 
+                    <div class="modulo-icono">
+                        N
+                    </div>
+
+                    <div>
+
+                        <span class="modulo-tipo">
+                            Reactiva Pereira
+                        </span>
+
+                        <h2>
+                            Negocios
+                        </h2>
+
+                        <p>
+                            Administra los comercios registrados
+                            y la información de sus establecimientos.
+                        </p>
+
+                    </div>
+
+                    <a
+                        href="negocios.html"
+                        class="boton boton-primario"
+                    >
+                        Ir al módulo
+                    </a>
+
+                </article>
+
+            </section>
+
+        </div>
+
+    </main>
+
+
+
+    <script src="js/sesion.js"></script>
+
+    <script>
+        protegerPorRol(['Administrador']);
+    </script>
+
+
+</body>
+
+</html>

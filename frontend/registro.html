@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Registro | Reactiva Pereira</title>
+
+    <!-- Tipografías -->
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/estilos.css"
+    >
+</head>
+
+
+<body class="pagina-auth">
+
+    <main class="auth-layout">
+
+        <!-- LADO VISUAL -->
+
+        <section class="auth-presentacion">
+
+            <a
+                href="index.html"
+                class="marca marca-auth"
+            >
+                <span class="marca-icono">
+                    RP
+                </span>
+
+                <div>
+
+                    <span class="marca-nombre">
+                        Reactiva Pereira
+                    </span>
+
+                    <span class="marca-subtitulo">
+                        Compra local. Reactivamos juntos.
+                    </span>
+
+                </div>
+
+            </a>
+
+
+            <div class="auth-mensaje">
+
+                <span class="etiqueta etiqueta-clara">
+                    Haz parte de la recuperación
+                </span>
+
+                <h1>
+                    Una cuenta puede abrir nuevas oportunidades.
+                </h1>
+
+                <p>
+                    Regístrate para acceder a Reactiva Pereira
+                    y comenzar a formar parte de nuestra
+                    comunidad digital.
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <!-- FORMULARIO -->
+
+        <section class="auth-formulario-contenedor">
+
+            <div class="auth-card">
+
+                <div class="auth-encabezado">
+
+                    <span class="etiqueta">
+                        Crear cuenta
+                    </span>
+
+                    <h2>
+                        Regístrate
+                    </h2>
+
+                    <p>
+                        Completa tus datos para ingresar
+                        a Reactiva Pereira.
+                    </p>
+
+                </div>
+
+
+                <form
+                    class="formulario"
+                    onsubmit="registrarUsuario(event)"
+                >
+
+                    <div class="campo-grupo doble">
+
+                        <div class="campo">
+
+                            <label for="nombre">
+                                Nombre
+                            </label>
+
+                            <input
+                                type="text"
+                                id="nombre"
+                                placeholder="Ej. Andrea"
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="apellido">
+                                Apellido
+                            </label>
+
+                            <input
+                                type="text"
+                                id="apellido"
+                                placeholder="Ej. Torres"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="campo">
+
+                        <label for="correo">
+                            Correo electrónico
+                        </label>
+
+                        <input
+                            type="email"
+                            id="correo"
+                            placeholder="correo@ejemplo.com"
+                        >
+
+                    </div>
+
+
+                    <div class="campo">
+
+                        <label for="password">
+                            Contraseña
+                        </label>
+
+                        <input
+                            type="password"
+                            id="password"
+                            placeholder="Ingresa una contraseña"
+                        >
+
+                    </div>
+
+
+                    <div class="campo">
+
+                        <label for="rol">
+                            Rol
+                        </label>
+
+                        <select
+                            id="rol"
+                            required
+                        >
+
+                            <option value="">
+                                Seleccione un tipo de cuenta
+                            </option>
+
+                            <option value="Comerciante">
+                                Comerciante
+                            </option>
+
+                            <option value="Comprador">
+                                Comprador
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <p
+                        id="mensaje"
+                        class="mensaje-formulario"
+                    ></p>
+
+
+                    <button
+                        type="submit"
+                        class="boton boton-primario boton-formulario"
+                    >
+                        Crear cuenta
+                    </button>
+
+                </form>
+
+
+                <div class="auth-pie">
+
+                    <p>
+                        ¿Ya tienes una cuenta?
+
+                        <a href="login.html">
+                            Iniciar sesión
+                        </a>
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script src="js/registro.js"></script>
+
+</body>
+
+</html>

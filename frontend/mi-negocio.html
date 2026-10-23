@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Mi comercio | Reactiva Pereira</title>
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/estilos.css"
+    >
+</head>
+
+
+<body class="pagina-dashboard">
+
+    <!-- HEADER -->
+
+    <header class="dashboard-header">
+
+        <div class="contenedor dashboard-nav">
+
+            <a
+                href="mi-negocio.html"
+                class="marca"
+            >
+
+                <span class="marca-icono">
+                    RP
+                </span>
+
+                <div>
+
+                    <span class="marca-nombre">
+                        Reactiva Pereira
+                    </span>
+
+                    <span class="marca-subtitulo">
+                        Portal del comerciante
+                    </span>
+
+                </div>
+
+            </a>
+
+
+            <div class="dashboard-usuario">
+
+                <div>
+
+                    <strong id="nombreUsuario">
+                        Comerciante
+                    </strong>
+
+                    <span id="rolUsuario">
+                        Comerciante
+                    </span>
+
+                </div>
+
+
+                <button
+                    class="boton boton-salir"
+                    onclick="cerrarSesion()"
+                >
+                    Cerrar sesión
+                </button>
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+
+    <main class="dashboard-main">
+
+        <div class="contenedor">
+
+            <!-- ENCABEZADO -->
+
+            <section class="modulo-encabezado">
+
+                <span class="etiqueta">
+                    Portal del comerciante
+                </span>
+
+                <h1>
+                    Mi comercio
+                </h1>
+
+                <p>
+                    Registra y administra la información
+                    de tu negocio en Reactiva Pereira.
+                </p>
+
+            </section>
+
+
+
+            <!-- MENSAJE CUANDO NO EXISTE COMERCIO -->
+
+            <section
+                id="estadoSinComercio"
+                class="panel-admin"
+            >
+
+                <div class="panel-titulo">
+
+                    <div>
+
+                        <span class="modulo-tipo">
+                            Primer paso
+                        </span>
+
+                        <h2>
+                            Registra tu comercio
+                        </h2>
+
+                    </div>
+
+                </div>
+
+                <p class="texto-secundario">
+                    Todavía no tienes un comercio registrado.
+                    Completa la información para empezar a
+                    aparecer en Reactiva Pereira.
+                </p>
+
+            </section>
+
+
+
+            <!-- FORMULARIO -->
+
+            <section class="panel-admin">
+
+                <div class="panel-titulo">
+
+                    <div>
+
+                        <span class="modulo-tipo">
+                            Información del comercio
+                        </span>
+
+                        <h2 id="tituloFormularioComercio">
+                            Registrar comercio
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <form
+                    id="formMiNegocio"
+                    class="formulario"
+                    onsubmit="guardarMiNegocio(event)"
+                >
+
+                    <div class="form-grid">
+
+                        <div class="campo">
+
+                            <label for="nombreNegocio">
+                                Nombre del comercio
+                            </label>
+
+                            <input
+                                type="text"
+                                id="nombreNegocio"
+                                placeholder="Ej. Café Risaralda"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="categoria">
+                                Categoría
+                            </label>
+
+                            <select
+                                id="categoria"
+                                required
+                            >
+
+                                <option value="">
+                                    Seleccione
+                                </option>
+
+                                <option value="Alimentos">
+                                    Alimentos
+                                </option>
+
+                                <option value="Ropa">
+                                    Ropa
+                                </option>
+
+                                <option value="Tecnología">
+                                    Tecnología
+                                </option>
+
+                                <option value="Servicios">
+                                    Servicios
+                                </option>
+
+                                <option value="Hogar">
+                                    Hogar
+                                </option>
+
+                                <option value="Otro">
+                                    Otro
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="telefono">
+                                Teléfono
+                            </label>
+
+                            <input
+                                type="text"
+                                id="telefono"
+                                placeholder="3001234567"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="direccion">
+                                Dirección
+                            </label>
+
+                            <input
+                                type="text"
+                                id="direccion"
+                                placeholder="Dirección del comercio"
+                                required
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <p
+                        id="mensajeMiNegocio"
+                        class="mensaje-formulario"
+                    ></p>
+
+
+                    <div class="acciones-formulario">
+
+                        <button
+                            type="submit"
+                            class="boton boton-primario"
+                        >
+                            Guardar información
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+
+
+            <!-- VISTA DEL COMERCIO -->
+
+            <section
+                id="seccionMiComercio"
+                class="panel-admin"
+                hidden
+            >
+
+                <div class="panel-titulo">
+
+                    <div>
+
+                        <span class="modulo-tipo">
+                            Comercio registrado
+                        </span>
+
+                        <h2>
+                            Vista actual
+                        </h2>
+
+                    </div>
+
+
+                    <span
+                        id="estadoMiComercio"
+                        class="badge badge-activo"
+                    >
+                        Activo
+                    </span>
+
+                </div>
+
+
+                <article class="mi-comercio-card">
+
+                    <div class="negocio-avatar" id="inicialComercio">
+                        C
+                    </div>
+
+
+                    <div class="mi-comercio-info">
+
+                        <h3 id="vistaNombreNegocio">
+                            Comercio
+                        </h3>
+
+                        <p>
+                            <strong>Categoría:</strong>
+                            <span id="vistaCategoria"></span>
+                        </p>
+
+                        <p>
+                            <strong>Propietario:</strong>
+                            <span id="vistaPropietario"></span>
+                        </p>
+
+                        <p>
+                            <strong>Teléfono:</strong>
+                            <span id="vistaTelefono"></span>
+                        </p>
+
+                        <p>
+                            <strong>Dirección:</strong>
+                            <span id="vistaDireccion"></span>
+                        </p>
+
+                    </div>
+
+                </article>
+
+
+                <div class="acciones-formulario">
+
+                    <button
+                        type="button"
+                        class="boton boton-secundario"
+                        onclick="cambiarEstadoMiNegocio()"
+                    >
+                        Cambiar estado
+                    </button>
+                    <a
+                        href="mis-productos.html"
+                        id="btnProductos"
+                        class="boton boton-primario"
+                        hidden
+                    >
+                        Administrar productos
+                    </a>
+                    
+                </div>
+
+            </section>
+
+        </div>
+
+    </main>
+
+
+    <script src="js/sesion.js"></script>
+
+    <script>
+        protegerPorRol([
+            "Comerciante"
+        ]);
+    </script>
+
+    <script src="js/mi-negocio.js"></script>
+
+</body>
+
+</html>

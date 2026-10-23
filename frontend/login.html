@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Iniciar sesión | Reactiva Pereira</title>
+
+    <!-- Tipografías -->
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/estilos.css"
+    >
+</head>
+
+
+<body class="pagina-auth">
+
+    <main class="auth-layout">
+
+        <!-- ========================================
+             LADO VISUAL
+        ========================================= -->
+
+        <section class="auth-presentacion">
+
+            <a
+                href="index.html"
+                class="marca marca-auth"
+            >
+
+                <span class="marca-icono">
+                    RP
+                </span>
+
+                <div>
+
+                    <span class="marca-nombre">
+                        Reactiva Pereira
+                    </span>
+
+                    <span class="marca-subtitulo">
+                        Compra local. Reactivamos juntos.
+                    </span>
+
+                </div>
+
+            </a>
+
+
+            <div class="auth-mensaje">
+
+                <span class="etiqueta etiqueta-clara">
+                    Bienvenido nuevamente
+                </span>
+
+                <h1>
+                    Conectamos personas que creen en Pereira.
+                </h1>
+
+                <p>
+                    Ingresa a tu cuenta para consultar usuarios,
+                    comercios y continuar apoyando la
+                    reactivación económica de nuestra región.
+                </p>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- ========================================
+             LOGIN
+        ========================================= -->
+
+        <section class="auth-formulario-contenedor">
+
+            <div class="auth-card">
+
+                <div class="auth-encabezado">
+
+                    <span class="etiqueta">
+                        Acceso
+                    </span>
+
+                    <h2>
+                        Iniciar sesión
+                    </h2>
+
+                    <p>
+                        Ingresa el correo y la contraseña
+                        asociados a tu cuenta.
+                    </p>
+
+                </div>
+
+
+                <form
+                    class="formulario"
+                    onsubmit="iniciarSesion(event)"
+                >
+
+                    <!-- CORREO -->
+
+                    <div class="campo">
+
+                        <label for="correo">
+                            Correo electrónico
+                        </label>
+
+                        <input
+                            type="email"
+                            id="correo"
+                            placeholder="correo@ejemplo.com"
+                            autocomplete="email"
+                            required
+                        >
+
+                    </div>
+
+
+                    <!-- CONTRASEÑA -->
+
+                    <div class="campo">
+
+                        <label for="password">
+                            Contraseña
+                        </label>
+
+                        <input
+                            type="password"
+                            id="password"
+                            placeholder="Ingresa tu contraseña"
+                            autocomplete="current-password"
+                            required
+                        >
+
+                    </div>
+
+
+                    <!-- MENSAJE -->
+
+                    <p
+                        id="mensaje"
+                        class="mensaje-formulario"
+                    ></p>
+
+
+                    <!-- BOTÓN -->
+
+                    <button
+                        type="submit"
+                        class="boton boton-primario boton-formulario"
+                    >
+                        Iniciar sesión
+                    </button>
+
+                </form>
+
+
+                <div class="auth-pie">
+
+                    <p>
+                        ¿Todavía no tienes cuenta?
+
+                        <a href="registro.html">
+                            Crear una cuenta
+                        </a>
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script src="js/login.js"></script>
+
+</body>
+
+</html>

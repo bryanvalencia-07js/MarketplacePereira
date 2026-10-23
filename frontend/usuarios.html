@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Usuarios | Reactiva Pereira</title>
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/estilos.css"
+    >
+</head>
+
+
+<body class="pagina-dashboard">
+
+    <!-- HEADER -->
+
+    <header class="dashboard-header">
+
+        <div class="contenedor dashboard-nav">
+
+            <a
+                href="dashboard.html"
+                class="marca"
+            >
+
+                <span class="marca-icono">
+                    RP
+                </span>
+
+                <div>
+
+                    <span class="marca-nombre">
+                        Reactiva Pereira
+                    </span>
+
+                    <span class="marca-subtitulo">
+                        Módulo de usuarios
+                    </span>
+
+                </div>
+
+            </a>
+
+
+            <div class="dashboard-usuario">
+
+                <div>
+
+                    <strong id="nombreUsuario">
+                        Usuario
+                    </strong>
+
+                    <span id="rolUsuario">
+                        Rol
+                    </span>
+
+                </div>
+
+
+                <a
+                    href="dashboard.html"
+                    class="boton boton-secundario"
+                >
+                    Dashboard
+                </a>
+
+
+                <button
+                    class="boton boton-salir"
+                    onclick="cerrarSesion()"
+                >
+                    Cerrar sesión
+                </button>
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+
+    <main class="dashboard-main">
+
+        <div class="contenedor">
+
+            <!-- TÍTULO -->
+
+            <section class="modulo-encabezado">
+
+                <div>
+
+                    <span class="etiqueta">
+                        Administración
+                    </span>
+
+                    <h1>
+                        Gestión de usuarios
+                    </h1>
+
+                    <p>
+                        Registra, consulta, actualiza y administra
+                        los usuarios de Reactiva Pereira.
+                    </p>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- FORMULARIO -->
+
+            <section class="panel-admin">
+
+                <div class="panel-titulo">
+
+                    <div>
+
+                        <span class="modulo-tipo">
+                            CRUD de usuarios
+                        </span>
+
+                        <h2 id="tituloFormulario">
+                            Registrar usuario
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <form
+                    id="formUsuario"
+                    class="formulario formulario-usuarios"
+                    onsubmit="guardarUsuario(event)"
+                >
+
+                    <!-- ID utilizado al editar -->
+
+                    <input
+                        type="hidden"
+                        id="usuarioId"
+                    >
+
+
+                    <div class="form-grid">
+
+                        <div class="campo">
+
+                            <label for="nombre">
+                                Nombre
+                            </label>
+
+                            <input
+                                type="text"
+                                id="nombre"
+                                placeholder="Nombre"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="apellido">
+                                Apellido
+                            </label>
+
+                            <input
+                                type="text"
+                                id="apellido"
+                                placeholder="Apellido"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="correo">
+                                Correo
+                            </label>
+
+                            <input
+                                type="email"
+                                id="correo"
+                                placeholder="correo@ejemplo.com"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="password">
+                                Contraseña
+                            </label>
+
+                            <input
+                                type="password"
+                                id="password"
+                                placeholder="Contraseña"
+                            >
+
+                            <small>
+                                Al editar puedes dejarla vacía
+                                para conservar la actual.
+                            </small>
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="rol">
+                                Rol
+                            </label>
+
+                            <select
+                                id="rol"
+                                required
+                            >
+
+                                <option value="">
+                                    Seleccione
+                                </option>
+
+                                <option value="Administrador">
+                                    Administrador
+                                </option>
+
+                                <option value="Comerciante">
+                                    Comerciante
+                                </option>
+
+                                <option value="Comprador">
+                                    Comprador
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+                    <p
+                        id="mensajeUsuario"
+                        class="mensaje-formulario"
+                    ></p>
+
+
+                    <div class="acciones-formulario">
+
+                        <button
+                            type="submit"
+                            class="boton boton-primario"
+                        >
+                            Guardar usuario
+                        </button>
+
+
+                        <button
+                            type="button"
+                            id="btnCancelar"
+                            class="boton boton-secundario"
+                            onclick="cancelarEdicion()"
+                            hidden
+                        >
+                            Cancelar edición
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+
+
+            <!-- BÚSQUEDA Y FILTROS -->
+
+            <section class="barra-herramientas">
+
+                <div class="campo-busqueda">
+
+                    <input
+                        type="search"
+                        id="buscarUsuario"
+                        placeholder="Buscar por nombre, apellido o correo..."
+                        oninput="aplicarFiltros()"
+                    >
+
+                </div>
+
+
+                <select
+                    id="filtroRol"
+                    onchange="aplicarFiltros()"
+                >
+
+                    <option value="">
+                        Todos los roles
+                    </option>
+
+                    <option value="Administrador">
+                        Administrador
+                    </option>
+
+                    <option value="Comerciante">
+                        Comerciante
+                    </option>
+
+                    <option value="Comprador">
+                        Comprador
+                    </option>
+
+                </select>
+
+            </section>
+
+
+
+            <!-- TABLA -->
+
+            <section class="panel-admin">
+
+                <div class="panel-titulo">
+
+                    <div>
+
+                        <span class="modulo-tipo">
+                            Usuarios registrados
+                        </span>
+
+                        <h2>
+                            Listado
+                        </h2>
+
+                    </div>
+
+
+                    <span
+                        id="contadorUsuarios"
+                        class="contador"
+                    >
+                        0 usuarios
+                    </span>
+
+                </div>
+
+
+                <div class="tabla-contenedor">
+
+                    <table class="tabla-usuarios">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>ID</th>
+                                <th>Usuario</th>
+                                <th>Correo</th>
+                                <th>Rol</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody id="listaUsuarios">
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+
+                <p
+                    id="sinUsuarios"
+                    class="mensaje-vacio"
+                    hidden
+                >
+                    No se encontraron usuarios.
+                </p>
+
+            </section>
+
+        </div>
+
+    </main>
+
+
+    <!-- Primero protege la sesión -->
+    <script src="js/sesion.js"></script>
+    
+    <script>
+        protegerPorRol(['Administrador']);
+    </script>
+
+    <!-- Después carga el módulo -->
+    <script src="js/usuarios.js"></script>
+
+</body>
+
+</html>

@@ -13,7 +13,7 @@ let usuarios = [
                 apellido: "Gomez",
                 correo: "laura@gmail.com",
                 telefono: "3019876543",
-                rol: "Cliente"
+                rol: "Comerciante"
         },
         {
                 id: 3,
@@ -21,7 +21,7 @@ let usuarios = [
                 apellido: "Lopez",
                 correo: "andres@gmail.com",
                 telefono: "3104567890",
-                rol: "Cliente"
+                rol: "Comerciante"
         }		
 ];
 

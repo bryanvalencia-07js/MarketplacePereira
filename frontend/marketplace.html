@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Marketplace | Reactiva Pereira</title>
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/estilos.css"
+    >
+
+</head>
+
+
+<body class="pagina-marketplace">
+
+    <!-- =========================================
+         NAVBAR
+    ========================================== -->
+
+    <header class="market-header">
+
+        <div class="contenedor market-nav">
+
+            <a
+                href="marketplace.html"
+                class="marca"
+            >
+
+                <span class="marca-icono">
+                    RP
+                </span>
+
+                <div>
+
+                    <span class="marca-nombre">
+                        Reactiva Pereira
+                    </span>
+
+                    <span class="marca-subtitulo">
+                        Marketplace local
+                    </span>
+
+                </div>
+
+            </a>
+
+
+            <!-- BUSCADOR -->
+
+            <div class="market-buscador">
+
+                <input
+                    type="search"
+                    id="buscarMarketplace"
+                    placeholder="Buscar productos o comercios..."
+                    oninput="buscarMarketplace()"
+                >
+
+                <button
+                    type="button"
+                    onclick="buscarMarketplace()"
+                >
+                    Buscar
+                </button>
+
+            </div>
+
+
+            <!-- USUARIO -->
+
+            <div class="market-usuario">
+
+                <div>
+
+                    <strong id="nombreUsuario">
+                        Comprador
+                    </strong>
+
+                    <span id="rolUsuario">
+                        Comprador
+                    </span>
+
+                </div>
+
+
+                <button
+                    class="boton boton-salir"
+                    onclick="cerrarSesion()"
+                >
+                    Salir
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- NAVEGACIÓN SECUNDARIA -->
+
+        <nav class="market-menu">
+
+            <div class="contenedor market-menu-interior">
+
+                <a href="#productos">
+                    Productos
+                </a>
+
+                <a href="#populares">
+                    Más populares
+                </a>
+
+                <a href="#comercios">
+                    Comercios
+                </a>
+
+                <a href="#categorias">
+                    Categorías
+                </a>
+
+                <a href="#sobre">
+                    Sobre Reactiva Pereira
+                </a>
+
+            </div>
+
+        </nav>
+
+    </header>
+
+
+
+    <main>
+
+        <!-- =========================================
+             HERO
+        ========================================== -->
+
+        <section class="market-hero">
+
+            <div class="contenedor market-hero-grid">
+
+                <div>
+
+                    <span class="etiqueta">
+                        Compra local
+                    </span>
+
+                    <h1>
+                        Encuentra productos de
+                        negocios que hacen grande
+                        a Pereira.
+                    </h1>
+
+                    <p>
+                        Descubre comercios locales,
+                        conoce sus productos y apoya
+                        directamente la recuperación
+                        económica de nuestra región.
+                    </p>
+
+                    <a
+                        href="#productos"
+                        class="boton boton-primario boton-grande"
+                    >
+                        Explorar productos
+                    </a>
+
+                </div>
+
+
+                <div class="market-hero-card">
+
+                    <span>
+                        Reactiva Pereira
+                    </span>
+
+                    <h2>
+                        Comprar local también
+                        es reconstruir.
+                    </h2>
+
+                    <p>
+                        Cada comercio registrado
+                        representa una historia,
+                        una familia y una oportunidad.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =========================================
+             CATEGORÍAS
+        ========================================== -->
+
+        <section
+            class="market-seccion"
+            id="categorias"
+        >
+
+            <div class="contenedor">
+
+                <div class="market-titulo">
+
+                    <div>
+
+                        <span class="modulo-tipo">
+                            Explora
+                        </span>
+
+                        <h2>
+                            Categorías
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <div class="categorias-market">
+
+                    <button
+                        onclick="filtrarCategoria('')"
+                    >
+                        Todos
+                    </button>
+
+                    <button
+                        onclick="filtrarCategoria('Alimentos')"
+                    >
+                        Alimentos
+                    </button>
+
+                    <button
+                        onclick="filtrarCategoria('Ropa')"
+                    >
+                        Ropa
+                    </button>
+
+                    <button
+                        onclick="filtrarCategoria('Tecnología')"
+                    >
+                        Tecnología
+                    </button>
+
+                    <button
+                        onclick="filtrarCategoria('Servicios')"
+                    >
+                        Servicios
+                    </button>
+
+                    <button
+                        onclick="filtrarCategoria('Hogar')"
+                    >
+                        Hogar
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =========================================
+             PRODUCTOS POPULARES
+        ========================================== -->
+
+        <section
+            class="market-seccion market-fondo"
+            id="populares"
+        >
+
+            <div class="contenedor">
+
+                <div class="market-titulo">
+
+                    <div>
+
+                        <span class="modulo-tipo">
+                            Destacados
+                        </span>
+
+                        <h2>
+                            Productos populares
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="productosPopulares"
+                    class="productos-grid"
+                >
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =========================================
+             TODOS LOS PRODUCTOS
+        ========================================== -->
+
+        <section
+            class="market-seccion"
+            id="productos"
+        >
+
+            <div class="contenedor">
+
+                <div class="market-titulo">
+
+                    <div>
+
+                        <span class="modulo-tipo">
+                            Marketplace
+                        </span>
+
+                        <h2>
+                            Productos
+                        </h2>
+
+                    </div>
+
+
+                    <span
+                        id="contadorProductos"
+                        class="contador"
+                    >
+                        0 productos
+                    </span>
+
+                </div>
+
+
+                <div
+                    id="listaProductos"
+                    class="productos-grid"
+                >
+                </div>
+
+
+                <p
+                    id="sinProductos"
+                    class="mensaje-vacio"
+                    hidden
+                >
+                    No encontramos productos.
+                </p>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =========================================
+             COMERCIOS
+        ========================================== -->
+
+        <section
+            class="market-seccion market-fondo"
+            id="comercios"
+        >
+
+            <div class="contenedor">
+
+                <div class="market-titulo">
+
+                    <div>
+
+                        <span class="modulo-tipo">
+                            Compra local
+                        </span>
+
+                        <h2>
+                            Comercios
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="listaComercios"
+                    class="comercios-market-grid"
+                >
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <section
+    class="market-seccion"
+    id="sobre"
+    >
+
+        <div class="contenedor">
+
+            <div class="market-titulo">
+
+                <div>
+
+                    <span class="modulo-tipo">
+                        Nuestra iniciativa
+                    </span>
+
+                    <h2>
+                        Sobre Reactiva Pereira
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div class="sobre-market">
+
+                <div>
+
+                    <h3>
+                        Comprar local también
+                        ayuda a reconstruir Pereira.
+                    </h3>
+
+                    <p>
+                        Reactiva Pereira es una plataforma
+                        creada para dar visibilidad a
+                        comercios de Pereira y su área
+                        metropolitana afectados por el
+                        terremoto del 10 de agosto de 2026.
+                    </p>
+
+                    <p>
+                        Nuestro objetivo es conectar
+                        compradores con negocios locales,
+                        facilitando que sus productos y
+                        servicios sean conocidos por más
+                        personas.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <footer class="footer">
+
+        <div class="contenedor footer-contenido">
+
+            <div>
+
+                <strong>
+                    Reactiva Pereira
+                </strong>
+
+                <p>
+                    Compra local. Reactivamos juntos.
+                </p>
+
+            </div>
+
+            <p>
+                Pereira, Risaralda · 2026
+            </p>
+
+        </div>
+
+    </footer>
+
+
+    <script src="js/sesion.js"></script>
+
+    <script>
+        protegerPorRol([
+            "Comprador"
+        ]);
+    </script>
+
+    <script src="js/marketplace.js"></script>
+
+</body>
+
+</html>

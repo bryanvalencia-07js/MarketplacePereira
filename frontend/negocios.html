@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Negocios | Reactiva Pereira</title>
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/estilos.css"
+    >
+</head>
+
+
+<body class="pagina-dashboard">
+
+    <header class="dashboard-header">
+
+        <div class="contenedor dashboard-nav">
+
+            <a
+                href="dashboard.html"
+                class="marca"
+            >
+
+                <span class="marca-icono">
+                    RP
+                </span>
+
+                <div>
+
+                    <span class="marca-nombre">
+                        Reactiva Pereira
+                    </span>
+
+                    <span class="marca-subtitulo">
+                        Módulo de negocios
+                    </span>
+
+                </div>
+
+            </a>
+
+
+            <div class="dashboard-usuario">
+
+                <div>
+
+                    <strong id="nombreUsuario">
+                        Usuario
+                    </strong>
+
+                    <span id="rolUsuario">
+                        Rol
+                    </span>
+
+                </div>
+
+
+                <a
+                    href="dashboard.html"
+                    class="boton boton-secundario"
+                >
+                    Dashboard
+                </a>
+
+
+                <button
+                    class="boton boton-salir"
+                    onclick="cerrarSesion()"
+                >
+                    Cerrar sesión
+                </button>
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+    <main class="dashboard-main">
+
+        <div class="contenedor">
+
+            <!-- ENCABEZADO -->
+
+            <section class="modulo-encabezado">
+
+                <span class="etiqueta">
+                    Reactivación económica
+                </span>
+
+                <h1>
+                    Gestión de negocios
+                </h1>
+
+                <p>
+                    Registra y administra los comercios que
+                    hacen parte de Reactiva Pereira.
+                </p>
+
+            </section>
+
+
+            <!-- FORMULARIO -->
+
+            <section class="panel-admin">
+
+                <div class="panel-titulo">
+
+                    <div>
+
+                        <span class="modulo-tipo">
+                            CRUD de negocios
+                        </span>
+
+                        <h2 id="tituloNegocio">
+                            Registrar negocio
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <form
+                    id="formNegocio"
+                    class="formulario"
+                    onsubmit="guardarNegocio(event)"
+                >
+
+                    <input
+                        type="hidden"
+                        id="negocioId"
+                    >
+
+
+                    <div class="form-grid">
+
+                        <div class="campo">
+
+                            <label for="nombreNegocio">
+                                Nombre del negocio
+                            </label>
+
+                            <input
+                                type="text"
+                                id="nombreNegocio"
+                                placeholder="Ej. Café Pereira"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="propietario">
+                                Propietario
+                            </label>
+
+                            <input
+                                type="text"
+                                id="propietario"
+                                placeholder="Nombre del propietario"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="categoria">
+                                Categoría
+                            </label>
+
+                            <select
+                                id="categoria"
+                                required
+                            >
+
+                                <option value="">
+                                    Seleccione una categoría
+                                </option>
+
+                                <option value="Alimentos">
+                                    Alimentos
+                                </option>
+
+                                <option value="Ropa">
+                                    Ropa
+                                </option>
+
+                                <option value="Tecnología">
+                                    Tecnología
+                                </option>
+
+                                <option value="Servicios">
+                                    Servicios
+                                </option>
+
+                                <option value="Hogar">
+                                    Hogar
+                                </option>
+
+                                <option value="Otro">
+                                    Otro
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="telefono">
+                                Teléfono
+                            </label>
+
+                            <input
+                                type="text"
+                                id="telefono"
+                                placeholder="3001234567"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="campo campo-completo">
+
+                            <label for="direccion">
+                                Dirección
+                            </label>
+
+                            <input
+                                type="text"
+                                id="direccion"
+                                placeholder="Ubicación del establecimiento"
+                                required
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <p
+                        id="mensajeNegocio"
+                        class="mensaje-formulario"
+                    ></p>
+
+
+                    <div class="acciones-formulario">
+
+                        <button
+                            type="submit"
+                            class="boton boton-primario"
+                        >
+                            Guardar negocio
+                        </button>
+
+
+                        <button
+                            type="button"
+                            id="btnCancelarNegocio"
+                            class="boton boton-secundario"
+                            onclick="cancelarEdicionNegocio()"
+                            hidden
+                        >
+                            Cancelar edición
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+
+            <!-- FILTROS -->
+
+            <section class="barra-herramientas">
+
+                <div class="campo-busqueda">
+
+                    <input
+                        type="search"
+                        id="buscarNegocio"
+                        placeholder="Buscar negocio o propietario..."
+                        oninput="aplicarFiltrosNegocios()"
+                    >
+
+                </div>
+
+
+                <select
+                    id="filtroCategoria"
+                    onchange="aplicarFiltrosNegocios()"
+                >
+
+                    <option value="">
+                        Todas las categorías
+                    </option>
+
+                    <option value="Alimentos">
+                        Alimentos
+                    </option>
+
+                    <option value="Ropa">
+                        Ropa
+                    </option>
+
+                    <option value="Tecnología">
+                        Tecnología
+                    </option>
+
+                    <option value="Servicios">
+                        Servicios
+                    </option>
+
+                    <option value="Hogar">
+                        Hogar
+                    </option>
+
+                    <option value="Otro">
+                        Otro
+                    </option>
+
+                </select>
+
+            </section>
+
+
+            <!-- LISTADO -->
+
+            <section class="panel-admin">
+
+                <div class="panel-titulo">
+
+                    <div>
+
+                        <span class="modulo-tipo">
+                            Comercios registrados
+                        </span>
+
+                        <h2>
+                            Negocios
+                        </h2>
+
+                    </div>
+
+
+                    <span
+                        id="contadorNegocios"
+                        class="contador"
+                    >
+                        0 negocios
+                    </span>
+
+                </div>
+
+
+                <div
+                    id="listaNegocios"
+                    class="negocios-grid"
+                >
+                </div>
+
+
+                <p
+                    id="sinNegocios"
+                    class="mensaje-vacio"
+                    hidden
+                >
+                    No se encontraron negocios.
+                </p>
+
+            </section>
+
+        </div>
+
+    </main>
+
+
+    <script src="js/sesion.js"></script>
+
+    <script>
+        protegerPorRol(['Administrador']);
+    </script>
+
+    <script src="js/negocios.js"></script>
+
+</body>
+
+</html>
