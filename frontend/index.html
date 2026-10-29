@@ -11,6 +11,19 @@
     <link rel="stylesheet" href="css/estilos.css" />
   </head>
   <body>
+        <!-- INTRO TEMPORAL -->
+    <div id="introPereira" class="intro-pereira" aria-hidden="true">
+        <div class="intro-pereira-banner">
+            <span class="intro-pereira-kicker">Reactiva Pereira</span>
+
+            <h1>
+                Pereira
+                <strong>se levanta.</strong>
+            </h1>
+
+            <span class="intro-pereira-linea"></span>
+        </div>
+    </div>
     <a class="saltar-contenido" href="#contenido">Saltar al contenido</a>
     <header class="header-principal">
       <div class="contenedor landing-nav">
@@ -21,100 +34,728 @@
             ><span class="marca-subtitulo"
               >Historias que siguen abiertas.</span
             ></span
-          ></a
-        >
+          ></a>
         <nav aria-label="Navegación principal">
-          <a href="#historia">El propósito</a><a href="#comercios">Comercios</a
-          ><a class="boton boton-secundario" href="login.html"
-            >Iniciar sesión</a
-          >
+
+            <a href="#proposito">
+                El propósito
+            </a>
+
+            <a href="#como-funciona">
+                Cómo funciona
+            </a>
+
+            <a href="#comercios">
+                Comercios
+            </a>
+
+            <a
+                class="boton boton-secundario"
+                href="login.html"
+            >
+                Iniciar sesión
+            </a>
+
         </nav>
       </div>
     </header>
     <main id="contenido">
       <section class="hero-rp">
-        <div class="contenedor hero-rp-grid">
-          <div>
-            <span class="etiqueta">De Pereira, para Pereira</span>
-            <h1>El futuro se<br />compra <em>local.</em></h1>
-            <p>
-              Detrás de cada puerta abierta hay una historia que merece
-              continuar. Descubre productos de nuestra ciudad y conecta con
-              quienes la hacen avanzar.
-            </p>
-            <div class="acciones-formulario">
-              <a class="boton boton-primario" href="marketplace.html"
-                >Explorar marketplace →</a
-              ><a
-                class="boton boton-secundario"
-                href="registro.html?rol=Comerciante"
-                >Registrar mi comercio</a
-              >
-            </div>
-          </div>
-          <div
-            class="hero-escena"
-            role="img"
-            aria-label="Ilustración de una tienda local abierta"
-          >
-            <div class="escena-tienda">
-              <span>Comercio de barrio</span
-              ><strong>Seguimos<br />abiertos.</strong>
-              <p>Hecho con talento de aquí.</p>
-              <span>Pereira · Colombia</span>
-            </div>
-          </div>
+
+        <!-- VIDEO DE FONDO -->
+
+        <div class="hero-video-fondo" aria-hidden="true">
+
+            <video
+                class="hero-bandera"
+                autoplay
+                muted
+                loop
+                playsinline
+                preload="auto"
+            >
+
+                <source
+                    src="assets/storytelling/bandera-pereira.webm"
+                    type="video/webm"
+                >
+
+                <source
+                    src="assets/storytelling/bandera-pereira.mp4"
+                    type="video/mp4"
+                >
+
+            </video>
+
+            <div class="hero-video-velo"></div>
+
         </div>
+
+
+        <!-- CONTENIDO -->
+
+        <div class="contenedor hero-rp-grid">
+
+            <div class="hero-rp-copy">
+
+                <span class="hero-etiqueta">
+                    De Pereira, para Pereira
+                </span>
+
+                <h1>
+                    El futuro de Pereira
+                    <span>se compra local.</span>
+                </h1>
+
+                <p>
+                    Detrás de cada puerta abierta hay una historia que merece continuar.
+                    Descubre productos de nuestra ciudad y conecta con quienes la hacen avanzar.
+                </p>
+
+
+                <div class="hero-botones">
+
+                    <a
+                        href="marketplace.html"
+                        class="boton boton-primario"
+                    >
+                        Explorar marketplace →
+                    </a>
+
+                    <a
+                        href="registro.html"
+                        class="boton boton-secundario"
+                    >
+                        Registrar mi comercio
+                    </a>
+
+                </div>
+
+            </div>
+
+
+            <div class="hero-coordenadas">
+
+                <span>
+                    PEREIRA
+                </span>
+
+                <small>
+                    04°48′ N · 75°41′ O
+                </small>
+
+            </div>
+
+        </div>
+
       </section>
       <div class="franja-local">
         Talento de aquí. Encuentros que reactivan. Compra local.
       </div>
-      <section id="historia" class="seccion-rp reveal">
-        <div class="contenedor narrativa-grid">
-          <span class="numero-escena" aria-hidden="true">01</span>
-          <div>
-            <span class="etiqueta">La ciudad sigue en movimiento</span>
-            <h2>Un comercio es mucho más que una dirección.</h2>
-            <p>
-              Es el trabajo de una familia, una idea que creció y un punto de
-              encuentro en el barrio. Reactiva Pereira nace para dar visibilidad
-              a los comercios afectados y acercarlos a nuevas oportunidades.
-            </p>
+      <!-- =========================================
+          EL PROPÓSITO · STORYTELLING
+      ========================================= -->
+
+      <section id="proposito" class="story-proposito">
+
+          <div class="story-escena story-impacto">
+
+              <div class="story-impacto-imagen" aria-hidden="true">
+                  <img
+                      src="assets/storytelling/pereira-panoramica.jpg"
+                      alt=""
+                      id="imagenImpactoPereira"
+                  >
+
+                  <div class="story-impacto-overlay"></div>
+              </div>
+
+              <div class="story-impacto-contenido">
+
+                  <span class="story-capitulo">
+                      El propósito · 01
+                  </span>
+
+                  <p class="story-fecha">
+                      10 de agosto de 2026
+                  </p>
+
+                  <h2>
+                      En segundos,
+                      <em>muchas historias cambiaron.</em>
+                  </h2>
+
+                  <p class="story-texto">
+                      Pereira no está hecha solamente de edificios.
+                      Está hecha de personas, familias y comercios
+                      construidos durante años.
+                  </p>
+
+                  <p class="story-scroll">
+                      Desliza para conocer por qué nació Reactiva Pereira
+                      <span>↓</span>
+                  </p>
+
+              </div>
+
           </div>
-        </div>
+
+          <!-- =========================================
+              ESCENA 02 · LAS PERSONAS
+          ========================================= -->
+
+          <section class="story-escena story-humana" id="storyHumana">
+
+              <div class="story-humana-sticky">
+
+                  <div class="story-humana-visual">
+
+                      <img
+                          id="imagenStoryHumana"
+                          src="assets/storytelling/comerciante.jpg"
+                          alt="Comerciante atendiendo a un cliente dentro de su negocio"
+                      >
+
+                      <div class="story-humana-sombra"></div>
+
+                  </div>
+
+
+                  <div class="story-humana-contenido">
+
+                      <span class="story-capitulo story-fragmento" data-inicio="0.02">
+                          El propósito · 02
+                      </span>
+
+                      <p
+                          class="story-sobretitulo story-fragmento"
+                          data-inicio="0.08"
+                      >
+                          Después del impacto quedan las personas.
+                      </p>
+
+                      <h2
+                          class="story-fragmento"
+                          data-inicio="0.16"
+                      >
+                          Detrás de cada negocio
+                          <em>hay una historia.</em>
+                      </h2>
+
+                      <p
+                          class="story-texto-humano story-fragmento"
+                          data-inicio="0.34"
+                      >
+                          Alguien que abre temprano.
+                          Que conoce a sus clientes.
+                          Que construyó su comercio con años de trabajo.
+                      </p>
+
+                      <blockquote
+                          class="story-cita story-fragmento"
+                          data-inicio="0.54"
+                      >
+                          Para una ciudad puede ser un local.
+                          Para alguien, puede ser toda una vida.
+                      </blockquote>
+
+                  </div>
+
+              </div>
+
+          </section>
+
+
+
+          <!-- =========================================
+              ESCENA 03 · VOLVER A ABRIR NO BASTA
+          ========================================= -->
+
+          <section class="story-escena story-visibilidad" id="storyVisibilidad">
+
+              <div class="story-visibilidad-sticky">
+
+                  <div class="story-visibilidad-fondo">
+
+                      <img
+                          id="imagenStoryVisibilidad"
+                          src="assets/storytelling/comerciosInformalesPereira.webp"
+                          alt=""
+                          aria-hidden="true"
+                      >
+
+                      <div class="story-visibilidad-overlay"></div>
+
+                  </div>
+
+
+                  <div class="story-visibilidad-contenido">
+
+                      <div class="story-visibilidad-indicador" aria-hidden="true">
+                          <span id="progresoVisibilidad"></span>
+                      </div>
+
+
+                      <div class="story-problemas">
+
+                          <article class="story-problema activo" data-paso="0">
+
+                              <span>
+                                  El propósito · 03
+                              </span>
+
+                              <h2>
+                                  Volver a abrir
+                                  <em>no basta.</em>
+                              </h2>
+
+                              <p>
+                                  Levantar nuevamente la persiana
+                                  es apenas el primer paso.
+                              </p>
+
+                          </article>
+
+
+                          <article class="story-problema" data-paso="1">
+
+                              <span>
+                                  Visibilidad
+                              </span>
+
+                              <h2>
+                                  Si nadie sabe
+                                  que estás aquí...
+                              </h2>
+
+                              <p>
+                                  Un comercio puede estar abierto
+                                  y aun así permanecer invisible.
+                              </p>
+
+                          </article>
+
+
+                          <article class="story-problema" data-paso="2">
+
+                              <span>
+                                  Volver a conectar
+                              </span>
+
+                              <h2>
+                                  También hay que
+                                  <em>volver a ser encontrado.</em>
+                              </h2>
+
+                              <p>
+                                  Nuevas personas.
+                                  Nuevas oportunidades.
+                                  Una ciudad que vuelve a descubrir lo suyo.
+                              </p>
+
+                          </article>
+
+                      </div>
+
+
+                      <p class="story-nace-reactiva" id="storyNaceReactiva">
+                          Y ahí comienza Reactiva Pereira.
+                          <span>→</span>
+                      </p>
+
+                  </div>
+
+              </div>
+
+          </section>
+
+          <!-- =========================================
+              ESCENA 04 · NACE REACTIVA PEREIRA
+          ========================================= -->
+
+          <section class="story-escena story-digital" id="storyDigital">
+
+              <div class="story-digital-sticky">
+
+                  <!-- TEXTO NARRATIVO -->
+
+                  <div class="story-digital-copy">
+
+                      <span class="story-capitulo">
+                          El propósito · 04
+                      </span>
+
+
+                      <div class="story-digital-mensajes">
+
+                          <article
+                              class="story-digital-mensaje activo"
+                              data-digital-paso="0"
+                          >
+                              <p class="story-digital-etiqueta">
+                                  Volver a conectar
+                              </p>
+
+                              <h2>
+                                  Un comercio físico
+                                  también necesita
+                                  <em>un lugar digital.</em>
+                              </h2>
+                          </article>
+
+
+                          <article
+                              class="story-digital-mensaje"
+                              data-digital-paso="1"
+                          >
+                              <p class="story-digital-etiqueta">
+                                  Visibilidad
+                              </p>
+
+                              <h2>
+                                  Publicar es hacer
+                                  <em>visible lo que ya existe.</em>
+                              </h2>
+
+                              <p>
+                                  Un producto, una historia y un comercio
+                                  pueden llegar mucho más lejos cuando
+                                  encuentran una vitrina digital.
+                              </p>
+                          </article>
+
+
+                          <article
+                              class="story-digital-mensaje"
+                              data-digital-paso="2"
+                          >
+                              <p class="story-digital-etiqueta">
+                                  Reactivación digital
+                              </p>
+
+                              <h2>
+                                  Así nace
+                                  <em>Reactiva Pereira.</em>
+                              </h2>
+
+                              <p>
+                                  Un punto de encuentro entre quienes
+                                  siguen trabajando y quienes quieren
+                                  apoyar comprando local.
+                              </p>
+                          </article>
+
+                      </div>
+
+
+                      <div class="story-digital-progreso" aria-hidden="true">
+                          <span id="progresoDigital"></span>
+                      </div>
+
+                  </div>
+
+
+
+                  <!-- TRANSFORMACIÓN VISUAL -->
+
+                  <div class="story-transformacion">
+
+                      <!-- NEGOCIO FÍSICO -->
+
+                      <figure
+                          class="story-negocio-fisico"
+                          id="storyNegocioFisico"
+                      >
+
+                          <img
+                              src="assets/storytelling/comerciante-negocio.webp"
+                              alt="Comerciante dentro de su negocio"
+                          >
+
+                          <figcaption>
+                              <span>Comercio físico</span>
+
+                              <strong>
+                                  Una historia que ya existe.
+                              </strong>
+                          </figcaption>
+
+                      </figure>
+
+
+
+                      <!-- INTERFAZ DIGITAL -->
+
+                      <div
+                          class="story-marketplace-ui"
+                          id="storyMarketplaceUI"
+                          aria-label="Representación del producto publicado en Reactiva Pereira"
+                      >
+
+                          <div class="story-browser-bar">
+
+                              <div class="story-browser-puntos">
+                                  <span></span>
+                                  <span></span>
+                                  <span></span>
+                              </div>
+
+                              <span class="story-browser-url">
+                                  reactiva-pereira / marketplace
+                              </span>
+
+                          </div>
+
+
+                          <div class="story-marketplace-header">
+
+                              <span class="story-mini-logo">
+                                  RP
+                              </span>
+
+                              <div>
+                                  <strong>
+                                      Reactiva Pereira
+                                  </strong>
+
+                                  <span>
+                                      Marketplace local
+                                  </span>
+                              </div>
+
+                          </div>
+
+
+                          <div class="story-producto-digital">
+
+                              <div
+                                  class="story-producto-imagen"
+                                  id="storyProductoImagen"
+                              >
+                                  <span>RP</span>
+                              </div>
+
+
+                              <div class="story-producto-info">
+
+                                  <span
+                                      class="story-producto-categoria"
+                                      id="storyProductoCategoria"
+                                  >
+                                      Producto local
+                                  </span>
+
+
+                                  <h3 id="storyProductoNombre">
+                                      Producto de Pereira
+                                  </h3>
+
+
+                                  <p id="storyProductoNegocio">
+                                      Comercio local
+                                  </p>
+
+
+                                  <strong id="storyProductoPrecio">
+                                      $0
+                                  </strong>
+
+
+                                  <span
+                                      class="story-producto-stock"
+                                      id="storyProductoStock"
+                                  >
+                                      Disponible
+                                  </span>
+
+
+                                  <span class="story-producto-boton">
+                                      Ver producto →
+                                  </span>
+
+                              </div>
+
+                          </div>
+
+
+                          <div
+                              class="story-digital-sello"
+                              id="storyDigitalSello"
+                          >
+                              Ahora también puede ser encontrado.
+                          </div>
+
+                      </div>
+
+
+                      <div
+                          class="story-transformacion-luz"
+                          id="storyTransformacionLuz"
+                          aria-hidden="true"
+                      ></div>
+
+                  </div>
+
+              </div>
+
+          </section>
+
       </section>
-      <section class="seccion-rp fondo-crema reveal">
-        <div class="contenedor">
-          <span class="etiqueta"
-            >De una publicación a una nueva oportunidad</span
-          >
-          <h2>Conectamos lo que Pereira sabe hacer.</h2>
-          <div class="flujo-local">
-            <article>
-              <span>01 · COMPARTE</span>
-              <h3>Tu comercio tiene un lugar.</h3>
-              <p>
-                El comerciante presenta su negocio, sus productos y su talento.
-              </p>
-            </article>
-            <article>
-              <span>02 · DESCUBRE</span>
-              <h3>Encuentra algo de aquí.</h3>
-              <p>
-                Explora el marketplace, conoce al vendedor y revisa la
-                disponibilidad.
-              </p>
-            </article>
-            <article>
-              <span>03 · APOYA</span>
-              <h3>Elige comprar local.</h3>
-              <p>
-                Organiza tus favoritos en el carrito. La conexión comienza con
-                descubrirnos.
-              </p>
-            </article>
+      <!-- =========================================
+          CÓMO FUNCIONA
+      ========================================= -->
+
+      <section
+          id="como-funciona"
+          class="como-funciona"
+      >
+
+          <div class="contenedor">
+
+              <div class="como-funciona-encabezado">
+
+                  <span class="etiqueta">
+                      Cómo funciona
+                  </span>
+
+                  <h2>
+                      De un comercio local
+                      <em>a una nueva oportunidad.</em>
+                  </h2>
+
+                  <p>
+                      Reactiva Pereira conecta a quienes ofrecen
+                      productos y servicios con personas que quieren
+                      descubrir y apoyar negocios de la región.
+                  </p>
+
+              </div>
+
+
+              <div
+                  class="como-funciona-flujo"
+                  id="comoFuncionaFlujo"
+              >
+
+                  <div
+                      class="como-funciona-linea"
+                      aria-hidden="true"
+                  >
+                      <span id="comoFuncionaProgreso"></span>
+                  </div>
+
+
+                  <!-- PASO 1 -->
+
+                  <article
+                      class="como-paso"
+                      data-como-paso="0"
+                  >
+
+                      <div class="como-paso-numero">
+                          01
+                      </div>
+
+                      <div class="como-paso-icono">
+                          <span>+</span>
+                      </div>
+
+                      <div class="como-paso-contenido">
+
+                          <span>
+                              Comerciante
+                          </span>
+
+                          <h3>
+                              Publica lo que hace.
+                          </h3>
+
+                          <p>
+                              Registra su comercio y presenta
+                              sus productos o servicios dentro
+                              de Reactiva Pereira.
+                          </p>
+
+                      </div>
+
+                  </article>
+
+
+                  <!-- PASO 2 -->
+
+                  <article
+                      class="como-paso"
+                      data-como-paso="1"
+                  >
+
+                      <div class="como-paso-numero">
+                          02
+                      </div>
+
+                      <div class="como-paso-icono">
+                          <span>RP</span>
+                      </div>
+
+                      <div class="como-paso-contenido">
+
+                          <span>
+                              Reactiva Pereira
+                          </span>
+
+                          <h3>
+                              Lo hace visible.
+                          </h3>
+
+                          <p>
+                              El marketplace organiza la información
+                              y permite que nuevos compradores
+                              encuentren el comercio.
+                          </p>
+
+                      </div>
+
+                  </article>
+
+
+                  <!-- PASO 3 -->
+
+                  <article
+                      class="como-paso"
+                      data-como-paso="2"
+                  >
+
+                      <div class="como-paso-numero">
+                          03
+                      </div>
+
+                      <div class="como-paso-icono">
+                          <span>✓</span>
+                      </div>
+
+                      <div class="como-paso-contenido">
+
+                          <span>
+                              Comprador
+                          </span>
+
+                          <h3>
+                              Descubre y conecta.
+                          </h3>
+
+                          <p>
+                              Explora productos, conoce el negocio
+                              y encuentra nuevas razones para
+                              comprar local.
+                          </p>
+
+                      </div>
+
+                  </article>
+
+              </div>
+
           </div>
-        </div>
+
       </section>
       <section id="comercios" class="seccion-rp reveal">
         <div class="contenedor">

@@ -51,6 +51,62 @@ async function createApplication({
       rol: "Administrador",
     });
   }
+
+  /* =========================================================
+    USUARIOS DEMO · SOLO MIENTRAS NO HAYA BASE DE DATOS
+  ========================================================= */
+
+  const usuariosDemo = [
+    {
+      nombre: "Angel",
+      apellido: "Gutierrez",
+      correo: "comprador@reactivapereira.local",
+      password: "CompradorDemo2026!",
+      rol: "Comprador",
+    },
+
+    {
+      nombre: "Juan",
+      apellido: "Betancur",
+      correo: "comerciante1@reactivapereira.local",
+      password: "ComercianteDemo2026!",
+      rol: "Comerciante",
+    },
+
+    {
+      nombre: "Andrea",
+      apellido: "Torres",
+      correo: "comerciante2@reactivapereira.local",
+      password: "ComercianteDemo2026!",
+      rol: "Comerciante",
+    },
+  ];
+
+
+  const usuariosExistentes =
+    await repositories.usuario.list();
+
+
+  for (const demo of usuariosDemo) {
+
+    const existe =
+      usuariosExistentes.some(
+        (usuario) =>
+          usuario.correo === demo.correo
+      );
+
+
+    if (!existe) {
+
+      await usuarios.crear(
+        null,
+        demo
+      );
+
+    }
+
+  } 
+
   app.use(cabeceras);
   app.use(
     "/api",
