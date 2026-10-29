@@ -14,7 +14,6 @@ Frontend:
 - HTML5
 - CSS3
 - JavaScript
-- LocalStorage en la etapa actual
 - fetch() posteriormente
 
 Backend:
