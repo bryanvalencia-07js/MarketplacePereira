@@ -233,19 +233,23 @@ function cargarMiNegocio() {
 
     if (!miNegocio) {
 
-        sinComercio.hidden =
-            false;
-
-        document.getElementById(
-            "btnProductos"
-        ).hidden = false;
-
-        seccionComercio.hidden =
-            true;
-
+        sinComercio.hidden = false;
+        seccionComercio.hidden = true;
 
         return;
     }
+
+
+    // Ya tiene comercio
+
+    sinComercio.hidden = true;
+
+    seccionComercio.hidden = false;
+
+
+    document.getElementById(
+        "btnProductos"
+    ).hidden = false;
 
 
 

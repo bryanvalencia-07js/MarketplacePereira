@@ -142,11 +142,12 @@ function mostrarProductosMarketplace(
                 </strong>
 
 
-                <button
+                <a
+                    href="detalle-producto.html?id=${producto.id}"
                     class="boton boton-primario"
                 >
                     Ver producto
-                </button>
+                </a>
 
             </div>
 
@@ -278,6 +279,13 @@ function mostrarPopulares() {
                     ).toLocaleString("es-CO")}
 
                 </strong>
+
+                <a
+                    href="detalle-producto.html?id=${producto.id}"
+                    class="boton boton-primario"
+                >
+                    Ver producto
+                </a>
 
             </div>
 

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Producto | Reactiva Pereira</title>
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/estilos.css"
+    >
+
+</head>
+
+
+<body class="pagina-marketplace">
+
+    <!-- NAVBAR -->
+
+    <header class="market-header">
+
+        <div class="contenedor market-nav detalle-nav">
+
+            <a
+                href="marketplace.html"
+                class="marca"
+            >
+
+                <span class="marca-icono">
+                    RP
+                </span>
+
+                <div>
+
+                    <span class="marca-nombre">
+                        Reactiva Pereira
+                    </span>
+
+                    <span class="marca-subtitulo">
+                        Marketplace local
+                    </span>
+
+                </div>
+
+            </a>
+
+
+            <a
+                href="marketplace.html"
+                class="boton boton-secundario"
+            >
+                Volver al marketplace
+            </a>
+
+
+            <div class="market-usuario">
+
+                <div>
+
+                    <strong id="nombreUsuario">
+                        Comprador
+                    </strong>
+
+                    <span id="rolUsuario">
+                        Comprador
+                    </span>
+
+                </div>
+
+                <a
+                    href="carrito.html"
+                    class="carrito-navbar"
+                    aria-label="Ver carrito de compras"
+                >
+
+                    <svg
+                        class="carrito-icono"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                    >
+                        <circle cx="9" cy="20" r="1"></circle>
+                        <circle cx="19" cy="20" r="1"></circle>
+
+                        <path
+                            d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6"
+                        ></path>
+                    </svg>
+
+
+                    <span class="carrito-texto">
+                        Carrito
+                    </span>
+
+
+                    <span
+                        id="contadorCarrito"
+                        class="carrito-contador"
+                    >
+                        0
+                    </span>
+
+                </a>
+
+
+                <button
+                    class="boton boton-salir"
+                    onclick="cerrarSesion()"
+                >
+                    Cerrar sesión
+                </button>
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+
+    <main class="detalle-producto-main">
+
+        <div class="contenedor">
+
+            <!-- PRODUCTO -->
+
+            <section
+                id="detalleProducto"
+                class="detalle-producto-grid"
+                hidden
+            >
+
+                <!-- IMAGEN -->
+
+                <div class="detalle-producto-imagen">
+
+                    <img
+                        id="detalleImagen"
+                        src=""
+                        alt=""
+                        hidden
+                    >
+
+
+                    <span
+                        id="detalleInicial"
+                        class="detalle-producto-inicial"
+                    >
+                        P
+                    </span>
+
+                </div>
+
+
+
+                <!-- INFORMACIÓN -->
+
+                <div class="detalle-producto-info">
+
+                    <span
+                        id="detalleCategoria"
+                        class="producto-categoria"
+                    >
+                    </span>
+
+
+                    <h1 id="detalleNombre">
+                        Producto
+                    </h1>
+
+
+                    <p
+                        id="detallePrecio"
+                        class="detalle-precio"
+                    >
+                    </p>
+
+
+                    <p
+                        id="detalleDescripcion"
+                        class="detalle-descripcion"
+                    >
+                    </p>
+
+
+                    <div class="detalle-datos">
+
+                        <div>
+
+                            <span>
+                                Disponibilidad
+                            </span>
+
+                            <strong id="detalleStock">
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Estado
+                            </span>
+
+                            <strong id="detalleEstado">
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                    <div class="detalle-compra">
+
+                        <div class="selector-cantidad">
+
+                            <span class="selector-cantidad-label">
+                                Cantidad
+                            </span>
+
+                            <div class="selector-cantidad-control">
+
+                                <button
+                                    type="button"
+                                    onclick="cambiarCantidadDetalle(-1)"
+                                    aria-label="Disminuir cantidad"
+                                >
+                                    −
+                                </button>
+
+                                <span id="cantidadVisual">
+                                    1
+                                </span>
+
+                                <button
+                                    type="button"
+                                    onclick="cambiarCantidadDetalle(1)"
+                                    aria-label="Aumentar cantidad"
+                                >
+                                    +
+                                </button>
+
+                            </div>
+
+                            <input
+                                type="hidden"
+                                id="cantidadProducto"
+                                value="1"
+                            >
+
+                        </div>
+
+
+                        <button
+                            type="button"
+                            id="btnAgregarCarrito"
+                            class="boton boton-primario"
+                            onclick="agregarAlCarrito()"
+                        >
+                            Agregar al carrito
+                        </button>
+
+                    </div>
+
+
+                    <p
+                        id="mensajeCarrito"
+                        class="mensaje-formulario"
+                    ></p>
+
+
+                    <!-- COMERCIO -->
+
+                    <div class="detalle-comercio">
+
+                        <span class="modulo-tipo">
+                            Vendido por
+                        </span>
+
+
+                        <h2 id="detalleComercio">
+                        </h2>
+
+
+                        <p id="detalleDireccion">
+                        </p>
+
+
+                        <p id="detalleTelefono">
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- ERROR -->
+
+            <section
+                id="productoNoEncontrado"
+                class="panel-admin detalle-no-encontrado"
+                hidden
+            >
+
+                <span class="etiqueta">
+                    Producto no disponible
+                </span>
+
+                <h2>
+                    No pudimos encontrar este producto.
+                </h2>
+
+                <p>
+                    Es posible que haya sido eliminado,
+                    desactivado o que el comercio ya no
+                    esté disponible.
+                </p>
+
+
+                <a
+                    href="marketplace.html"
+                    class="boton boton-primario"
+                >
+                    Volver al marketplace
+                </a>
+
+            </section>
+
+        </div>
+
+    </main>
+
+
+    <script src="js/sesion.js"></script>
+
+    <script>
+        protegerPorRol([
+            "Comprador"
+        ]);
+    </script>
+
+    <script src="js/detalle-producto.js"></script>
+
+</body>
+
+</html>

@@ -1,7 +1,6 @@
 // ======================================================
 // RECUPERAR INFORMACIÓN
 // ======================================================
-
 let negocios =
     JSON.parse(
         localStorage.getItem("negocios")
@@ -14,7 +13,7 @@ let productos =
     ) || [];
 
 let imagenProductoBase64 = "";
-
+let imagenProcesandose = false;
 // ======================================================
 // PREVISUALIZAR Y CONVERTIR IMAGEN
 // ======================================================
@@ -29,8 +28,6 @@ function previsualizarImagen(event) {
         return;
     }
 
-
-    // Validar formato
 
     const formatosPermitidos = [
         "image/jpeg",
@@ -50,34 +47,13 @@ function previsualizarImagen(event) {
             "error"
         );
 
-
         event.target.value = "";
 
         return;
     }
 
 
-    // 500 KB aproximadamente
-
-    const tamañoMaximo =
-        500 * 1024;
-
-
-    if (
-        archivo.size >
-        tamañoMaximo
-    ) {
-
-        mostrarMensajeProducto(
-            "La imagen no puede superar los 500 KB.",
-            "error"
-        );
-
-
-        event.target.value = "";
-
-        return;
-    }
+    imagenProcesandose = true;
 
 
     const lector =
@@ -85,26 +61,118 @@ function previsualizarImagen(event) {
 
 
     lector.onload =
-        function () {
+        function (evento) {
 
-            imagenProductoBase64 =
-                lector.result;
-
-
-            const preview =
-                document.getElementById(
-                    "previewProducto"
-                );
+            const imagen =
+                new Image();
 
 
-            preview.src =
-                imagenProductoBase64;
+            imagen.onload =
+                function () {
+
+                    const tamañoMaximo =
+                        900;
 
 
-            document.getElementById(
-                "contenedorPreview"
-            ).hidden =
-                false;
+                    let ancho =
+                        imagen.width;
+
+                    let alto =
+                        imagen.height;
+
+
+                    // Reducir dimensiones
+                    // manteniendo proporción.
+
+                    if (
+                        ancho > alto &&
+                        ancho > tamañoMaximo
+                    ) {
+
+                        alto =
+                            Math.round(
+                                alto *
+                                tamañoMaximo /
+                                ancho
+                            );
+
+                        ancho =
+                            tamañoMaximo;
+
+                    } else if (
+                        alto > tamañoMaximo
+                    ) {
+
+                        ancho =
+                            Math.round(
+                                ancho *
+                                tamañoMaximo /
+                                alto
+                            );
+
+                        alto =
+                            tamañoMaximo;
+                    }
+
+
+                    const canvas =
+                        document.createElement(
+                            "canvas"
+                        );
+
+
+                    canvas.width =
+                        ancho;
+
+                    canvas.height =
+                        alto;
+
+
+                    const contexto =
+                        canvas.getContext("2d");
+
+
+                    contexto.drawImage(
+                        imagen,
+                        0,
+                        0,
+                        ancho,
+                        alto
+                    );
+
+
+                    // Convertimos a JPEG comprimido.
+
+                    imagenProductoBase64 =
+                        canvas.toDataURL(
+                            "image/jpeg",
+                            0.72
+                        );
+
+
+                    const preview =
+                        document.getElementById(
+                            "previewProducto"
+                        );
+
+
+                    preview.src =
+                        imagenProductoBase64;
+
+
+                    document.getElementById(
+                        "contenedorPreview"
+                    ).hidden =
+                        false;
+
+
+                    imagenProcesandose =
+                        false;
+                };
+
+
+            imagen.src =
+                evento.target.result;
         };
 
 
@@ -155,22 +223,31 @@ if (!miComercio) {
 
 function guardarProductosLocalStorage() {
 
-    if (
-        id === "" &&
-        imagenProductoBase64 === ""
-    ){
+    try {
+
+        localStorage.setItem(
+            "productos",
+            JSON.stringify(productos)
+        );
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "Error guardando productos:",
+            error
+        );
+
+
         mostrarMensajeProducto(
-            "Debes seleccionar una imagen del producto.",
+            "No hay suficiente espacio para guardar la imagen. Prueba con una imagen más pequeña.",
             "error"
         );
 
-        return;
-    }
 
-    localStorage.setItem(
-        "productos",
-        JSON.stringify(productos)
-    );
+        return false;
+    }
 }
 
 
@@ -379,6 +456,15 @@ function mostrarMisProductos(lista) {
 function guardarProducto(event) {
 
     event.preventDefault();
+
+    if (imagenProcesandose) {
+        mostrarMensajeProducto(
+            "La imagen todavía se está procesando. Intenta nuevamente.",
+            "error"
+        );
+
+        return;
+    }
 
 
     const id =
