@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Productos de la plataforma | Reactiva Pereira</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/estilos.css" />
+  </head>
+
+  <body class="pagina-dashboard">
+    <!-- HEADER -->
+
+    <header class="dashboard-header">
+      <div class="contenedor dashboard-nav">
+        <a href="dashboard.html" class="marca">
+          <span class="marca-icono"> RP </span>
+
+          <div>
+            <span class="marca-nombre"> Reactiva Pereira </span>
+
+            <span class="marca-subtitulo"> Productos de la plataforma </span>
+          </div>
+        </a>
+
+        <div class="dashboard-usuario">
+          <div>
+            <strong id="nombreUsuario"> Comerciante </strong>
+
+            <span id="rolUsuario"> Comerciante </span>
+          </div>
+
+          <a href="dashboard.html" class="boton boton-secundario">
+            Panel administrador
+          </a>
+
+          <button class="boton boton-salir" data-click="cerrarSesion">
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="dashboard-main">
+      <div class="contenedor">
+        <!-- ENCABEZADO -->
+
+        <section class="modulo-encabezado">
+          <span class="etiqueta"> Catálogo </span>
+
+          <h1>Productos de la plataforma</h1>
+
+          <p id="nombreComercioProductos">
+            Administra los productos de tu comercio.
+          </p>
+        </section>
+
+        <!-- FORMULARIO -->
+
+        <section class="panel-admin">
+          <div class="panel-titulo">
+            <div>
+              <span class="modulo-tipo"> Catálogo del comercio </span>
+
+              <h2 id="tituloFormularioProducto">Registrar producto</h2>
+            </div>
+          </div>
+
+          <form
+            id="formProducto"
+            class="formulario"
+            data-submit="guardarProducto"
+          >
+            <input type="hidden" id="productoId" />
+
+            <div class="form-grid">
+              <div class="campo campo-completo">
+                <label for="productoNegocioId">Comercio propietario</label
+                ><select id="productoNegocioId" required></select>
+              </div>
+
+              <div class="campo">
+                <label for="nombreProducto"> Nombre del producto </label>
+
+                <input
+                  type="text"
+                  id="nombreProducto"
+                  placeholder="Ej. Café especial"
+                  required
+                />
+              </div>
+
+              <div class="campo">
+                <label for="categoriaProducto"> Categoría </label>
+
+                <select id="categoriaProducto" required>
+                  <option value="">Seleccione</option>
+
+                  <option value="Alimentos">Alimentos</option>
+
+                  <option value="Ropa">Ropa</option>
+
+                  <option value="Tecnología">Tecnología</option>
+
+                  <option value="Servicios">Servicios</option>
+
+                  <option value="Hogar">Hogar</option>
+
+                  <option value="Otro">Otro</option>
+                </select>
+              </div>
+
+              <div class="campo">
+                <label for="precioProducto"> Precio </label>
+
+                <input
+                  type="number"
+                  id="precioProducto" step="0.01"
+                  min="1"
+                  placeholder="25000"
+                  required
+                />
+              </div>
+
+              <div class="campo">
+                <label for="stockProducto"> Cantidad disponible </label>
+
+                <input
+                  type="number"
+                  id="stockProducto"
+                  min="0"
+                  placeholder="10"
+                  required
+                />
+              </div>
+
+              <div class="campo campo-completo">
+                <label for="descripcionProducto"
+                  >Descripción del producto</label
+                >
+                <textarea
+                  id="descripcionProducto"
+                  rows="4"
+                  maxlength="2000"
+                  required
+                ></textarea>
+              </div>
+
+              <div class="campo campo-completo">
+                <label for="imagenProducto"> Imagen del producto </label>
+
+                <input
+                  type="file"
+                  id="imagenProducto"
+                  accept="image/png, image/jpeg, image/webp"
+                  data-change="previsualizarImagen"
+                />
+
+                <small>
+                  Formatos permitidos: PNG, JPG, JPEG, WEBP Hasta 10 MB. Se
+                  optimiza a JPEG de hasta 900 píxeles.
+                </small>
+
+                <div id="contenedorPreview" hidden class="producto-preview">
+                  <img
+                    id="previewProducto"
+                    src=""
+                    alt="Vista previa del producto"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <p
+              id="mensajeProducto"
+              role="status"
+              aria-live="polite"
+              class="mensaje-formulario"
+            ></p>
+
+            <div class="acciones-formulario">
+              <button type="submit" class="boton boton-primario">
+                Guardar producto
+              </button>
+
+              <button
+                type="button"
+                id="btnCancelarProducto"
+                class="boton boton-secundario"
+                data-click="cancelarEdicionProducto"
+                hidden
+              >
+                Cancelar edición
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- BUSCADOR -->
+
+        <section class="barra-herramientas">
+          <input
+            type="search"
+            id="buscarProducto"
+            aria-label="Buscar entre mis productos"
+            placeholder="Buscar entre mis productos..."
+            data-input="filtrarMisProductos"
+          />
+
+          <select
+            id="filtroCategoriaProducto"
+            aria-label="Filtrar productos por categoría"
+            data-change="filtrarMisProductos"
+          >
+            <option value="">Todas las categorías</option>
+
+            <option value="Alimentos">Alimentos</option>
+
+            <option value="Ropa">Ropa</option>
+
+            <option value="Tecnología">Tecnología</option>
+
+            <option value="Servicios">Servicios</option>
+
+            <option value="Hogar">Hogar</option>
+
+            <option value="Otro">Otro</option>
+          </select>
+        </section>
+
+        <!-- PRODUCTOS -->
+
+        <section class="panel-admin">
+          <div class="panel-titulo">
+            <div>
+              <span class="modulo-tipo"> Productos registrados </span>
+
+              <h2>Catálogo global</h2>
+            </div>
+
+            <span id="contadorMisProductos" class="contador">
+              0 productos
+            </span>
+          </div>
+
+          <div id="listaMisProductos" class="productos-grid"></div>
+
+          <p id="sinMisProductos" class="mensaje-vacio" hidden>
+            Todavía no tienes productos registrados.
+          </p>
+        </section>
+      </div>
+    </main>
+
+    <script src="js/estado-local.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/sesion.js"></script>
+    <script src="js/legado.js"></script>
+    <script src="js/app-init.js"></script>
+  </body>
+</html>

@@ -119,7 +119,7 @@
 
                 <form
                     class="formulario"
-                    onsubmit="iniciarSesion(event)"
+                    data-submit="iniciarSesion"
                 >
 
                     <!-- CORREO -->
@@ -150,7 +150,7 @@
                         </label>
 
                         <input
-                            type="password"
+                            type="password" minlength="12" maxlength="128" autocomplete="current-password"
                             id="password"
                             placeholder="Ingresa tu contraseña"
                             autocomplete="current-password"
@@ -163,7 +163,7 @@
                     <!-- MENSAJE -->
 
                     <p
-                        id="mensaje"
+                        id="mensaje" role="status" aria-live="polite"
                         class="mensaje-formulario"
                     ></p>
 
@@ -198,9 +198,12 @@
 
     </main>
 
-
-    <script src="js/login.js"></script>
-
+<script src="js/estado-local.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sesion.js"></script>
+<script src="js/legado.js"></script>
+<script src="js/app-init.js"></script>
 </body>
 
 </html>

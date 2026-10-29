@@ -3,18 +3,21 @@
   "version": "1.0.0",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js"
+    "start": "node --env-file-if-exists=.env app.js",
+    "dev": "nodemon --exec \"node --env-file-if-exists=.env\" app.js",
+    "test": "node --test ../tests/api.test.cjs"
   },
   "keywords": [],
   "author": "Bryan Alejandro Valencia, Juan Betancur Arana",
   "license": "ISC",
   "description": "API REST del marketplace Reactiva Pereira",
   "dependencies": {
-    "cors": "^2.8.6",
     "express": "^5.2.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
+  },
+  "engines": {
+    "node": ">=24 <25"
   }
 }

@@ -1,669 +1,132 @@
-// ======================================================
-// RECUPERAR NEGOCIOS
-// ======================================================
-
-let negocios =
-    JSON.parse(
-        localStorage.getItem("negocios")
-    ) || [];
-
-
-
-// ======================================================
-// GUARDAR LOCALSTORAGE
-// ======================================================
-
-function guardarNegociosLocalStorage() {
-
-    localStorage.setItem(
-        "negocios",
-        JSON.stringify(negocios)
-    );
+let negocios = [];
+let comerciantes = [];
+async function cargarNegocios() {
+  [negocios, comerciantes] = await Promise.all([
+    API.get("/negocios?gestion=true"),
+    API.get("/usuarios"),
+  ]);
+  comerciantes = comerciantes.filter((u) => u.rol === "Comerciante");
+  const select = document.getElementById("propietario");
+  const anterior = select.value;
+  select.innerHTML =
+    '<option value="">Selecciona un comerciante</option>' +
+    comerciantes
+      .map(
+        (u) =>
+          `<option value="${u.id}">${UI.e(u.nombre)} ${UI.e(u.apellido)} · ${UI.e(u.correo)}</option>`,
+      )
+      .join("");
+  select.value = anterior;
+  aplicarFiltrosNegocios();
 }
-
-
-
-// ======================================================
-// MOSTRAR NEGOCIOS
-// ======================================================
-
 function mostrarNegocios(lista) {
-
-    const contenedor =
-        document.getElementById("listaNegocios");
-
-    const contador =
-        document.getElementById("contadorNegocios");
-
-    const sinNegocios =
-        document.getElementById("sinNegocios");
-
-
-    contenedor.innerHTML = "";
-
-
-    contador.innerText =
-        `${lista.length} negocio(s)`;
-
-
-    if (lista.length === 0) {
-
-        sinNegocios.hidden =
-            false;
-
-        return;
-    }
-
-
-    sinNegocios.hidden =
-        true;
-
-
-    lista.forEach(negocio => {
-
-        const tarjeta =
-            document.createElement("article");
-
-
-        tarjeta.className =
-            "negocio-card";
-
-
-        tarjeta.innerHTML = `
-
-            <div class="negocio-card-superior">
-
-                <div class="negocio-avatar">
-
-                    ${negocio.nombre.charAt(0).toUpperCase()}
-
-                </div>
-
-
-                <span class="
-                    badge
-                    ${
-                        negocio.estado === "Activo"
-                            ? "badge-activo"
-                            : "badge-inactivo"
-                    }
-                ">
-
-                    ${negocio.estado}
-
-                </span>
-
-            </div>
-
-
-            <div class="negocio-card-contenido">
-
-                <span class="modulo-tipo">
-
-                    ${negocio.categoria}
-
-                </span>
-
-
-                <h3>
-
-                    ${negocio.nombre}
-
-                </h3>
-
-
-                <p>
-
-                    <strong>
-                        Propietario:
-                    </strong>
-
-                    ${negocio.propietario}
-
-                </p>
-
-
-                <p>
-
-                    <strong>
-                        Teléfono:
-                    </strong>
-
-                    ${negocio.telefono}
-
-                </p>
-
-
-                <p>
-
-                    <strong>
-                        Dirección:
-                    </strong>
-
-                    ${negocio.direccion}
-
-                </p>
-
-            </div>
-
-
-            <div class="acciones-tabla">
-
-                <button
-                    class="boton-accion editar"
-                    onclick="editarNegocio(${negocio.id})"
-                >
-                    Editar
-                </button>
-
-
-                <button
-                    class="boton-accion estado"
-                    onclick="cambiarEstadoNegocio(${negocio.id})"
-                >
-                    Cambiar estado
-                </button>
-
-
-                <button
-                    class="boton-accion eliminar"
-                    onclick="eliminarNegocio(${negocio.id})"
-                >
-                    Eliminar
-                </button>
-
-            </div>
-
-        `;
-
-
-        contenedor.appendChild(
-            tarjeta
-        );
-    });
+  document.getElementById("contadorNegocios").textContent =
+    `${lista.length} negocio(s)`;
+  document.getElementById("sinNegocios").hidden = lista.length > 0;
+  const contenedor = document.getElementById("listaNegocios");
+  contenedor.replaceChildren();
+  for (const n of lista) {
+    const card = document.createElement("article");
+    card.className = "negocio-card";
+    card.innerHTML = `<div class="negocio-card-superior"><span class="negocio-avatar">${UI.e(n.nombre.charAt(0))}</span><span class="badge ${n.estado === "Activo" ? "badge-activo" : "badge-inactivo"}">${UI.e(n.estado)}</span></div><div class="negocio-card-contenido"><span class="modulo-tipo">${UI.e(n.categoria)}</span><h3>${UI.e(n.nombre)}</h3><p>Propietario: ${UI.e(n.propietario)}</p><p>${UI.e(n.telefono)}</p><p>${UI.e(n.direccion)}</p></div><div class="acciones-tabla"><button class="boton-accion editar">Editar</button><button class="boton-accion estado">Cambiar estado</button><button class="boton-accion eliminar">Eliminar</button></div>`;
+    card.querySelector(".editar").onclick = () => editarNegocio(n.id);
+    card.querySelector(".estado").onclick = () => cambiarEstadoNegocio(n.id);
+    card.querySelector(".eliminar").onclick = () => eliminarNegocio(n.id);
+    contenedor.append(card);
+  }
 }
-
-
-
-// ======================================================
-// CREATE / UPDATE
-// ======================================================
-
-function guardarNegocio(event) {
-
-    event.preventDefault();
-
-
-    const id =
-        document
-            .getElementById("negocioId")
-            .value;
-
-
-    const nombre =
-        document
-            .getElementById("nombreNegocio")
-            .value
-            .trim();
-
-
-    const propietario =
-        document
-            .getElementById("propietario")
-            .value
-            .trim();
-
-
-    const categoria =
-        document
-            .getElementById("categoria")
-            .value;
-
-
-    const telefono =
-        document
-            .getElementById("telefono")
-            .value
-            .trim();
-
-
-    const direccion =
-        document
-            .getElementById("direccion")
-            .value
-            .trim();
-
-
-
-    // Validación
-
-    if (
-        nombre === "" ||
-        propietario === "" ||
-        categoria === "" ||
-        telefono === "" ||
-        direccion === ""
-    ) {
-
-        mostrarMensajeNegocio(
-            "Todos los campos son obligatorios.",
-            "error"
-        );
-
-        return;
-    }
-
-
-
-    // ==================================================
-    // UPDATE
-    // ==================================================
-
-    if (id !== "") {
-
-        const negocio =
-            negocios.find(
-                negocio =>
-                    negocio.id === Number(id)
-            );
-
-
-        if (!negocio) {
-
-            mostrarMensajeNegocio(
-                "Negocio no encontrado.",
-                "error"
-            );
-
-            return;
-        }
-
-
-        negocio.nombre =
-            nombre;
-
-        negocio.propietario =
-            propietario;
-
-        negocio.categoria =
-            categoria;
-
-        negocio.telefono =
-            telefono;
-
-        negocio.direccion =
-            direccion;
-
-
-        guardarNegociosLocalStorage();
-
-
-        mostrarMensajeNegocio(
-            "Negocio actualizado correctamente.",
-            "exito"
-        );
-
-
-        limpiarFormularioNegocio();
-
-
-        aplicarFiltrosNegocios();
-
-
-        return;
-    }
-
-
-
-    // ==================================================
-    // CREATE
-    // ==================================================
-
-    const nuevoNegocio = {
-
-        id:
-            negocios.length > 0
-
-                ? Math.max(
-                    ...negocios.map(
-                        negocio => negocio.id
-                    )
-                ) + 1
-
-                : 1,
-
-        nombre:
-            nombre,
-
-        propietario:
-            propietario,
-
-        categoria:
-            categoria,
-
-        telefono:
-            telefono,
-
-        direccion:
-            direccion,
-
-        estado:
-            "Activo"
-    };
-
-
-    negocios.push(
-        nuevoNegocio
-    );
-
-
-    guardarNegociosLocalStorage();
-
-
-    mostrarMensajeNegocio(
-        "Negocio registrado correctamente.",
-        "exito"
-    );
-
-
-    limpiarFormularioNegocio();
-
-
-    aplicarFiltrosNegocios();
-}
-
-
-
-// ======================================================
-// EDITAR
-// ======================================================
-
-function editarNegocio(id) {
-
-    const negocio =
-        negocios.find(
-            negocio =>
-                negocio.id === id
-        );
-
-
-    if (!negocio) {
-
-        return;
-    }
-
-
-    document.getElementById(
-        "negocioId"
-    ).value =
-        negocio.id;
-
-
-    document.getElementById(
-        "nombreNegocio"
-    ).value =
-        negocio.nombre;
-
-
-    document.getElementById(
-        "propietario"
-    ).value =
-        negocio.propietario;
-
-
-    document.getElementById(
-        "categoria"
-    ).value =
-        negocio.categoria;
-
-
-    document.getElementById(
-        "telefono"
-    ).value =
-        negocio.telefono;
-
-
-    document.getElementById(
-        "direccion"
-    ).value =
-        negocio.direccion;
-
-
-    document.getElementById(
-        "tituloNegocio"
-    ).innerText =
-        "Editar negocio";
-
-
-    document.getElementById(
-        "btnCancelarNegocio"
-    ).hidden =
-        false;
-
-
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
-}
-
-
-
-// ======================================================
-// CANCELAR EDICIÓN
-// ======================================================
-
-function cancelarEdicionNegocio() {
-
-    limpiarFormularioNegocio();
-
-
-    document.getElementById(
-        "mensajeNegocio"
-    ).innerText =
-        "";
-}
-
-
-
-// ======================================================
-// DELETE
-// ======================================================
-
-function eliminarNegocio(id) {
-
-    const negocio =
-        negocios.find(
-            negocio =>
-                negocio.id === id
-        );
-
-
-    if (!negocio) {
-
-        return;
-    }
-
-
-    const confirmar =
-        confirm(
-            `¿Seguro que deseas eliminar ${negocio.nombre}?`
-        );
-
-
-    if (!confirmar) {
-
-        return;
-    }
-
-
-    negocios =
-        negocios.filter(
-            negocio =>
-                negocio.id !== id
-        );
-
-
-    guardarNegociosLocalStorage();
-
-
-    aplicarFiltrosNegocios();
-}
-
-
-
-// ======================================================
-// CAMBIAR ESTADO
-// ======================================================
-
-function cambiarEstadoNegocio(id) {
-
-    const negocio =
-        negocios.find(
-            negocio =>
-                negocio.id === id
-        );
-
-
-    if (!negocio) {
-
-        return;
-    }
-
-
-    negocio.estado =
-        negocio.estado === "Activo"
-            ? "Inactivo"
-            : "Activo";
-
-
-    guardarNegociosLocalStorage();
-
-
-    aplicarFiltrosNegocios();
-}
-
-
-
-// ======================================================
-// BUSCAR Y FILTRAR
-// ======================================================
-
 function aplicarFiltrosNegocios() {
-
-    const texto =
-        document
-            .getElementById("buscarNegocio")
-            .value
-            .trim()
-            .toLowerCase();
-
-
-    const categoria =
-        document
-            .getElementById("filtroCategoria")
-            .value;
-
-
-    const filtrados =
-        negocios.filter(negocio => {
-
-            const coincideTexto =
-
-                negocio.nombre
-                    .toLowerCase()
-                    .includes(texto)
-
-                ||
-
-                negocio.propietario
-                    .toLowerCase()
-                    .includes(texto);
-
-
-            const coincideCategoria =
-
-                categoria === ""
-
-                ||
-
-                negocio.categoria === categoria;
-
-
-            return (
-                coincideTexto &&
-                coincideCategoria
-            );
-        });
-
-
-    mostrarNegocios(
-        filtrados
-    );
+  const texto = document
+    .getElementById("buscarNegocio")
+    .value.trim()
+    .toLowerCase();
+  const categoria = document.getElementById("filtroCategoria").value;
+  mostrarNegocios(
+    negocios.filter(
+      (n) =>
+        (!categoria || n.categoria === categoria) &&
+        `${n.nombre} ${n.propietario}`.toLowerCase().includes(texto),
+    ),
+  );
 }
-
-
-
-// ======================================================
-// LIMPIAR FORMULARIO
-// ======================================================
-
+async function guardarNegocio(event) {
+  event.preventDefault();
+  await UI.tarea(
+    document.querySelector('#formNegocio button[type="submit"]'),
+    async () => {
+      const id = Number(document.getElementById("negocioId").value);
+      const body = {
+        nombre: document.getElementById("nombreNegocio").value,
+        usuarioId: Number(document.getElementById("propietario").value),
+        categoria: document.getElementById("categoria").value,
+        telefono: document.getElementById("telefono").value,
+        direccion: document.getElementById("direccion").value,
+      };
+      if (id) await API.put(`/negocios/${id}`, body);
+      else await API.post("/negocios", body);
+      limpiarFormularioNegocio();
+      await cargarNegocios();
+      UI.estado("Comercio guardado correctamente.", "exito", "mensajeNegocio");
+    },
+    "mensajeNegocio",
+  );
+}
+async function editarNegocio(id) {
+  try {
+    const n = await API.get(`/negocios/${id}`);
+    document.getElementById("negocioId").value = id;
+    for (const [k, v] of Object.entries({
+      nombreNegocio: n.nombre,
+      propietario: n.usuarioId,
+      categoria: n.categoria,
+      telefono: n.telefono,
+      direccion: n.direccion,
+    }))
+      document.getElementById(k).value = v;
+    document.getElementById("tituloNegocio").textContent = "Editar negocio";
+    document.getElementById("btnCancelarNegocio").hidden = false;
+    document.getElementById("nombreNegocio").focus();
+  } catch (error) {
+    UI.estado(error.message, "error", "mensajeNegocio");
+  }
+}
 function limpiarFormularioNegocio() {
-
-    document
-        .getElementById("formNegocio")
-        .reset();
-
-
-    document.getElementById(
-        "negocioId"
-    ).value =
-        "";
-
-
-    document.getElementById(
-        "tituloNegocio"
-    ).innerText =
-        "Registrar negocio";
-
-
-    document.getElementById(
-        "btnCancelarNegocio"
-    ).hidden =
-        true;
+  document.getElementById("formNegocio").reset();
+  document.getElementById("negocioId").value = "";
+  document.getElementById("tituloNegocio").textContent = "Registrar negocio";
+  document.getElementById("btnCancelarNegocio").hidden = true;
 }
-
-
-
-// ======================================================
-// MENSAJES
-// ======================================================
-
-function mostrarMensajeNegocio(
-    texto,
-    tipo
-) {
-
-    const mensaje =
-        document.getElementById(
-            "mensajeNegocio"
-        );
-
-
-    mensaje.innerText =
-        texto;
-
-
-    mensaje.className =
-        `mensaje-formulario ${tipo}`;
+function cancelarEdicionNegocio() {
+  limpiarFormularioNegocio();
+  UI.estado("Edición cancelada.", "exito", "mensajeNegocio");
 }
-
-
-
-// ======================================================
-// INICIO
-// ======================================================
-
-mostrarNegocios(
-    negocios
+async function cambiarEstadoNegocio(id) {
+  try {
+    const n = await API.get(`/negocios/${id}`);
+    await API.put(`/negocios/${id}`, {
+      estado: n.estado === "Activo" ? "Inactivo" : "Activo",
+    });
+    await cargarNegocios();
+    UI.estado("Estado actualizado.", "exito", "mensajeNegocio");
+  } catch (error) {
+    UI.estado(error.message, "error", "mensajeNegocio");
+  }
+}
+async function eliminarNegocio(id) {
+  if (
+    !(await UI.confirmar(
+      "¿Eliminar este comercio? Primero debe quedar sin productos.",
+    ))
+  )
+    return;
+  try {
+    await API.delete(`/negocios/${id}`);
+    await cargarNegocios();
+    UI.estado("Comercio eliminado.", "exito", "mensajeNegocio");
+  } catch (error) {
+    UI.estado(error.message, "error", "mensajeNegocio");
+  }
+}
+window.moduloListo = cargarNegocios().catch((error) =>
+  UI.estado(error.message, "error", "mensajeNegocio"),
 );

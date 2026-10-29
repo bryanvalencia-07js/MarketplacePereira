@@ -77,13 +77,14 @@
                 <input
                     type="search"
                     id="buscarMarketplace"
+                    aria-label="Buscar productos o comercios"
                     placeholder="Buscar productos o comercios..."
-                    oninput="buscarMarketplace()"
+                    data-input="buscarMarketplace"
                 >
 
                 <button
                     type="button"
-                    onclick="buscarMarketplace()"
+                    data-click="buscarMarketplace"
                 >
                     Buscar
                 </button>
@@ -149,7 +150,7 @@
 
                 <button
                     class="boton boton-salir"
-                    onclick="cerrarSesion()"
+                    data-click="cerrarSesion"
                 >
                     Salir
                 </button>
@@ -194,6 +195,8 @@
 
 
     <main>
+        <div class="contenedor barra-resultados"><button class="boton boton-secundario" data-click="limpiarFiltros">Limpiar filtros</button></div>
+        <p id="mensajeMarketplace" class="mensaje-formulario" role="status" aria-live="polite"></p>
 
         <!-- =========================================
              HERO
@@ -288,37 +291,37 @@
                 <div class="categorias-market">
 
                     <button
-                        onclick="filtrarCategoria('')"
+                        data-click="filtrarCategoria" data-valor=""
                     >
                         Todos
                     </button>
 
                     <button
-                        onclick="filtrarCategoria('Alimentos')"
+                        data-click="filtrarCategoria" data-valor="Alimentos"
                     >
                         Alimentos
                     </button>
 
                     <button
-                        onclick="filtrarCategoria('Ropa')"
+                        data-click="filtrarCategoria" data-valor="Ropa"
                     >
                         Ropa
                     </button>
 
                     <button
-                        onclick="filtrarCategoria('Tecnología')"
+                        data-click="filtrarCategoria" data-valor="Tecnología"
                     >
                         Tecnología
                     </button>
 
                     <button
-                        onclick="filtrarCategoria('Servicios')"
+                        data-click="filtrarCategoria" data-valor="Servicios"
                     >
                         Servicios
                     </button>
 
                     <button
-                        onclick="filtrarCategoria('Hogar')"
+                        data-click="filtrarCategoria" data-valor="Hogar"
                     >
                         Hogar
                     </button>
@@ -398,7 +401,7 @@
 
 
                     <span
-                        id="contadorProductos"
+                        id="contadorProductos" aria-live="polite"
                         class="contador"
                     >
                         0 productos
@@ -466,7 +469,7 @@
 
         </section>
 
-    </main>
+    <section class="seccion-rp"><div class="contenedor"><h2>Lo más reciente</h2><div id="productosRecientes" class="productos-grid"></div></div></section></main>
 
 
     <section
@@ -552,16 +555,13 @@
     </footer>
 
 
-    <script src="js/sesion.js"></script>
 
-    <script>
-        protegerPorRol([
-            "Comprador"
-        ]);
-    </script>
-
-    <script src="js/marketplace.js"></script>
-
+<script src="js/estado-local.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sesion.js"></script>
+<script src="js/legado.js"></script>
+<script src="js/app-init.js"></script>
 </body>
 
 </html>

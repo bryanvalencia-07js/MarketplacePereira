@@ -113,7 +113,7 @@
 
                 <form
                     class="formulario"
-                    onsubmit="registrarUsuario(event)"
+                    data-submit="registrarUsuario"
                 >
 
                     <div class="campo-grupo doble">
@@ -172,7 +172,7 @@
                         </label>
 
                         <input
-                            type="password"
+                            type="password" minlength="12" maxlength="128" autocomplete="new-password"
                             id="password"
                             placeholder="Ingresa una contraseña"
                         >
@@ -209,7 +209,7 @@
 
 
                     <p
-                        id="mensaje"
+                        id="mensaje" role="status" aria-live="polite"
                         class="mensaje-formulario"
                     ></p>
 
@@ -242,9 +242,12 @@
 
     </main>
 
-
-    <script src="js/registro.js"></script>
-
+<script src="js/estado-local.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sesion.js"></script>
+<script src="js/legado.js"></script>
+<script src="js/app-init.js"></script>
 </body>
 
 </html>

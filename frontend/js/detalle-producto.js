@@ -1,537 +1,135 @@
-// ======================================================
-// RECUPERAR DATOS
-// ======================================================
-
-let productos =
-    JSON.parse(
-        localStorage.getItem("productos")
-    ) || [];
-
-
-const negocios =
-    JSON.parse(
-        localStorage.getItem("negocios")
-    ) || [];
-
-
-let carrito =
-    JSON.parse(
-        localStorage.getItem("carrito")
-    ) || [];
-
-// ======================================================
-// OBTENER ID DESDE LA URL
-// ======================================================
-
-const parametros =
-    new URLSearchParams(
-        window.location.search
-    );
-
-
-const productoId =
-    Number(
-        parametros.get("id")
-    );
-
-
-
-// ======================================================
-// BUSCAR PRODUCTO
-// ======================================================
-
-const producto =
-    productos.find(
-        producto =>
-            Number(producto.id) ===
-            productoId
-    );
-
-
-
-// ======================================================
-// BUSCAR COMERCIO
-// ======================================================
-
-const negocio =
-    producto
-
-        ? negocios.find(
-            negocio =>
-                Number(negocio.id) ===
-                Number(producto.negocioId)
-        )
-
-        : null;
-
-
-
-// ======================================================
-// VALIDAR DISPONIBILIDAD
-// ======================================================
-
-const productoDisponible =
-
-    producto &&
-
-    producto.estado ===
-        "Activo" &&
-
-    negocio &&
-
-    negocio.estado ===
-        "Activo";
-
-
-
-if (!productoDisponible) {
-
-    document.getElementById(
-        "productoNoEncontrado"
-    ).hidden =
-        false;
-
-} else {
-
-    document.getElementById(
-        "detalleProducto"
-    ).hidden =
-        false;
-
-const inputCantidad =
-    document.getElementById(
-        "cantidadProducto"
-    );
-
-
-inputCantidad.max =
-    producto.stock;
-
-
-    // ==================================================
-    // IMAGEN
-    // ==================================================
-
-    const imagen =
-        document.getElementById(
-            "detalleImagen"
-        );
-
-
-    const inicial =
-        document.getElementById(
-            "detalleInicial"
-        );
-
-
-    if (producto.imagen) {
-
-        imagen.src =
-            producto.imagen;
-
-
-        imagen.alt =
-            producto.nombre;
-
-
-        imagen.hidden =
-            false;
-
-
-        inicial.hidden =
-            true;
-
-    } else {
-
-        imagen.hidden =
-            true;
-
-
-        inicial.innerText =
-            producto.nombre
-                .charAt(0)
-                .toUpperCase();
-
-
-        inicial.hidden =
-            false;
-    }
-
-
-
-    // ==================================================
-    // INFORMACIÓN DEL PRODUCTO
-    // ==================================================
-
-    document.getElementById(
-        "detalleCategoria"
-    ).innerText =
-        producto.categoria;
-
-
-    document.getElementById(
-        "detalleNombre"
-    ).innerText =
-        producto.nombre;
-
-
-    document.getElementById(
-        "detallePrecio"
-    ).innerText =
-        "$" +
-        Number(
-            producto.precio
-        ).toLocaleString(
-            "es-CO"
-        );
-
-
-    document.getElementById(
-        "detalleDescripcion"
-    ).innerText =
-        producto.descripcion;
-
-
-
-    // ==================================================
-    // STOCK
-    // ==================================================
-
-    const detalleStock =
-        document.getElementById(
-            "detalleStock"
-        );
-
-    const detalleEstado =
-        document.getElementById(
-            "detalleEstado"
-        );
-
-    if (
-        Number(producto.stock) > 0
-    ) {
-
-        detalleStock.innerText =
-            `${producto.stock} unidad(es) disponibles`;
-    } else {
-
-        detalleStock.innerText =
-            "Agotado";
-    }
-
-    detalleEstado.innerText =
-        producto.estado || "Sin estado";
-
-    detalleEstado.className =
-        producto.estado === "Activo"
-            ? "badge badge-activo"
-            : "badge badge-inactivo";
-
-
-
-    // ==================================================
-    // INFORMACIÓN DEL COMERCIO
-    // ==================================================
-
-    const negocio =
-        producto
-
-            ? negocios.find(
-                negocio =>
-                    Number(negocio.id) ===
-                    Number(producto.negocioId)
-            )
-
-            : null;
-
-    // ==================================================
-    // SUMAR VISUALIZACIÓN
-    // ==================================================
-
-    producto.popularidad =
-        Number(
-            producto.popularidad || 0
-        ) + 1;
-
-
-    localStorage.setItem(
-        "productos",
-        JSON.stringify(productos)
-    );
+const productoId = Number(new URLSearchParams(location.search).get("id"));
+let detalleActual = null;
+async function obtenerDetalle() {
+  if (!Number.isSafeInteger(productoId) || productoId < 1) return null;
+  const producto = await API.get(`/productos/${productoId}`);
+  const negocio = await API.get(`/negocios/${producto.negocioId}`);
+  return RP.visible(producto, [negocio]) ? { producto, negocio } : null;
 }
-
-// ======================================================
-// GUARDAR CARRITO
-// ======================================================
-
-function guardarCarrito() {
-
-    localStorage.setItem(
-        "carrito",
-        JSON.stringify(carrito)
-    );
+async function mostrarDetalle(contarVisita = false) {
+  try {
+    detalleActual = await obtenerDetalle();
+    document.getElementById("detalleProducto").hidden = !detalleActual;
+    document.getElementById("productoNoEncontrado").hidden =
+      Boolean(detalleActual);
+    if (detalleActual) {
+      const { producto: p, negocio: n } = detalleActual;
+      for (const [id, valor] of Object.entries({
+        detalleCategoria: p.categoria,
+        detalleNombre: p.nombre,
+        detallePrecio: RP.dinero(p.precio),
+        detalleDescripcion: p.descripcion,
+        detalleStock: p.stock ? `${p.stock} unidad(es) disponibles` : "Agotado",
+        detalleEstado: p.estado,
+        detalleComercio: n.nombre,
+        detalleDireccion: n.direccion,
+        detalleTelefono: n.telefono,
+      }))
+        document.getElementById(id).textContent = valor;
+      const imagen = document.getElementById("detalleImagen");
+      const inicial = document.getElementById("detalleInicial");
+      const fuente = RP.imagenSegura(p.imagen);
+      imagen.hidden = !fuente;
+      if (fuente) {
+        imagen.src = fuente;
+        imagen.alt = p.nombre;
+      } else imagen.removeAttribute("src");
+      inicial.hidden = Boolean(fuente);
+      inicial.textContent = p.nombre.charAt(0);
+      const agotado = p.stock === 0;
+      const input = document.getElementById("cantidadProducto");
+      input.value = agotado
+        ? 0
+        : Math.min(p.stock, Math.max(1, Number(input.value) || 1));
+      document.getElementById("cantidadVisual").textContent = input.value;
+      for (const b of document.querySelectorAll(".selector-cantidad button"))
+        b.disabled = agotado;
+      const boton = document.getElementById("btnAgregarCarrito");
+      boton.disabled =
+        agotado || Boolean(usuarioSesion && usuarioSesion.rol !== "Comprador");
+      boton.textContent = agotado
+        ? "Agotado"
+        : usuarioSesion?.rol === "Comprador"
+          ? "Agregar al carrito"
+          : usuarioSesion
+            ? "Disponible para cuentas Comprador"
+            : "Iniciar sesión para comprar";
+      if (contarVisita && !agotado) await API.post(`/productos/${p.id}/visita`);
+    }
+    if (usuarioSesion?.rol === "Comprador") await RP.contador(usuarioSesion.id);
+  } catch (error) {
+    if (error.status === 404) {
+      detalleActual = null;
+      document.getElementById("detalleProducto").hidden = true;
+      document.getElementById("productoNoEncontrado").hidden = false;
+    } else UI.estado(error.message, "error", "mensajeCarrito");
+  }
 }
-
-
-
-// ======================================================
-// AGREGAR PRODUCTO AL CARRITO
-// ======================================================
-
-function agregarAlCarrito() {
-
-    if (!productoDisponible) {
-
-        return;
-    }
-
-
-    const cantidad =
-        Number(
-            document
-                .getElementById(
-                    "cantidadProducto"
-                )
-                .value
+async function agregarAlCarrito() {
+  if (!usuarioSesion) {
+    location.assign("login.html");
+    return;
+  }
+  if (usuarioSesion.rol !== "Comprador") return;
+  const boton = document.getElementById("btnAgregarCarrito");
+  await UI.tarea(
+    boton,
+    async () => {
+      const { carrito, productos, negocios } = await RP.contextoCarrito(
+        usuarioSesion.id,
+      );
+      const p = productos.find((p) => RP.mismoId(p.id, productoId));
+      if (!RP.visible(p, negocios))
+        throw new Error("Este producto o su comercio ya no están disponibles.");
+      const cantidad = Number(
+        document.getElementById("cantidadProducto").value,
+      );
+      if (!Number.isSafeInteger(cantidad) || cantidad <= 0)
+        throw new Error("Ingresa una cantidad entera mayor que cero.");
+      const item = carrito.find(
+        (i) =>
+          RP.mismoId(i.usuarioId, usuarioSesion.id) &&
+          RP.mismoId(i.productoId, p.id),
+      );
+      const nueva = (item?.cantidad || 0) + cantidad;
+      if (nueva > p.stock)
+        throw new Error(
+          `Solo hay ${p.stock} unidad(es) disponibles, incluyendo las de tu carrito.`,
         );
-
-
-    const mensaje =
-        document.getElementById(
-            "mensajeCarrito"
-        );
-
-
-
-    // ==============================================
-    // VALIDAR CANTIDAD
-    // ==============================================
-
-    if (
-        cantidad <= 0 ||
-        !Number.isInteger(cantidad)
-    ) {
-
-        mensaje.innerText =
-            "Ingresa una cantidad válida.";
-
-        mensaje.className =
-            "mensaje-formulario error";
-
-        return;
-    }
-
-
-
-    // ==============================================
-    // VALIDAR STOCK
-    // ==============================================
-
-    if (
-        cantidad >
-        Number(producto.stock)
-    ) {
-
-        mensaje.innerText =
-            `Solo hay ${producto.stock} unidad(es) disponibles.`;
-
-        mensaje.className =
-            "mensaje-formulario error";
-
-        return;
-    }
-
-
-
-    // ==============================================
-    // BUSCAR SI YA ESTÁ EN EL CARRITO
-    // ==============================================
-
-    const productoEnCarrito =
-        carrito.find(
-            item =>
-                Number(item.usuarioId) ===
-                    Number(usuarioSesion.id)
-
-                &&
-
-                Number(item.productoId) ===
-                    Number(producto.id)
-        );
-
-
-
-    // ==============================================
-    // YA EXISTE
-    // ==============================================
-
-    if (productoEnCarrito) {
-
-        const nuevaCantidad =
-            Number(
-                productoEnCarrito.cantidad
-            ) + cantidad;
-
-
-        if (
-            nuevaCantidad >
-            Number(producto.stock)
-        ) {
-
-            mensaje.innerText =
-                `No puedes agregar más de ${producto.stock} unidad(es).`;
-
-            mensaje.className =
-                "mensaje-formulario error";
-
-            return;
-        }
-
-
-        productoEnCarrito.cantidad =
-            nuevaCantidad;
-    }
-
-
-
-    // ==============================================
-    // PRODUCTO NUEVO EN EL CARRITO
-    // ==============================================
-
-    else {
-
+      if (item) item.cantidad = nueva;
+      else
         carrito.push({
-
-            usuarioId:
-                usuarioSesion.id,
-
-            productoId:
-                producto.id,
-
-            cantidad:
-                cantidad
+          usuarioId: usuarioSesion.id,
+          productoId: p.id,
+          cantidad,
         });
-    }
-
-
-
-    guardarCarrito();
-
-
-    actualizarContadorCarrito();
-
-
-    mensaje.innerText =
-        "Producto agregado al carrito.";
-
-    mensaje.className =
-        "mensaje-formulario exito";
+      RP.guardarLista(RP.claveCarrito(), carrito);
+      await RP.contador(usuarioSesion.id);
+      UI.estado("Producto agregado al carrito.", "exito", "mensajeCarrito");
+    },
+    "mensajeCarrito",
+  );
+  await mostrarDetalle();
 }
-
-
-
-// ======================================================
-// CONTADOR DEL CARRITO
-// ======================================================
-
-function actualizarContadorCarrito() {
-
-    const contador =
-        document.getElementById(
-            "contadorCarrito"
-        );
-
-
-    if (!contador) {
-
-        return;
-    }
-
-
-    const carritoUsuario =
-        carrito.filter(
-            item =>
-                Number(item.usuarioId) ===
-                Number(usuarioSesion.id)
-        );
-
-
-    const total =
-        carritoUsuario.reduce(
-            (acumulador, item) =>
-                acumulador +
-                Number(item.cantidad),
-
-            0
-        );
-
-
-    contador.innerText =
-        total;
-}
-
 function cambiarCantidadDetalle(cambio) {
-
-    const input =
-        document.getElementById(
-            "cantidadProducto"
-        );
-
-
-    const visual =
-        document.getElementById(
-            "cantidadVisual"
-        );
-
-
-    let cantidad =
-        Number(input.value);
-
-
-    const nuevaCantidad =
-        cantidad + cambio;
-
-
-    if (nuevaCantidad < 1) {
-        return;
-    }
-
-
-    if (
-        nuevaCantidad >
-        Number(producto.stock)
-    ) {
-
-        const mensaje =
-            document.getElementById(
-                "mensajeCarrito"
-            );
-
-
-        mensaje.innerText =
-            `Solo hay ${producto.stock} unidad(es) disponibles.`;
-
-
-        mensaje.className =
-            "mensaje-formulario error";
-
-
-        return;
-    }
-
-
-    input.value =
-        nuevaCantidad;
-
-
-    visual.innerText =
-        nuevaCantidad;
-
-
-    document.getElementById(
-        "mensajeCarrito"
-    ).innerText =
-        "";
+  if (!detalleActual || detalleActual.producto.stock === 0) return;
+  const input = document.getElementById("cantidadProducto");
+  const nueva = Number(input.value) + cambio;
+  if (nueva < 1) return;
+  if (nueva > detalleActual.producto.stock) {
+    UI.estado(
+      `Solo hay ${detalleActual.producto.stock} unidad(es) disponibles.`,
+      "error",
+      "mensajeCarrito",
+    );
+    return;
+  }
+  input.value = nueva;
+  document.getElementById("cantidadVisual").textContent = nueva;
+  UI.estado("", "exito", "mensajeCarrito");
 }
-
-actualizarContadorCarrito();
+window.addEventListener("focus", () => mostrarDetalle());
+window.addEventListener("storage", (event) => {
+  if (event.key === RP.claveCarrito()) mostrarDetalle();
+});
+window.moduloListo = mostrarDetalle(true);

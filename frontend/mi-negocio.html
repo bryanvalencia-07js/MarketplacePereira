@@ -83,7 +83,7 @@
 
                 <button
                     class="boton boton-salir"
-                    onclick="cerrarSesion()"
+                    data-click="cerrarSesion"
                 >
                     Cerrar sesión
                 </button>
@@ -154,6 +154,8 @@
 
 
 
+            <section aria-labelledby="tituloResumenComercio"><h2 id="tituloResumenComercio">Tu comercio en números</h2><div id="kpisComerciante" class="kpi-grid"></div><p id="completitudComercio"></p><div class="acciones-formulario"><a class="boton boton-secundario" href="#formMiNegocio">Editar comercio</a><a class="boton boton-primario" href="mis-productos.html#formProducto">Agregar producto</a><a id="previewComercio" class="boton boton-secundario" href="marketplace.html">Previsualizar comercio</a></div></section>
+
             <!-- FORMULARIO -->
 
             <section class="panel-admin">
@@ -178,7 +180,7 @@
                 <form
                     id="formMiNegocio"
                     class="formulario"
-                    onsubmit="guardarMiNegocio(event)"
+                    data-submit="guardarMiNegocio"
                 >
 
                     <div class="form-grid">
@@ -278,7 +280,7 @@
 
 
                     <p
-                        id="mensajeMiNegocio"
+                        id="mensajeMiNegocio" role="status" aria-live="polite"
                         class="mensaje-formulario"
                     ></p>
 
@@ -376,7 +378,7 @@
                     <button
                         type="button"
                         class="boton boton-secundario"
-                        onclick="cambiarEstadoMiNegocio()"
+                        data-click="cambiarEstadoMiNegocio"
                     >
                         Cambiar estado
                     </button>
@@ -388,7 +390,7 @@
                     >
                         Administrar productos
                     </a>
-                    
+
                 </div>
 
             </section>
@@ -398,16 +400,13 @@
     </main>
 
 
-    <script src="js/sesion.js"></script>
 
-    <script>
-        protegerPorRol([
-            "Comerciante"
-        ]);
-    </script>
-
-    <script src="js/mi-negocio.js"></script>
-
+<script src="js/estado-local.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sesion.js"></script>
+<script src="js/legado.js"></script>
+<script src="js/app-init.js"></script>
 </body>
 
 </html>

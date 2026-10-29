@@ -89,7 +89,7 @@
 
                 <button
                     class="boton boton-salir"
-                    onclick="cerrarSesion()"
+                    data-click="cerrarSesion"
                 >
                     Cerrar sesión
                 </button>
@@ -149,7 +149,7 @@
                 <form
                     id="formNegocio"
                     class="formulario"
-                    onsubmit="guardarNegocio(event)"
+                    data-submit="guardarNegocio"
                 >
 
                     <input
@@ -182,12 +182,7 @@
                                 Propietario
                             </label>
 
-                            <input
-                                type="text"
-                                id="propietario"
-                                placeholder="Nombre del propietario"
-                                required
-                            >
+                            <select id="propietario" required><option value="">Selecciona un comerciante</option></select>
 
                         </div>
 
@@ -271,7 +266,7 @@
 
 
                     <p
-                        id="mensajeNegocio"
+                        id="mensajeNegocio" role="status" aria-live="polite"
                         class="mensaje-formulario"
                     ></p>
 
@@ -290,7 +285,7 @@
                             type="button"
                             id="btnCancelarNegocio"
                             class="boton boton-secundario"
-                            onclick="cancelarEdicionNegocio()"
+                            data-click="cancelarEdicionNegocio"
                             hidden
                         >
                             Cancelar edición
@@ -311,17 +306,17 @@
 
                     <input
                         type="search"
-                        id="buscarNegocio"
+                        id="buscarNegocio" aria-label="Buscar comercios"
                         placeholder="Buscar negocio o propietario..."
-                        oninput="aplicarFiltrosNegocios()"
+                        data-input="aplicarFiltrosNegocios"
                     >
 
                 </div>
 
 
                 <select
-                    id="filtroCategoria"
-                    onchange="aplicarFiltrosNegocios()"
+                    id="filtroCategoria" aria-label="Filtrar comercios por categoría"
+                    data-change="aplicarFiltrosNegocios"
                 >
 
                     <option value="">
@@ -408,14 +403,13 @@
     </main>
 
 
-    <script src="js/sesion.js"></script>
 
-    <script>
-        protegerPorRol(['Administrador']);
-    </script>
-
-    <script src="js/negocios.js"></script>
-
+<script src="js/estado-local.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sesion.js"></script>
+<script src="js/legado.js"></script>
+<script src="js/app-init.js"></script>
 </body>
 
 </html>

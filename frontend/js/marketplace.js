@@ -1,512 +1,99 @@
-// ======================================================
-// DATOS
-// ======================================================
-
-let negocios =
-    JSON.parse(
-        localStorage.getItem("negocios")
-    ) || [];
-
-
-let productos =
-    JSON.parse(
-        localStorage.getItem("productos")
-    ) || [];
-
-// ======================================================
-// MOSTRAR PRODUCTOS
-// ======================================================
-
-function mostrarProductosMarketplace(
-    lista
-) {
-
-    const contenedor =
-        document.getElementById(
-            "listaProductos"
-        );
-
-    const contador =
-        document.getElementById(
-            "contadorProductos"
-        );
-
-
-    const sinProductos =
-        document.getElementById(
-            "sinProductos"
-        );
-
-
-    contenedor.innerHTML =
-        "";
-
-
-    contador.innerText =
-        `${lista.length} producto(s)`;
-
-
-    if (lista.length === 0) {
-
-        sinProductos.hidden =
-            false;
-
-        return;
-    }
-
-
-    sinProductos.hidden =
-        true;
-
-
-    lista.forEach(producto => {
-
-        const negocio =
-            negocios.find(
-                negocio =>
-                    negocio.id ===
-                    producto.negocioId
-            );
-
-
-        const tarjeta =
-            document.createElement(
-                "article"
-            );
-
-
-        tarjeta.className =
-            "producto-market-card";
-
-
-        tarjeta.innerHTML = `
-
-            <div class="producto-market-imagen">
-
-                ${
-                    producto.imagen
-
-                        ? `
-                            <img
-                                src="${producto.imagen}"
-                                alt="${producto.nombre}"
-                                class="producto-imagen-real"
-                            >
-                        `
-
-                        : `
-                            <span>
-                                ${producto.nombre
-                                    .charAt(0)
-                                    .toUpperCase()}
-                            </span>
-                        `
-                }
-
-            </div>
-
-
-            <div class="producto-market-contenido">
-
-                <span class="producto-categoria">
-
-                    ${producto.categoria}
-
-                </span>
-
-
-                <h3>
-
-                    ${producto.nombre}
-
-                </h3>
-
-
-                <p class="producto-comercio">
-
-                    ${
-                        negocio
-                            ? negocio.nombre
-                            : "Comercio local"
-                    }
-
-                </p>
-
-
-                <strong class="producto-precio">
-
-                    $${Number(
-                        producto.precio
-                    ).toLocaleString("es-CO")}
-
-                </strong>
-
-
-                <a
-                    href="detalle-producto.html?id=${producto.id}"
-                    class="boton boton-primario"
-                >
-                    Ver producto
-                </a>
-
-            </div>
-
-        `;
-
-
-        contenedor.appendChild(
-            tarjeta
-        );
-    });
-}
-
-
-
-// ======================================================
-// PRODUCTOS POPULARES
-// ======================================================
-
-function mostrarPopulares() {
-
-    const contenedor =
-        document.getElementById(
-            "productosPopulares"
-        );
-
-
-    const populares =
-        [...productos]
-
-            .filter(
-                producto =>
-                    producto.estado ===
-                    "Activo"
-            )
-
-            .sort(
-                (a, b) =>
-                    b.popularidad -
-                    a.popularidad
-            )
-
-            .slice(
-                0,
-                4
-            );
-
-
-    contenedor.innerHTML =
-        "";
-
-
-    populares.forEach(producto => {
-
-        const negocio =
-            negocios.find(
-                negocio =>
-                    negocio.id ===
-                    producto.negocioId
-            );
-
-
-        const tarjeta =
-            document.createElement(
-                "article"
-            );
-
-
-        tarjeta.className =
-            "producto-market-card";
-
-
-        tarjeta.innerHTML = `
-
-            <div class="producto-market-imagen">
-
-                ${
-                    producto.imagen
-
-                        ? `
-                            <img
-                                src="${producto.imagen}"
-                                alt="${producto.nombre}"
-                                class="producto-imagen-real"
-                            >
-                        `
-
-                        : `
-                            <span>
-                                ${producto.nombre
-                                    .charAt(0)
-                                    .toUpperCase()}
-                            </span>
-                        `
-                }
-
-            </div>
-
-
-            <div class="producto-market-contenido">
-
-                <span class="producto-categoria">
-
-                    Popular ·
-                    ${producto.categoria}
-
-                </span>
-
-
-                <h3>
-                    ${producto.nombre}
-                </h3>
-
-
-                <p class="producto-comercio">
-
-                    ${
-                        negocio
-                            ? negocio.nombre
-                            : "Comercio local"
-                    }
-
-                </p>
-
-
-                <strong class="producto-precio">
-
-                    $${Number(
-                        producto.precio
-                    ).toLocaleString("es-CO")}
-
-                </strong>
-
-                <a
-                    href="detalle-producto.html?id=${producto.id}"
-                    class="boton boton-primario"
-                >
-                    Ver producto
-                </a>
-
-            </div>
-
-        `;
-
-
-        contenedor.appendChild(
-            tarjeta
-        );
-    });
-}
-
-
-
-// ======================================================
-// MOSTRAR COMERCIOS
-// ======================================================
-
-function mostrarComercios() {
-
-    const contenedor =
-        document.getElementById(
-            "listaComercios"
-        );
-
-
-    contenedor.innerHTML =
-        "";
-
-
-    const activos =
-        negocios.filter(
-            negocio =>
-                negocio.estado ===
-                "Activo"
-        );
-
-
-    activos.forEach(negocio => {
-
-        const tarjeta =
-            document.createElement(
-                "article"
-            );
-
-
-        tarjeta.className =
-            "comercio-market-card";
-
-
-        tarjeta.innerHTML = `
-
-            <div class="negocio-avatar">
-
-                ${negocio.nombre
-                    .charAt(0)
-                    .toUpperCase()}
-
-            </div>
-
-
-            <div>
-
-                <span class="modulo-tipo">
-
-                    ${negocio.categoria}
-
-                </span>
-
-
-                <h3>
-
-                    ${negocio.nombre}
-
-                </h3>
-
-
-                <p>
-
-                    ${negocio.direccion}
-
-                </p>
-
-
-                <p>
-
-                    ${negocio.telefono}
-
-                </p>
-
-            </div>
-
-        `;
-
-
-        contenedor.appendChild(
-            tarjeta
-        );
-    });
-}
-
-
-
-// ======================================================
-// BUSCAR
-// ======================================================
-
-function buscarMarketplace() {
-
-    const texto =
-        document
-            .getElementById(
-                "buscarMarketplace"
-            )
-            .value
-            .trim()
-            .toLowerCase();
-
-
-    const filtrados =
-        productos.filter(producto => {
-
-            const negocio =
-                negocios.find(
-                    negocio =>
-                        negocio.id ===
-                        producto.negocioId
-                );
-
-
-            const nombreNegocio =
-                negocio
-                    ? negocio.nombre.toLowerCase()
-                    : "";
-
-
-            return (
-
-                producto.nombre
-                    .toLowerCase()
-                    .includes(texto)
-
-                ||
-
-                producto.categoria
-                    .toLowerCase()
-                    .includes(texto)
-
-                ||
-
-                nombreNegocio
-                    .includes(texto)
-            );
-        });
-
-
-    mostrarProductosMarketplace(
-        filtrados
-    );
-}
-
-
-
-// ======================================================
-// FILTRAR CATEGORÍA
-// ======================================================
-
-function filtrarCategoria(
-    categoria
-) {
-
-    if (categoria === "") {
-
-        mostrarProductosMarketplace(
-            productos
-        );
-
-        return;
-    }
-
-
-    const filtrados =
-        productos.filter(
-            producto =>
-                producto.categoria ===
-                categoria
-        );
-
-
-    mostrarProductosMarketplace(
-        filtrados
-    );
-
-
-    document
-        .getElementById("productos")
-        .scrollIntoView({
-            behavior: "smooth"
-        });
-}
-
-
-
-// ======================================================
-// INICIO
-// ======================================================
-
-const productosActivos =
-    productos.filter(
-        producto =>
-            producto.estado ===
-            "Activo"
-    );
-
-
-mostrarProductosMarketplace(
-    productosActivos
+let negocios = [];
+let productos = [];
+let categoriaSeleccionada = "";
+let negocioSeleccionado = Number(
+  new URLSearchParams(location.search).get("negocioId"),
 );
+function mostrarProductosMarketplace(lista) {
+  document.getElementById("listaProductos").innerHTML = lista
+    .map((p) => UI.tarjetaProducto(p, negocios))
+    .join("");
+  document.getElementById("contadorProductos").textContent =
+    `${lista.length} producto(s)`;
+  document.getElementById("sinProductos").hidden = lista.length > 0;
+}
+function buscarMarketplace() {
+  const texto = document
+    .getElementById("buscarMarketplace")
+    .value.trim()
+    .toLowerCase();
+  const filtrados = productos.filter((p) => {
+    if (!RP.visible(p, negocios)) return false;
+    const negocio = negocios.find((n) => RP.mismoId(n.id, p.negocioId));
+    return (
+      (!negocioSeleccionado || RP.mismoId(p.negocioId, negocioSeleccionado)) &&
+      (!categoriaSeleccionada || p.categoria === categoriaSeleccionada) &&
+      [p.nombre, p.descripcion, p.categoria, negocio.nombre].some((v) =>
+        String(v ?? "")
+          .toLowerCase()
+          .includes(texto),
+      )
+    );
+  });
+  mostrarProductosMarketplace(filtrados);
+}
+function filtrarCategoria(categoria) {
+  categoriaSeleccionada = categoria;
+  buscarMarketplace();
+  document.getElementById("productos").scrollIntoView({ behavior: "smooth" });
+}
+function limpiarFiltros() {
+  negocioSeleccionado = 0;
+  history.replaceState(null, "", location.pathname);
+  categoriaSeleccionada = "";
+  document.getElementById("buscarMarketplace").value = "";
+  buscarMarketplace();
+}
+function mostrarPopulares() {
+  const lista = productos
+    .filter((p) => RP.visible(p, negocios))
+    .sort((a, b) => (Number(b.popularidad) || 0) - (Number(a.popularidad) || 0))
+    .slice(0, 4);
+  document.getElementById("productosPopulares").innerHTML =
+    lista.map((p) => UI.tarjetaProducto(p, negocios)).join("") ||
+    '<p class="estado-vacio">Los productos más visitados aparecerán aquí.</p>';
+}
+function mostrarComercios() {
+  document.getElementById("listaComercios").innerHTML =
+    negocios
+      .filter((n) => n.estado === "Activo")
+      .map(UI.tarjetaNegocio)
+      .join("") ||
+    '<p class="estado-vacio">Todavía no hay comercios publicados.</p>';
+}
+async function actualizarMarketplace() {
+  UI.estado("Cargando productos…", "carga", "mensajeMarketplace");
+  try {
+    [negocios, productos] = await Promise.all([
+      API.get("/negocios"),
+      API.get("/productos"),
+    ]);
+    buscarMarketplace();
+    mostrarPopulares();
+    mostrarComercios();
+    document.getElementById("productosRecientes").innerHTML =
+      productos
+        .filter((p) => RP.visible(p, negocios))
+        .slice()
+        .sort(
+          (a, b) =>
+            String(b.createdAt || "").localeCompare(
+              String(a.createdAt || ""),
+            ) || b.id - a.id,
+        )
+        .slice(0, 4)
+        .map((p) => UI.tarjetaProducto(p, negocios))
+        .join("") || '<p class="estado-vacio">Pronto habrá novedades.</p>';
+    if (usuarioSesion?.rol === "Comprador") await RP.contador(usuarioSesion.id);
+    UI.estado("", "exito", "mensajeMarketplace");
+  } catch (error) {
+    UI.estado(error.message, "error", "mensajeMarketplace");
+  }
+}
+window.addEventListener("storage", (event) => {
+  if (event.key === null || event.key === RP.claveCarrito())
+    actualizarMarketplace();
+});
+window.moduloListo = actualizarMarketplace();
 
-
-mostrarPopulares();
-
-
-mostrarComercios();
+window.addEventListener("focus", actualizarMarketplace);

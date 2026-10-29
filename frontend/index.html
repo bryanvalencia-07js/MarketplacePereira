@@ -1,495 +1,180 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-
-<head>
-    <meta charset="UTF-8">
-
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Reactiva Pereira</title>
-
-    <meta
-        name="description"
-        content="Marketplace para apoyar y visibilizar comercios de Pereira afectados por el terremoto."
-    >
-
-    <!-- Tipografías -->
-    <link
-        rel="preconnect"
-        href="https://fonts.googleapis.com"
-    >
-
-    <link
-        rel="preconnect"
-        href="https://fonts.gstatic.com"
-        crossorigin
-    >
-
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
-        rel="stylesheet"
-    >
-
-    <link
-        rel="stylesheet"
-        href="css/estilos.css"
-    >
-</head>
-
-
-<body>
-
-    <!-- ========================================
-         HEADER
-    ========================================= -->
-
+      name="description"
+      content="Descubre los comercios de Pereira, conoce sus productos y apoya la reactivación local."
+    />
+    <title>Reactiva Pereira · El futuro se compra local</title>
+    <link rel="stylesheet" href="css/estilos.css" />
+  </head>
+  <body>
+    <a class="saltar-contenido" href="#contenido">Saltar al contenido</a>
     <header class="header-principal">
-
-        <div class="contenedor navegacion">
-
-            <a
-                href="index.html"
-                class="marca"
-            >
-                <span class="marca-icono">RP</span>
-
-                <div>
-                    <span class="marca-nombre">
-                        Reactiva Pereira
-                    </span>
-
-                    <span class="marca-subtitulo">
-                        Compra local. Reactivamos juntos.
-                    </span>
-                </div>
-            </a>
-
-
-            <nav class="menu-principal">
-
-                <a href="#inicio">
-                    Inicio
-                </a>
-
-                <a href="#proposito">
-                    Nuestro propósito
-                </a>
-
-                <a href="#como-funciona">
-                    Cómo funciona
-                </a>
-
-                <a
-                    href="login.html"
-                    class="boton boton-secundario"
-                >
-                    Iniciar sesión
-                </a>
-
-                <a
-                    href="registro.html"
-                    class="boton boton-primario"
-                >
-                    Registrarse
-                </a>
-
-            </nav>
-
-        </div>
-
+      <div class="contenedor landing-nav">
+        <a class="marca" href="index.html" aria-label="Reactiva Pereira, inicio"
+          ><span class="marca-icono">RP</span
+          ><span
+            ><strong class="marca-nombre">Reactiva Pereira</strong
+            ><span class="marca-subtitulo"
+              >Historias que siguen abiertas.</span
+            ></span
+          ></a
+        >
+        <nav aria-label="Navegación principal">
+          <a href="#historia">El propósito</a><a href="#comercios">Comercios</a
+          ><a class="boton boton-secundario" href="login.html"
+            >Iniciar sesión</a
+          >
+        </nav>
+      </div>
     </header>
-
-
-
-    <main>
-
-        <!-- ========================================
-             HERO
-        ========================================= -->
-
-        <section
-            class="hero"
-            id="inicio"
-        >
-
-            <div class="contenedor hero-grid">
-
-                <div class="hero-contenido">
-
-                    <span class="etiqueta">
-                        Reactivación económica local
-                    </span>
-
-                    <h1>
-                        Pereira se levanta
-                        <span>comprando local.</span>
-                    </h1>
-
-                    <p class="hero-texto">
-
-                        Conectamos a ciudadanos con comercios
-                        de Pereira y su área metropolitana que
-                        trabajan por recuperarse y seguir
-                        adelante.
-
-                    </p>
-
-
-                    <div class="hero-acciones">
-
-                        <a
-                            href="registro.html"
-                            class="boton boton-primario boton-grande"
-                        >
-                            Registrar mi comercio
-                        </a>
-
-                        <a
-                            href="#proposito"
-                            class="boton boton-claro boton-grande"
-                        >
-                            Conocer el proyecto
-                        </a>
-
-                    </div>
-
-
-                    <div class="hero-datos">
-
-                        <div>
-                            <strong>
-                                Local
-                            </strong>
-
-                            <span>
-                                Apoyo a nuestra región
-                            </span>
-                        </div>
-
-                        <div>
-                            <strong>
-                                Humano
-                            </strong>
-
-                            <span>
-                                Comercios y personas
-                            </span>
-                        </div>
-
-                        <div>
-                            <strong>
-                                Digital
-                            </strong>
-
-                            <span>
-                                Conexión mediante tecnología
-                            </span>
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <div class="hero-visual">
-
-                    <div class="tarjeta-destacada">
-
-                        <span class="tarjeta-etiqueta">
-                            Comercio destacado
-                        </span>
-
-                        <div class="tarjeta-imagen">
-                            RP
-                        </div>
-
-                        <h2>
-                            Los negocios de nuestra ciudad
-                            necesitan ser vistos.
-                        </h2>
-
-                        <p>
-                            Reactiva Pereira les ofrece un espacio
-                            digital para mostrar sus productos,
-                            servicios e historias.
-                        </p>
-
-                        <div class="estado-comercio">
-
-                            <span class="estado-punto"></span>
-
-                            Comercio activo
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-
-        <!-- ========================================
-             PROPÓSITO
-        ========================================= -->
-
-        <section
-            class="seccion"
-            id="proposito"
-        >
-
-            <div class="contenedor">
-
-                <div class="encabezado-seccion">
-
-                    <span class="etiqueta">
-                        Nuestro propósito
-                    </span>
-
-                    <h2>
-                        Una plataforma creada para
-                        impulsar la recuperación.
-                    </h2>
-
-                    <p>
-                        Reactiva Pereira busca dar visibilidad
-                        a negocios afectados y facilitar el
-                        encuentro entre comerciantes y compradores.
-                    </p>
-
-                </div>
-
-
-                <div class="tarjetas-info">
-
-                    <article class="tarjeta-info">
-
-                        <span class="numero">
-                            01
-                        </span>
-
-                        <h3>
-                            Visibilidad
-                        </h3>
-
-                        <p>
-                            Los comercios pueden tener presencia
-                            digital y mostrar lo que ofrecen.
-                        </p>
-
-                    </article>
-
-
-                    <article class="tarjeta-info">
-
-                        <span class="numero">
-                            02
-                        </span>
-
-                        <h3>
-                            Compra local
-                        </h3>
-
-                        <p>
-                            Los compradores pueden descubrir
-                            negocios y apoyar directamente
-                            la economía de la región.
-                        </p>
-
-                    </article>
-
-
-                    <article class="tarjeta-info">
-
-                        <span class="numero">
-                            03
-                        </span>
-
-                        <h3>
-                            Reactivación
-                        </h3>
-
-                        <p>
-                            La tecnología se convierte en una
-                            herramienta para conectar oportunidades.
-                        </p>
-
-                    </article>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-
-        <!-- ========================================
-             CÓMO FUNCIONA
-        ========================================= -->
-
-        <section
-            class="seccion seccion-alterna"
-            id="como-funciona"
-        >
-
-            <div class="contenedor">
-
-                <div class="encabezado-seccion">
-
-                    <span class="etiqueta">
-                        Cómo funciona
-                    </span>
-
-                    <h2>
-                        Simple para comerciantes
-                        y compradores.
-                    </h2>
-
-                </div>
-
-
-                <div class="pasos">
-
-                    <article class="paso">
-
-                        <div class="paso-numero">
-                            1
-                        </div>
-
-                        <div>
-                            <h3>
-                                Crea tu cuenta
-                            </h3>
-
-                            <p>
-                                Regístrate para comenzar a utilizar
-                                la plataforma.
-                            </p>
-                        </div>
-
-                    </article>
-
-
-                    <article class="paso">
-
-                        <div class="paso-numero">
-                            2
-                        </div>
-
-                        <div>
-                            <h3>
-                                Ingresa al sistema
-                            </h3>
-
-                            <p>
-                                Inicia sesión y accede a las
-                                funcionalidades según tu perfil.
-                            </p>
-                        </div>
-
-                    </article>
-
-
-                    <article class="paso">
-
-                        <div class="paso-numero">
-                            3
-                        </div>
-
-                        <div>
-                            <h3>
-                                Conecta con Pereira
-                            </h3>
-
-                            <p>
-                                Consulta y administra información
-                                sobre usuarios y comercios.
-                            </p>
-                        </div>
-
-                    </article>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-
-        <!-- ========================================
-             CTA
-        ========================================= -->
-
-        <section class="cta">
-
-            <div class="contenedor cta-contenido">
-
-                <div>
-
-                    <span class="etiqueta etiqueta-clara">
-                        Reactiva Pereira
-                    </span>
-
-                    <h2>
-                        Cada compra local ayuda
-                        a reconstruir una historia.
-                    </h2>
-
-                </div>
-
-
-                <a
-                    href="registro.html"
-                    class="boton boton-blanco boton-grande"
-                >
-                    Crear una cuenta
-                </a>
-
-            </div>
-
-        </section>
-
-    </main>
-
-
-
-    <!-- ========================================
-         FOOTER
-    ========================================= -->
-
-    <footer class="footer">
-
-        <div class="contenedor footer-contenido">
-
-            <div>
-
-                <strong>
-                    Reactiva Pereira
-                </strong>
-
-                <p>
-                    Proyecto universitario de Ingeniería de Software.
-                </p>
-
-            </div>
-
-
+    <main id="contenido">
+      <section class="hero-rp">
+        <div class="contenedor hero-rp-grid">
+          <div>
+            <span class="etiqueta">De Pereira, para Pereira</span>
+            <h1>El futuro se<br />compra <em>local.</em></h1>
             <p>
-                Pereira, Risaralda · 2026
+              Detrás de cada puerta abierta hay una historia que merece
+              continuar. Descubre productos de nuestra ciudad y conecta con
+              quienes la hacen avanzar.
             </p>
-
+            <div class="acciones-formulario">
+              <a class="boton boton-primario" href="marketplace.html"
+                >Explorar marketplace →</a
+              ><a
+                class="boton boton-secundario"
+                href="registro.html?rol=Comerciante"
+                >Registrar mi comercio</a
+              >
+            </div>
+          </div>
+          <div
+            class="hero-escena"
+            role="img"
+            aria-label="Ilustración de una tienda local abierta"
+          >
+            <div class="escena-tienda">
+              <span>Comercio de barrio</span
+              ><strong>Seguimos<br />abiertos.</strong>
+              <p>Hecho con talento de aquí.</p>
+              <span>Pereira · Colombia</span>
+            </div>
+          </div>
         </div>
-
+      </section>
+      <div class="franja-local">
+        Talento de aquí. Encuentros que reactivan. Compra local.
+      </div>
+      <section id="historia" class="seccion-rp reveal">
+        <div class="contenedor narrativa-grid">
+          <span class="numero-escena" aria-hidden="true">01</span>
+          <div>
+            <span class="etiqueta">La ciudad sigue en movimiento</span>
+            <h2>Un comercio es mucho más que una dirección.</h2>
+            <p>
+              Es el trabajo de una familia, una idea que creció y un punto de
+              encuentro en el barrio. Reactiva Pereira nace para dar visibilidad
+              a los comercios afectados y acercarlos a nuevas oportunidades.
+            </p>
+          </div>
+        </div>
+      </section>
+      <section class="seccion-rp fondo-crema reveal">
+        <div class="contenedor">
+          <span class="etiqueta"
+            >De una publicación a una nueva oportunidad</span
+          >
+          <h2>Conectamos lo que Pereira sabe hacer.</h2>
+          <div class="flujo-local">
+            <article>
+              <span>01 · COMPARTE</span>
+              <h3>Tu comercio tiene un lugar.</h3>
+              <p>
+                El comerciante presenta su negocio, sus productos y su talento.
+              </p>
+            </article>
+            <article>
+              <span>02 · DESCUBRE</span>
+              <h3>Encuentra algo de aquí.</h3>
+              <p>
+                Explora el marketplace, conoce al vendedor y revisa la
+                disponibilidad.
+              </p>
+            </article>
+            <article>
+              <span>03 · APOYA</span>
+              <h3>Elige comprar local.</h3>
+              <p>
+                Organiza tus favoritos en el carrito. La conexión comienza con
+                descubrirnos.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+      <section id="comercios" class="seccion-rp reveal">
+        <div class="contenedor">
+          <span class="etiqueta">La comunidad</span>
+          <h2>Negocios con historias por continuar.</h2>
+          <div
+            id="landingComercios"
+            class="comercios-market-grid"
+            aria-live="polite"
+          >
+            <p class="estado-vacio">Cargando comercios…</p>
+          </div>
+        </div>
+      </section>
+      <section class="seccion-rp fondo-crema reveal">
+        <div class="contenedor">
+          <span class="etiqueta">Descubre el talento local</span>
+          <h2>Hecho cerca de ti.</h2>
+          <div id="landingProductos" class="productos-grid" aria-live="polite">
+            <p class="estado-vacio">Cargando productos…</p>
+          </div>
+        </div>
+      </section>
+      <section class="seccion-rp reveal">
+        <div class="contenedor">
+          <span class="etiqueta">Nuestra comunidad en movimiento</span>
+          <h2>Pequeñas conexiones. Nuevas posibilidades.</h2>
+          <div id="landingImpacto" class="kpi-grid" aria-live="polite"></div>
+          <p
+            id="estadoAplicacion"
+            class="mensaje-formulario"
+            role="status"
+            aria-live="polite"
+          ></p>
+        </div>
+      </section>
+      <section class="seccion-rp cierre-rp reveal">
+        <div class="contenedor">
+          <h2>Comprar local también es reconstruir Pereira.</h2>
+          <p>Encuentra tu próximo favorito. Puede estar a unas calles de ti.</p>
+          <a class="boton" href="marketplace.html"
+            >Descubrir productos locales →</a
+          >
+        </div>
+      </section>
+    </main>
+    <footer class="footer">
+      <div class="contenedor">
+        <strong>Reactiva Pereira</strong>
+        <p>
+          Proyecto universitario · Pereira, Colombia. Sin pagos en línea en esta
+          etapa.
+        </p>
+      </div>
     </footer>
-
-</body>
-
+    <script src="js/estado-local.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/sesion.js"></script>
+    <script src="js/legado.js"></script>
+    <script src="js/app-init.js"></script>
+  </body>
 </html>

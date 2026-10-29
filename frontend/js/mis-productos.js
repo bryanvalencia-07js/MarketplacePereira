@@ -1,1110 +1,183 @@
-// ======================================================
-// RECUPERAR INFORMACIÓN
-// ======================================================
-let negocios =
-    JSON.parse(
-        localStorage.getItem("negocios")
-    ) || [];
-
-
-let productos =
-    JSON.parse(
-        localStorage.getItem("productos")
-    ) || [];
-
-let imagenProductoBase64 = "";
-let imagenProcesandose = false;
-// ======================================================
-// PREVISUALIZAR Y CONVERTIR IMAGEN
-// ======================================================
-
-function previsualizarImagen(event) {
-
-    const archivo =
-        event.target.files[0];
-
-
-    if (!archivo) {
-        return;
-    }
-
-
-    const formatosPermitidos = [
-        "image/jpeg",
-        "image/png",
-        "image/webp"
-    ];
-
-
-    if (
-        !formatosPermitidos.includes(
-            archivo.type
-        )
-    ) {
-
-        mostrarMensajeProducto(
-            "La imagen debe ser JPG, PNG o WEBP.",
-            "error"
-        );
-
-        event.target.value = "";
-
-        return;
-    }
-
-
-    imagenProcesandose = true;
-
-
-    const lector =
-        new FileReader();
-
-
-    lector.onload =
-        function (evento) {
-
-            const imagen =
-                new Image();
-
-
-            imagen.onload =
-                function () {
-
-                    const tamañoMaximo =
-                        900;
-
-
-                    let ancho =
-                        imagen.width;
-
-                    let alto =
-                        imagen.height;
-
-
-                    // Reducir dimensiones
-                    // manteniendo proporción.
-
-                    if (
-                        ancho > alto &&
-                        ancho > tamañoMaximo
-                    ) {
-
-                        alto =
-                            Math.round(
-                                alto *
-                                tamañoMaximo /
-                                ancho
-                            );
-
-                        ancho =
-                            tamañoMaximo;
-
-                    } else if (
-                        alto > tamañoMaximo
-                    ) {
-
-                        ancho =
-                            Math.round(
-                                ancho *
-                                tamañoMaximo /
-                                alto
-                            );
-
-                        alto =
-                            tamañoMaximo;
-                    }
-
-
-                    const canvas =
-                        document.createElement(
-                            "canvas"
-                        );
-
-
-                    canvas.width =
-                        ancho;
-
-                    canvas.height =
-                        alto;
-
-
-                    const contexto =
-                        canvas.getContext("2d");
-
-
-                    contexto.drawImage(
-                        imagen,
-                        0,
-                        0,
-                        ancho,
-                        alto
-                    );
-
-
-                    // Convertimos a JPEG comprimido.
-
-                    imagenProductoBase64 =
-                        canvas.toDataURL(
-                            "image/jpeg",
-                            0.72
-                        );
-
-
-                    const preview =
-                        document.getElementById(
-                            "previewProducto"
-                        );
-
-
-                    preview.src =
-                        imagenProductoBase64;
-
-
-                    document.getElementById(
-                        "contenedorPreview"
-                    ).hidden =
-                        false;
-
-
-                    imagenProcesandose =
-                        false;
-                };
-
-
-            imagen.src =
-                evento.target.result;
-        };
-
-
-    lector.readAsDataURL(
-        archivo
-    );
-}
-
-// ======================================================
-// OBTENER MI COMERCIO
-// ======================================================
-
-function obtenerMiComercio() {
-
-    return negocios.find(
-        negocio =>
-            negocio.usuarioId ===
-            usuarioSesion.id
-    );
-}
-
-
-const miComercio =
-    obtenerMiComercio();
-
-
-
-// ======================================================
-// IMPEDIR PRODUCTOS SIN COMERCIO
-// ======================================================
-
-if (!miComercio) {
-
-    alert(
-        "Primero debes registrar tu comercio."
-    );
-
-
-    window.location.href =
-        "mi-negocio.html";
-}
-
-
-
-// ======================================================
-// GUARDAR PRODUCTOS
-// ======================================================
-
-function guardarProductosLocalStorage() {
-
-    try {
-
-        localStorage.setItem(
-            "productos",
-            JSON.stringify(productos)
-        );
-
-        return true;
-
-    } catch (error) {
-
-        console.error(
-            "Error guardando productos:",
-            error
-        );
-
-
-        mostrarMensajeProducto(
-            "No hay suficiente espacio para guardar la imagen. Prueba con una imagen más pequeña.",
-            "error"
-        );
-
-
-        return false;
-    }
-}
-
-
-
-// ======================================================
-// OBTENER SOLO MIS PRODUCTOS
-// ======================================================
-
+let productos = [];
+let negocios = [];
+let miComercio = null;
+let productoEditado = null;
+const administrando = usuarioSesion.rol === "Administrador";
 function obtenerMisProductos() {
-
-    return productos.filter(
-        producto =>
-            producto.negocioId ===
-            miComercio.id
-    );
+  return productos;
 }
-
-
-
-// ======================================================
-// MOSTRAR PRODUCTOS
-// ======================================================
-
+async function cargarDatosProductos() {
+  [productos, negocios] = await Promise.all([
+    API.get("/productos?gestion=true"),
+    API.get("/negocios?gestion=true"),
+  ]);
+  miComercio =
+    negocios.find((n) => RP.mismoId(n.usuarioId, usuarioSesion.id)) || null;
+  if (administrando) {
+    const select = document.getElementById("productoNegocioId");
+    const previo = select.value;
+    select.innerHTML =
+      '<option value="">Selecciona un comercio</option>' +
+      negocios
+        .map((n) => `<option value="${n.id}">${UI.e(n.nombre)}</option>`)
+        .join("");
+    select.value = previo;
+  }
+  document.getElementById("nombreComercioProductos").textContent = administrando
+    ? "Supervisa los productos de todos los comercios."
+    : miComercio
+      ? `Administra los productos de ${miComercio.nombre}.`
+      : "Primero registra tu comercio para publicar productos.";
+  document.querySelector('#formProducto button[type="submit"]').disabled =
+    !administrando && !miComercio;
+  filtrarMisProductos();
+}
 function mostrarMisProductos(lista) {
-
-    const contenedor =
-        document.getElementById(
-            "listaMisProductos"
-        );
-
-
-    const contador =
-        document.getElementById(
-            "contadorMisProductos"
-        );
-
-
-    const vacio =
-        document.getElementById(
-            "sinMisProductos"
-        );
-
-
-    contenedor.innerHTML =
-        "";
-
-
-    contador.innerText =
-        `${lista.length} producto(s)`;
-
-
-    if (lista.length === 0) {
-
-        vacio.hidden =
-            false;
-
-        return;
-    }
-
-
-    vacio.hidden =
-        true;
-
-
-    lista.forEach(producto => {
-
-        const tarjeta =
-            document.createElement(
-                "article"
-            );
-
-
-        tarjeta.className =
-            "producto-market-card";
-
-
-        tarjeta.innerHTML = `
-
-            <div class="producto-market-imagen">
-
-                ${
-                    producto.imagen
-
-                        ? `
-                            <img
-                                src="${producto.imagen}"
-                                alt="${producto.nombre}"
-                                class="producto-imagen-real"
-                            >
-                        `
-
-                        : `
-                            <span>
-                                ${producto.nombre
-                                    .charAt(0)
-                                    .toUpperCase()}
-                            </span>
-                        `
-                }
-
-            </div>
-
-
-            <div class="producto-market-contenido">
-
-                <div class="producto-cabecera">
-
-                    <span class="producto-categoria">
-
-                        ${producto.categoria}
-
-                    </span>
-
-
-                    <span class="
-                        badge
-                        ${
-                            producto.estado === "Activo"
-                                ? "badge-activo"
-                                : "badge-inactivo"
-                        }
-                    ">
-
-                        ${producto.estado}
-
-                    </span>
-
-                </div>
-
-
-                <h3>
-
-                    ${producto.nombre}
-
-                </h3>
-
-
-                <p class="producto-descripcion">
-
-                    ${producto.descripcion}
-
-                </p>
-
-
-                <strong class="producto-precio">
-
-                    $${Number(
-                        producto.precio
-                    ).toLocaleString("es-CO")}
-
-                </strong>
-
-
-                <p class="producto-stock">
-
-                    Disponibles:
-                    ${producto.stock}
-
-                </p>
-
-
-                <div class="acciones-tabla">
-
-                    <button
-                        class="boton-accion editar"
-                        onclick="editarProducto(${producto.id})"
-                    >
-                        Editar
-                    </button>
-
-
-                    <button
-                        class="boton-accion estado"
-                        onclick="cambiarEstadoProducto(${producto.id})"
-                    >
-                        Cambiar estado
-                    </button>
-
-
-                    <button
-                        class="boton-accion eliminar"
-                        onclick="eliminarProducto(${producto.id})"
-                    >
-                        Eliminar
-                    </button>
-
-                </div>
-
-            </div>
-
-        `;
-
-
-        contenedor.appendChild(
-            tarjeta
-        );
-    });
+  const contenedor = document.getElementById("listaMisProductos");
+  contenedor.replaceChildren();
+  document.getElementById("contadorMisProductos").textContent =
+    `${lista.length} producto(s)`;
+  document.getElementById("sinMisProductos").hidden = lista.length > 0;
+  for (const p of lista) {
+    const tarjeta = document.createElement("article");
+    tarjeta.className = "producto-market-card";
+    const img = RP.imagenSegura(p.imagen);
+    const negocio = negocios.find((n) => RP.mismoId(n.id, p.negocioId));
+    tarjeta.innerHTML = `<div class="producto-market-imagen">${img ? `<img class="producto-imagen-real" src="${img}" alt="${UI.e(p.nombre)}">` : `<span>${UI.e(String(p.nombre).charAt(0))}</span>`}</div><div class="producto-market-contenido"><span class="producto-categoria">${UI.e(p.categoria)}</span><span class="badge ${p.estado === "Activo" ? "badge-activo" : "badge-inactivo"}">${UI.e(p.estado)}</span><h3>${UI.e(p.nombre)}</h3><p>${UI.e(p.descripcion)}</p>${administrando ? `<p>${UI.e(negocio?.nombre)}</p>` : ""}<strong class="producto-precio">${RP.dinero(p.precio)}</strong><p class="producto-stock">Disponibles: ${p.stock} ${p.stock === 0 ? "· Agotado" : p.stock <= 5 ? "· Stock bajo" : ""}</p><div class="acciones-tabla"><button class="boton-accion editar">Editar</button><button class="boton-accion estado">Cambiar estado</button><button class="boton-accion eliminar">Eliminar</button></div></div>`;
+    tarjeta
+      .querySelector(".editar")
+      .addEventListener("click", () => editarProducto(p.id));
+    tarjeta
+      .querySelector(".estado")
+      .addEventListener("click", () => cambiarEstadoProducto(p.id));
+    tarjeta
+      .querySelector(".eliminar")
+      .addEventListener("click", () => eliminarProducto(p.id));
+    contenedor.append(tarjeta);
+  }
 }
-
-
-
-// ======================================================
-// CREATE / UPDATE
-// ======================================================
-
-function guardarProducto(event) {
-
-    event.preventDefault();
-
-    if (imagenProcesandose) {
-        mostrarMensajeProducto(
-            "La imagen todavía se está procesando. Intenta nuevamente.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    const id =
-        document
-            .getElementById("productoId")
-            .value;
-
-
-    const nombre =
-        document
-            .getElementById("nombreProducto")
-            .value
-            .trim();
-
-
-    const categoria =
-        document
-            .getElementById("categoriaProducto")
-            .value;
-
-
-    const precio =
-        Number(
-            document
-                .getElementById("precioProducto")
-                .value
-        );
-
-
-    const stock =
-        Number(
-            document
-                .getElementById("stockProducto")
-                .value
-        );
-
-
-    const descripcion =
-        document
-            .getElementById("descripcionProducto")
-            .value
-            .trim();
-
-
-
-    // ==================================================
-    // VALIDACIONES GENERALES
-    // ==================================================
-
-    if (
-        nombre === "" ||
-        categoria === "" ||
-        descripcion === ""
-    ) {
-
-        mostrarMensajeProducto(
-            "Todos los campos son obligatorios.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    if (precio <= 0) {
-
-        mostrarMensajeProducto(
-            "El precio debe ser mayor que cero.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    if (stock < 0) {
-
-        mostrarMensajeProducto(
-            "La cantidad disponible no puede ser negativa.",
-            "error"
-        );
-
-        return;
-    }
-
-
-
-    // ==================================================
-    // UPDATE
-    // ==================================================
-
-    if (id !== "") {
-
-        const producto =
-            productos.find(
-                producto =>
-                    Number(producto.id) === Number(id) &&
-                    Number(producto.negocioId) === Number(miComercio.id)
-            );
-
-
-        if (!producto) {
-
-            mostrarMensajeProducto(
-                "Producto no encontrado.",
-                "error"
-            );
-
-            return;
-        }
-
-
-        producto.nombre =
-            nombre;
-
-        producto.categoria =
-            categoria;
-
-        producto.precio =
-            precio;
-
-        producto.stock =
-            stock;
-
-        producto.descripcion =
-            descripcion;
-
-
-        // Solo cambiar imagen
-        // si seleccionó una nueva.
-
-        if (
-            imagenProductoBase64 !== ""
-        ) {
-
-            producto.imagen =
-                imagenProductoBase64;
-        }
-
-
-        guardarProductosLocalStorage();
-
-
-        mostrarMensajeProducto(
-            "Producto actualizado correctamente.",
-            "exito"
-        );
-
-
-        limpiarFormularioProducto();
-
-
-        filtrarMisProductos();
-
-
-        return;
-    }
-
-
-
-    // ==================================================
-    // CREATE
-    // ==================================================
-
-    // AQUÍ sí exigimos imagen.
-
-    if (
-        imagenProductoBase64 === ""
-    ) {
-
-        mostrarMensajeProducto(
-            "Debes seleccionar una imagen del producto.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    const nuevoProducto = {
-
-        id:
-            productos.length > 0
-
-                ? Math.max(
-                    ...productos.map(
-                        producto => producto.id
-                    )
-                ) + 1
-
-                : 1,
-
-        negocioId:
-            miComercio.id,
-
-        nombre:
-            nombre,
-
-        descripcion:
-            descripcion,
-
-        categoria:
-            categoria,
-
-        precio:
-            precio,
-
-        stock:
-            stock,
-
-        imagen:
-            imagenProductoBase64,
-
-        estado:
-            "Activo",
-
-        popularidad:
-            0
-    };
-
-
-    productos.push(
-        nuevoProducto
-    );
-
-
-    guardarProductosLocalStorage();
-
-
-    mostrarMensajeProducto(
-        "Producto registrado correctamente.",
-        "exito"
-    );
-
-
-    limpiarFormularioProducto();
-
-
-    filtrarMisProductos();
-}
-
-
-
-// ======================================================
-// EDITAR
-// ======================================================
-function editarProducto(id) {
-
-    console.log("ID recibido:", id);
-    console.log("Mi comercio:", miComercio);
-    console.log("Productos:", productos);
-
-
-    const producto =
-        productos.find(
-            producto =>
-                Number(producto.id) === Number(id) &&
-                Number(producto.negocioId) === Number(miComercio.id)
-        );
-
-
-    console.log(
-        "Producto encontrado:",
-        producto
-    );
-
-
-    if (!producto) {
-
-        mostrarMensajeProducto(
-            "No se encontró el producto o no pertenece a tu comercio.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    // ==================================================
-    // GUARDAR ID DEL PRODUCTO QUE ESTAMOS EDITANDO
-    // ==================================================
-
-    document.getElementById(
-        "productoId"
-    ).value =
-        producto.id;
-
-
-
-    // ==================================================
-    // CARGAR INFORMACIÓN
-    // ==================================================
-
-    document.getElementById(
-        "nombreProducto"
-    ).value =
-        producto.nombre;
-
-
-    document.getElementById(
-        "categoriaProducto"
-    ).value =
-        producto.categoria;
-
-
-    document.getElementById(
-        "precioProducto"
-    ).value =
-        producto.precio;
-
-
-    document.getElementById(
-        "stockProducto"
-    ).value =
-        producto.stock;
-
-
-    document.getElementById(
-        "descripcionProducto"
-    ).value =
-        producto.descripcion;
-
-
-
-    // ==================================================
-    // CARGAR IMAGEN
-    // ==================================================
-
-    imagenProductoBase64 =
-        producto.imagen || "";
-
-
-    const preview =
-        document.getElementById(
-            "previewProducto"
-        );
-
-
-    const contenedorPreview =
-        document.getElementById(
-            "contenedorPreview"
-        );
-
-
-    if (producto.imagen) {
-
-        preview.src =
-            producto.imagen;
-
-        contenedorPreview.hidden =
-            false;
-
-    } else {
-
-        preview.src =
-            "";
-
-        contenedorPreview.hidden =
-            true;
-    }
-
-
-
-    // ==================================================
-    // MODO EDICIÓN
-    // ==================================================
-
-    document.getElementById(
-        "tituloFormularioProducto"
-    ).innerText =
-        "Editar producto";
-
-
-    document.getElementById(
-        "btnCancelarProducto"
-    ).hidden =
-        false;
-
-
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
-}
-
-
-
-// ======================================================
-// CANCELAR EDICIÓN
-// ======================================================
-
-function cancelarEdicionProducto() {
-
-    limpiarFormularioProducto();
-
-    document.getElementById(
-        "mensajeProducto"
-    ).innerText =
-        "";
-}
-
-
-
-// ======================================================
-// CAMBIAR ESTADO
-// ======================================================
-
-function cambiarEstadoProducto(id) {
-
-    const producto =
-        productos.find(
-            producto =>
-                producto.id === id &&
-                producto.negocioId === miComercio.id
-        );
-
-
-    if (!producto) {
-
-        return;
-    }
-
-
-    producto.estado =
-        producto.estado === "Activo"
-            ? "Inactivo"
-            : "Activo";
-
-
-    guardarProductosLocalStorage();
-
-
-    filtrarMisProductos();
-}
-
-
-
-// ======================================================
-// DELETE
-// ======================================================
-
-function eliminarProducto(id) {
-
-    const producto =
-        productos.find(
-            producto =>
-                producto.id === id &&
-                producto.negocioId === miComercio.id
-        );
-
-
-    if (!producto) {
-
-        return;
-    }
-
-
-    const confirmar =
-        confirm(
-            `¿Seguro que deseas eliminar ${producto.nombre}?`
-        );
-
-
-    if (!confirmar) {
-
-        return;
-    }
-
-
-    productos =
-        productos.filter(
-            producto =>
-                !(
-                    producto.id === id &&
-                    producto.negocioId === miComercio.id
-                )
-        );
-
-
-    guardarProductosLocalStorage();
-
-
-    filtrarMisProductos();
-}
-
-
-
-// ======================================================
-// BÚSQUEDA Y FILTRO
-// ======================================================
-
 function filtrarMisProductos() {
-
-    const texto =
-        document
-            .getElementById("buscarProducto")
-            .value
-            .trim()
-            .toLowerCase();
-
-
-    const categoria =
-        document
-            .getElementById("filtroCategoriaProducto")
-            .value;
-
-
-    const misProductos =
-        obtenerMisProductos();
-
-
-    const filtrados =
-        misProductos.filter(producto => {
-
-            const coincideTexto =
-
-                producto.nombre
-                    .toLowerCase()
-                    .includes(texto)
-
-                ||
-
-                producto.descripcion
-                    .toLowerCase()
-                    .includes(texto);
-
-
-            const coincideCategoria =
-
-                categoria === ""
-
-                ||
-
-                producto.categoria === categoria;
-
-
-            return (
-                coincideTexto &&
-                coincideCategoria
-            );
-        });
-
-
-    mostrarMisProductos(
-        filtrados
-    );
+  const texto = document
+    .getElementById("buscarProducto")
+    .value.trim()
+    .toLowerCase();
+  const categoria = document.getElementById("filtroCategoriaProducto").value;
+  mostrarMisProductos(
+    productos.filter(
+      (p) =>
+        (!categoria || p.categoria === categoria) &&
+        `${p.nombre} ${p.descripcion}`.toLowerCase().includes(texto),
+    ),
+  );
 }
-
-
-
-// ======================================================
-// LIMPIAR FORMULARIO
-// ======================================================
-
+async function guardarProducto(event) {
+  event.preventDefault();
+  if (ImagenProducto.procesando) {
+    UI.estado(
+      "La imagen todavía se está procesando.",
+      "error",
+      "mensajeProducto",
+    );
+    return;
+  }
+  await UI.tarea(
+    document.querySelector('#formProducto button[type="submit"]'),
+    async () => {
+      const negocioId = administrando
+        ? Number(document.getElementById("productoNegocioId").value)
+        : miComercio?.id;
+      if (!negocioId)
+        throw new Error("Selecciona o registra un comercio antes de publicar.");
+      const body = {
+        negocioId,
+        nombre: document.getElementById("nombreProducto").value,
+        descripcion: document.getElementById("descripcionProducto").value,
+        categoria: document.getElementById("categoriaProducto").value,
+        precio: Number(document.getElementById("precioProducto").value),
+        stock: Number(document.getElementById("stockProducto").value),
+      };
+      if (!ImagenProducto.valor)
+        throw new Error("Debes seleccionar una imagen del producto.");
+      body.imagen = ImagenProducto.valor;
+      if (productoEditado) await API.put(`/productos/${productoEditado}`, body);
+      else await API.post("/productos", body);
+      limpiarFormularioProducto();
+      await cargarDatosProductos();
+      UI.estado("Producto guardado correctamente.", "exito", "mensajeProducto");
+    },
+    "mensajeProducto",
+  );
+}
+async function editarProducto(id) {
+  try {
+    const p = await API.get(`/productos/${id}`);
+    if (!administrando && !RP.mismoId(p.negocioId, miComercio?.id))
+      throw new Error("El producto no pertenece a tu comercio.");
+    productoEditado = p.id;
+    document.getElementById("productoId").value = p.id;
+    for (const [campo, key] of Object.entries({
+      nombreProducto: "nombre",
+      descripcionProducto: "descripcion",
+      categoriaProducto: "categoria",
+      precioProducto: "precio",
+      stockProducto: "stock",
+    }))
+      document.getElementById(campo).value = p[key];
+    if (administrando)
+      document.getElementById("productoNegocioId").value = p.negocioId;
+    ImagenProducto.cargar(p.imagen);
+    document.getElementById("tituloFormularioProducto").textContent =
+      "Editar producto";
+    document.getElementById("btnCancelarProducto").hidden = false;
+    document.getElementById("nombreProducto").focus();
+  } catch (error) {
+    UI.estado(error.message, "error", "mensajeProducto");
+  }
+}
 function limpiarFormularioProducto() {
-
-    imagenProductoBase64 =
-        "";
-
-    document.getElementById(
-        "previewProducto"
-    ).src =
-        "";
-
-    document.getElementById(
-        "contenedorPreview"
-    ).hidden =
-        true;
-
-    document
-        .getElementById("formProducto")
-        .reset();
-
-
-    document.getElementById(
-        "productoId"
-    ).value =
-        "";
-
-
-    document.getElementById(
-        "tituloFormularioProducto"
-    ).innerText =
-        "Registrar producto";
-
-
-    document.getElementById(
-        "btnCancelarProducto"
-    ).hidden =
-        true;
+  productoEditado = null;
+  document.getElementById("formProducto").reset();
+  ImagenProducto.cargar("");
+  document.getElementById("productoId").value = "";
+  document.getElementById("tituloFormularioProducto").textContent =
+    "Registrar producto";
+  document.getElementById("btnCancelarProducto").hidden = true;
 }
-
-
-
-// ======================================================
-// MENSAJE
-// ======================================================
-
-function mostrarMensajeProducto(
-    texto,
-    tipo
-) {
-
-    const mensaje =
-        document.getElementById(
-            "mensajeProducto"
-        );
-
-
-    mensaje.innerText =
-        texto;
-
-
-    mensaje.className =
-        `mensaje-formulario ${tipo}`;
+function cancelarEdicionProducto() {
+  limpiarFormularioProducto();
+  UI.estado("Edición cancelada.", "exito", "mensajeProducto");
 }
-
-
-
-// ======================================================
-// INFORMACIÓN DEL COMERCIO
-// ======================================================
-
-if (miComercio) {
-
-    document.getElementById(
-        "nombreComercioProductos"
-    ).innerText =
-        `Administra los productos de ${miComercio.nombre}.`;
+function previsualizarImagen(event) {
+  ImagenProducto.seleccionar(event);
 }
-
-
-
-// ======================================================
-// INICIO
-// ======================================================
-
-if (miComercio) {
-
-    mostrarMisProductos(
-        obtenerMisProductos()
-    );
+async function cambiarEstadoProducto(id) {
+  try {
+    const p = await API.get(`/productos/${id}`);
+    await API.put(`/productos/${id}`, {
+      estado: p.estado === "Activo" ? "Inactivo" : "Activo",
+    });
+    await cargarDatosProductos();
+    UI.estado("Estado actualizado.", "exito", "mensajeProducto");
+  } catch (error) {
+    UI.estado(error.message, "error", "mensajeProducto");
+  }
 }
+async function eliminarProducto(id) {
+  if (
+    !(await UI.confirmar(
+      "¿Eliminar este producto? Se retirará del catálogo y del carrito cuando se valide nuevamente.",
+    ))
+  )
+    return;
+  try {
+    await API.delete(`/productos/${id}`);
+    if (productoEditado === id) limpiarFormularioProducto();
+    await cargarDatosProductos();
+    UI.estado("Producto eliminado.", "exito", "mensajeProducto");
+  } catch (error) {
+    UI.estado(error.message, "error", "mensajeProducto");
+  }
+}
+window.moduloListo = cargarDatosProductos().catch((error) =>
+  UI.estado(error.message, "error", "mensajeProducto"),
+);

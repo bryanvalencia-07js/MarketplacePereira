@@ -93,7 +93,7 @@
 
                 <button
                     class="boton boton-salir"
-                    onclick="cerrarSesion()"
+                    data-click="cerrarSesion"
                 >
                     Cerrar sesión
                 </button>
@@ -111,6 +111,7 @@
     <main class="carrito-main">
 
         <div class="contenedor">
+            <p id="mensajeCarrito" class="mensaje-formulario" role="status" aria-live="polite"></p>
 
             <section class="modulo-encabezado">
 
@@ -199,7 +200,7 @@
                         <button
                             type="button"
                             class="boton-vaciar"
-                            onclick="vaciarCarrito()"
+                            data-click="vaciarCarrito"
                         >
                             Vaciar carrito
                         </button>
@@ -289,16 +290,13 @@
     </main>
 
 
-    <script src="js/sesion.js"></script>
 
-    <script>
-        protegerPorRol([
-            "Comprador"
-        ]);
-    </script>
-
-    <script src="js/carrito.js"></script>
-
+<script src="js/estado-local.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sesion.js"></script>
+<script src="js/legado.js"></script>
+<script src="js/app-init.js"></script>
 </body>
 
 </html>

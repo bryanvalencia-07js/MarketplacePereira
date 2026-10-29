@@ -1,341 +1,87 @@
-// ======================================================
-// RECUPERAR USUARIO EN SESIÓN
-// ======================================================
-
-const usuarioSesion =
-    JSON.parse(
-        localStorage.getItem("usuarioSesion")
-    );
-
-
-
-// ======================================================
-// PROTEGER PÁGINAS
-// ======================================================
-
-if (!usuarioSesion) {
-
-    window.location.href =
-        "login.html";
+const rutasPorRol = {
+  Administrador: "dashboard.html",
+  Comerciante: "mi-negocio.html",
+  Comprador: "marketplace.html",
+};
+let usuarioSesion = null;
+async function actualizarSesion() {
+  const data = await API.get("/auth/sesion");
+  usuarioSesion = data.usuario;
+  for (const [id, valor] of Object.entries({
+    nombreUsuario: usuarioSesion
+      ? `${usuarioSesion.nombre} ${usuarioSesion.apellido}`
+      : "Invitado",
+    rolUsuario: usuarioSesion?.rol || "Explorador local",
+    bienvenida: usuarioSesion
+      ? `Bienvenido, ${usuarioSesion.nombre}`
+      : "Bienvenido",
+  })) {
+    const nodo = document.getElementById(id);
+    if (nodo) nodo.textContent = valor;
+  }
+  for (const nodo of document.querySelectorAll('[data-click="cerrarSesion"]'))
+    nodo.hidden = !usuarioSesion;
+  for (const nodo of document.querySelectorAll(".carrito-navbar"))
+    nodo.hidden = Boolean(usuarioSesion && usuarioSesion.rol !== "Comprador");
+  const zona = document.querySelector(".market-usuario");
+  if (
+    zona &&
+    !document.getElementById("enlacePerfil") &&
+    (!usuarioSesion || usuarioSesion.rol !== "Comprador")
+  ) {
+    const enlace = document.createElement("a");
+    enlace.id = "enlacePerfil";
+    enlace.className = "boton boton-secundario";
+    enlace.href = usuarioSesion ? rutasPorRol[usuarioSesion.rol] : "login.html";
+    enlace.textContent = usuarioSesion ? "Mi panel" : "Ingresar";
+    zona.append(enlace);
+  }
+  return usuarioSesion;
 }
-
-
-
-// ======================================================
-// MOSTRAR DATOS DEL USUARIO
-// ======================================================
-
-if (usuarioSesion) {
-
-    const bienvenida =
-        document.getElementById("bienvenida");
-
-    const nombreUsuario =
-        document.getElementById("nombreUsuario");
-
-    const rolUsuario =
-        document.getElementById("rolUsuario");
-
-
-    if (bienvenida) {
-
-        bienvenida.innerText =
-            "Bienvenido, " +
-            usuarioSesion.nombre +
-            " " +
-            usuarioSesion.apellido;
-    }
-
-
-    if (nombreUsuario) {
-
-        nombreUsuario.innerText =
-            usuarioSesion.nombre +
-            " " +
-            usuarioSesion.apellido;
-    }
-
-
-    if (rolUsuario) {
-
-        rolUsuario.innerText =
-            usuarioSesion.rol;
-    }
+const sesionLista = actualizarSesion();
+// Evitar rechazos sin manejar mientras el bootstrap espera el resultado.
+sesionLista.catch(() => {});
+function protegerPorRol(roles) {
+  if (!usuarioSesion) {
+    location.replace("login.html");
+    return false;
+  }
+  if (!roles.includes(usuarioSesion.rol)) {
+    location.replace(rutasPorRol[usuarioSesion.rol] || "login.html");
+    return false;
+  }
+  return true;
 }
-
-
-
-// ======================================================
-// AUTORIZACIÓN SEGÚN ROL
-// ======================================================
-
-function protegerPorRol(
-    rolesPermitidos
-) {
-
-    if (!usuarioSesion) {
-
-        return;
-    }
-
-
-    const permitido =
-        rolesPermitidos.includes(
-            usuarioSesion.rol
-        );
-
-
-    if (!permitido) {
-
-        alert(
-            "No tienes permisos para acceder a este módulo."
-        );
-
-
-        window.location.href =
-            "dashboard.html";
-    }
+async function validarSesionAccion(rol) {
+  await actualizarSesion();
+  return protegerPorRol([rol]);
 }
-
-
-
-// ======================================================
-// CREAR DASHBOARD SEGÚN ROL
-// ======================================================
-
-function cargarModulosDashboard() {
-
-    const contenedor =
-        document.getElementById(
-            "modulosDashboard"
-        );
-
-
-    // Si esta página no tiene
-    // el dashboard, no hacemos nada.
-    if (!contenedor) {
-
-        return;
-    }
-
-
-    let contenido = "";
-
-
-
-    // ==================================================
-    // ADMINISTRADOR
-    // ==================================================
-
-    if (
-        usuarioSesion.rol ===
-        "Administrador"
-    ) {
-
-        contenido += `
-
-            <article class="modulo-card">
-
-                <div class="modulo-icono">
-                    U
-                </div>
-
-                <div>
-
-                    <span class="modulo-tipo">
-                        Administración
-                    </span>
-
-                    <h2>
-                        Usuarios
-                    </h2>
-
-                    <p>
-                        Registra, consulta, edita,
-                        elimina y administra los
-                        usuarios de la plataforma.
-                    </p>
-
-                </div>
-
-                <a
-                    href="usuarios.html"
-                    class="boton boton-primario"
-                >
-                    Gestionar usuarios
-                </a>
-
-            </article>
-
-        `;
-
-
-        contenido += `
-
-            <article class="modulo-card">
-
-                <div class="modulo-icono">
-                    N
-                </div>
-
-                <div>
-
-                    <span class="modulo-tipo">
-                        Administración
-                    </span>
-
-                    <h2>
-                        Negocios
-                    </h2>
-
-                    <p>
-                        Consulta y administra todos
-                        los negocios registrados en
-                        Reactiva Pereira.
-                    </p>
-
-                </div>
-
-                <a
-                    href="negocios.html"
-                    class="boton boton-primario"
-                >
-                    Gestionar negocios
-                </a>
-
-            </article>
-
-        `;
-    }
-
-
-
-    // ==================================================
-    // COMERCIANTE
-    // ==================================================
-
-    if (
-        usuarioSesion.rol ===
-        "Comerciante"
-    ) {
-
-        contenido += `
-
-            <article class="modulo-card">
-
-                <div class="modulo-icono">
-                    M
-                </div>
-
-                <div>
-
-                    <span class="modulo-tipo">
-                        Mi espacio
-                    </span>
-
-                    <h2>
-                        Mi comercio
-                    </h2>
-
-                    <p>
-                        Registra y administra
-                        únicamente la información
-                        de tu propio comercio.
-                    </p>
-
-                </div>
-
-                <a
-                    href="mi-negocio.html"
-                    class="boton boton-primario"
-                >
-                    Administrar mi comercio
-                </a>
-
-            </article>
-
-        `;
-    }
-
-
-
-    // ==================================================
-    // COMPRADOR
-    // ==================================================
-
-    if (
-        usuarioSesion.rol ===
-        "Comprador"
-    ) {
-
-        contenido += `
-
-            <article class="modulo-card">
-
-                <div class="modulo-icono">
-                    P
-                </div>
-
-                <div>
-
-                    <span class="modulo-tipo">
-                        Marketplace
-                    </span>
-
-                    <h2>
-                        Explorar comercios
-                    </h2>
-
-                    <p>
-                        Descubre negocios locales
-                        registrados en Reactiva Pereira
-                        y conoce lo que ofrecen.
-                    </p>
-
-                </div>
-
-                <a
-                    href="comercios.html"
-                    class="boton boton-primario"
-                >
-                    Explorar comercios
-                </a>
-
-            </article>
-
-        `;
-    }
-
-
-
-    contenedor.innerHTML =
-        contenido;
+async function cerrarSesion() {
+  await UI.tarea(
+    document.querySelector('[data-click="cerrarSesion"]'),
+    async () => {
+      await API.post("/auth/logout");
+      usuarioSesion = null;
+      // Notificar otras pestañas sin almacenar identidad ni token.
+      try {
+        localStorage.setItem("rp_cambio_sesion", String(Date.now()));
+      } catch {
+        /* El servidor ya cerró la sesión. */
+      }
+      location.replace("login.html");
+    },
+  );
 }
-
-
-
-// ======================================================
-// CERRAR SESIÓN
-// ======================================================
-
-function cerrarSesion() {
-
-    localStorage.removeItem(
-        "usuarioSesion"
-    );
-
-
-    window.location.href =
-        "login.html";
-}
-
-
-
-// ======================================================
-// INICIAR DASHBOARD
-// ======================================================
-
-if (usuarioSesion) {
-
-    cargarModulosDashboard();
-}
+window.addEventListener("sesion-caducada", () =>
+  location.replace("login.html"),
+);
+window.addEventListener("storage", async (event) => {
+  if (event.key !== "rp_cambio_sesion") return;
+  const previo = usuarioSesion?.id;
+  try {
+    await actualizarSesion();
+    if (previo !== usuarioSesion?.id) location.reload();
+  } catch (error) {
+    UI.estado(error.message, "error");
+  }
+});

@@ -83,7 +83,7 @@
 
                 <button
                     class="boton boton-salir"
-                    onclick="cerrarSesion()"
+                    data-click="cerrarSesion"
                 >
                     Cerrar sesión
                 </button>
@@ -123,15 +123,19 @@
 
 
 
+            <section aria-label="Resumen de la plataforma"><div id="kpisAdministrador" class="kpi-grid"></div></section>
+            <section class="panel-admin"><h2>Alertas del ecosistema</h2><ul id="alertasAdministrador" class="actividad-lista"></ul></section>
+            <section class="panel-admin"><h2>Actividad reciente</h2><ul id="actividadAdministrador" class="actividad-lista"></ul></section>
+            <a href="productos.html" class="boton boton-primario">Administrar productos</a>
             <!-- MÓDULOS -->
 
-            <section 
-                id="modulosDashboard   "
+            <section
+                id="modulosDashboard"
                 class="dashboard-modulos"
             >
                 <!-- USUARIOS -->
 
-                <article 
+                <article
                     class="modulo-card"
                     id="moduloUsuarios"
                 >
@@ -169,10 +173,10 @@
 
                 <!-- NEGOCIOS -->
 
-                <article 
+                <article
                     class="modulo-card"
                     id="moduloNegocios"
-                > 
+                >
                     <div class="modulo-icono">
                         N
                     </div>
@@ -211,13 +215,13 @@
 
 
 
-    <script src="js/sesion.js"></script>
 
-    <script>
-        protegerPorRol(['Administrador']);
-    </script>
-
-
+<script src="js/estado-local.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sesion.js"></script>
+<script src="js/legado.js"></script>
+<script src="js/app-init.js"></script>
 </body>
 
 </html>

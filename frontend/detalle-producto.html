@@ -132,7 +132,7 @@
 
                 <button
                     class="boton boton-salir"
-                    onclick="cerrarSesion()"
+                    data-click="cerrarSesion"
                 >
                     Cerrar sesión
                 </button>
@@ -249,7 +249,7 @@
 
                                 <button
                                     type="button"
-                                    onclick="cambiarCantidadDetalle(-1)"
+                                    data-click="cambiarCantidadDetalle" data-numero="-1"
                                     aria-label="Disminuir cantidad"
                                 >
                                     −
@@ -261,7 +261,7 @@
 
                                 <button
                                     type="button"
-                                    onclick="cambiarCantidadDetalle(1)"
+                                    data-click="cambiarCantidadDetalle" data-numero="1"
                                     aria-label="Aumentar cantidad"
                                 >
                                     +
@@ -282,7 +282,7 @@
                             type="button"
                             id="btnAgregarCarrito"
                             class="boton boton-primario"
-                            onclick="agregarAlCarrito()"
+                            data-click="agregarAlCarrito"
                         >
                             Agregar al carrito
                         </button>
@@ -361,16 +361,13 @@
     </main>
 
 
-    <script src="js/sesion.js"></script>
 
-    <script>
-        protegerPorRol([
-            "Comprador"
-        ]);
-    </script>
-
-    <script src="js/detalle-producto.js"></script>
-
+<script src="js/estado-local.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sesion.js"></script>
+<script src="js/legado.js"></script>
+<script src="js/app-init.js"></script>
 </body>
 
 </html>

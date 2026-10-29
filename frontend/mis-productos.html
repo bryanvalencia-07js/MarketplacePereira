@@ -93,7 +93,7 @@
 
                 <button
                     class="boton boton-salir"
-                    onclick="cerrarSesion()"
+                    data-click="cerrarSesion"
                 >
                     Cerrar sesión
                 </button>
@@ -154,7 +154,7 @@
                 <form
                     id="formProducto"
                     class="formulario"
-                    onsubmit="guardarProducto(event)"
+                    data-submit="guardarProducto"
                 >
 
                     <input
@@ -233,7 +233,7 @@
 
                             <input
                                 type="number"
-                                id="precioProducto"
+                                id="precioProducto" step="0.01"
                                 min="1"
                                 placeholder="25000"
                                 required
@@ -260,6 +260,11 @@
 
 
                         <div class="campo campo-completo">
+                            <label for="descripcionProducto">Descripción del producto</label>
+                            <textarea id="descripcionProducto" rows="4" maxlength="2000" required></textarea>
+                        </div>
+
+                        <div class="campo campo-completo">
 
                             <label for="imagenProducto">
                                 Imagen del producto
@@ -269,16 +274,17 @@
                                 type="file"
                                 id="imagenProducto"
                                 accept="image/png, image/jpeg, image/webp"
-                                onchange="previsualizarImagen(event)"
+                                data-change="previsualizarImagen"
                             >
 
                             <small>
                                 Formatos permitidos: PNG, JPG, JPEG, WEBP
-                                Máximo recomendado: 500 KB
+                                Hasta 10 MB. Se optimiza a JPEG de hasta 900 píxeles.
                             </small>
 
                             <div
-                                id="contenedorPreviewProducto"
+                                id="contenedorPreview"
+                                hidden
                                 class="producto-preview"
                             >
                                 <img
@@ -296,6 +302,7 @@
 
                     <p
                         id="mensajeProducto"
+                        role="status" aria-live="polite"
                         class="mensaje-formulario"
                     ></p>
 
@@ -314,7 +321,7 @@
                             type="button"
                             id="btnCancelarProducto"
                             class="boton boton-secundario"
-                            onclick="cancelarEdicionProducto()"
+                            data-click="cancelarEdicionProducto"
                             hidden
                         >
                             Cancelar edición
@@ -334,15 +341,15 @@
 
                 <input
                     type="search"
-                    id="buscarProducto"
+                    id="buscarProducto" aria-label="Buscar entre mis productos"
                     placeholder="Buscar entre mis productos..."
-                    oninput="filtrarMisProductos()"
+                    data-input="filtrarMisProductos"
                 >
 
 
                 <select
-                    id="filtroCategoriaProducto"
-                    onchange="filtrarMisProductos()"
+                    id="filtroCategoriaProducto" aria-label="Filtrar productos por categoría"
+                    data-change="filtrarMisProductos"
                 >
 
                     <option value="">
@@ -430,16 +437,13 @@
     </main>
 
 
-    <script src="js/sesion.js"></script>
 
-    <script>
-        protegerPorRol([
-            "Comerciante"
-        ]);
-    </script>
-
-    <script src="js/mis-productos.js"></script>
-
+<script src="js/estado-local.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sesion.js"></script>
+<script src="js/legado.js"></script>
+<script src="js/app-init.js"></script>
 </body>
 
 </html>

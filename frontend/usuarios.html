@@ -91,7 +91,7 @@
 
                 <button
                     class="boton boton-salir"
-                    onclick="cerrarSesion()"
+                    data-click="cerrarSesion"
                 >
                     Cerrar sesión
                 </button>
@@ -157,7 +157,7 @@
                 <form
                     id="formUsuario"
                     class="formulario formulario-usuarios"
-                    onsubmit="guardarUsuario(event)"
+                    data-submit="guardarUsuario"
                 >
 
                     <!-- ID utilizado al editar -->
@@ -225,7 +225,7 @@
                             </label>
 
                             <input
-                                type="password"
+                                type="password" minlength="12" maxlength="128" autocomplete="new-password"
                                 id="password"
                                 placeholder="Contraseña"
                             >
@@ -273,7 +273,7 @@
 
 
                     <p
-                        id="mensajeUsuario"
+                        id="mensajeUsuario" role="status" aria-live="polite"
                         class="mensaje-formulario"
                     ></p>
 
@@ -292,7 +292,7 @@
                             type="button"
                             id="btnCancelar"
                             class="boton boton-secundario"
-                            onclick="cancelarEdicion()"
+                            data-click="cancelarEdicion"
                             hidden
                         >
                             Cancelar edición
@@ -314,17 +314,17 @@
 
                     <input
                         type="search"
-                        id="buscarUsuario"
+                        id="buscarUsuario" aria-label="Buscar usuarios"
                         placeholder="Buscar por nombre, apellido o correo..."
-                        oninput="aplicarFiltros()"
+                        data-input="aplicarFiltros"
                     >
 
                 </div>
 
 
                 <select
-                    id="filtroRol"
-                    onchange="aplicarFiltros()"
+                    id="filtroRol" aria-label="Filtrar usuarios por rol"
+                    data-change="aplicarFiltros"
                 >
 
                     <option value="">
@@ -423,15 +423,15 @@
 
 
     <!-- Primero protege la sesión -->
-    <script src="js/sesion.js"></script>
-    
-    <script>
-        protegerPorRol(['Administrador']);
-    </script>
 
-    <!-- Después carga el módulo -->
-    <script src="js/usuarios.js"></script>
 
+
+<script src="js/estado-local.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sesion.js"></script>
+<script src="js/legado.js"></script>
+<script src="js/app-init.js"></script>
 </body>
 
 </html>
