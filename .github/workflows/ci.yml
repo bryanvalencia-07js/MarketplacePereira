@@ -1,0 +1,60 @@
+name: Continuous testing
+on:
+  pull_request:
+  push:
+    branches: [main, feat/mysql-foundation-xp]
+permissions:
+  contents: read
+jobs:
+  memory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            tests/package-lock.json
+      - run: npm ci --prefix backend
+      - run: npm ci --prefix tests
+      - run: npx --prefix tests playwright install --with-deps chromium
+      - run: npm test --prefix tests
+      - run: npm audit --omit=dev --prefix backend
+      - run: rg --files backend frontend/js tests -g '*.js' -g '*.cjs' | xargs -n1 node --check
+      - run: git diff --check
+  mysql:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_RANDOM_ROOT_PASSWORD: 'yes'
+          MYSQL_DATABASE: reactiva_ci_test
+          MYSQL_USER: reactiva_ci
+          # Credencial ficticia de una base efímera exclusiva del job.
+          MYSQL_PASSWORD: ci-only-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=15
+    env:
+      DATA_SOURCE: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_NAME: reactiva_ci_test
+      DB_USER: reactiva_ci
+      DB_PASSWORD: ci-only-password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci --prefix backend
+      - run: npm run test:mysql --prefix tests

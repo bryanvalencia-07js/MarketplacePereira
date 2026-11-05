@@ -126,4 +126,4 @@ El resumen no expone la lista de cuentas.
 | 500 | Error interno, sin stack ni detalles de persistencia |
 | 503 | Capacidad temporal de sesiones agotada |
 
-Los endpoints de carrito, pedidos, pagos y SQL no existen en esta fase. El carrito es del cliente y se valida contra `/productos`, `/negocios` y la sesión actual antes de operar.
+No hay endpoints de carrito, pedidos ni pagos. MySQL es persistencia interna y no expone endpoints SQL. El carrito es del cliente y se valida contra `/productos`, `/negocios` y la sesión actual antes de operar.

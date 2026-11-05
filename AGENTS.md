@@ -1,112 +1,47 @@
-# Reactiva Pereira
+# Instrucciones para agentes — Reactiva Pereira
 
-Proyecto universitario de Ingeniería de Software.
+## Alcance y arquitectura
 
-## Objetivo
+Leer README y los cuatro documentos de `docs/` antes de cambios estructurales. Revisar `git status` y los archivos involucrados. Trabajar en una rama de tarea; para la fundación MySQL usar `feat/mysql-foundation-xp`, nunca `main`.
 
-Reactiva Pereira es un marketplace para dar visibilidad a comercios
-de Pereira y su área metropolitana afectados por el terremoto
-del 10 de agosto de 2026.
+Conservar HTML/CSS/JavaScript nativo, Express REST y el flujo frontend → API → controllers → services → repositories → DB. La persistencia se elige por `DATA_SOURCE=memory|mysql`; `createRepositories(datos)` sigue creando memory aislado para fixtures. No introducir ORM ni frameworks frontend/CSS. Nunca conectar el navegador directamente a MySQL.
 
-## Stack
+Mantener `list/find/create/update/delete` async y `repos.transaccion(callback)`. SQL y detalles del pool viven en `backend/db/` y `backend/repositories/mysql/`; controllers/services conservan validación, permisos y reglas. No asumir rollback de callbacks arbitrarios en memory; MySQL sí debe tener commit/rollback y liberar conexiones.
 
-Frontend:
-- HTML5
-- CSS3
-- JavaScript
-- fetch() posteriormente
+## Ciclo XP obligatorio
 
-Backend:
-- Node.js
-- Express.js
-- API REST
+1. Ejecutar la suite existente y registrar su resultado; si falla, diagnosticar y restaurar el baseline sin esconder regresiones.
+2. Hacer un cambio pequeño y verificable. Añadir una prueba primero cuando exprese comportamiento nuevo o una regresión; caracterizar antes de refactorizaciones riesgosas.
+3. Ejecutar pruebas relacionadas, refactorizar con comportamiento comprobado y repetirlas.
+4. Tras cada bloque importante, ejecutar la suite completa. Mantener CI y cambios revisables pequeños; no hacer una reescritura masiva.
 
-Base de datos:
-- MySQL posteriormente
-- No usar ORM salvo que se solicite
+Aplicar Simple Design, Small Releases, Continuous Testing, Refactoring y Collective Code Ownership a todo el código. Conservar nombres coherentes entre capas. No crear archivos o dependencias si una responsabilidad existente se puede ampliar limpiamente. No mantener código muerto comentado: Git conserva el historial.
 
-## Estado actual
+## UI y limpieza
 
-El frontend académico funciona actualmente con LocalStorage.
+Conservar identidad, responsive, accesibilidad y experiencia existente; esta fundación no incluye un gran rediseño. Preservar Coverflow 3D, SVG de categorías, filtrado, hover, selección activa, teclado y storytelling.
 
-No reemplazar LocalStorage por la API de Express ni por MySQL
-sin una instrucción explícita.
-
-El backend existente debe conservarse.
-
-## Roles
-
-Administrador:
-- Puede administrar usuarios.
-- Puede administrar todos los negocios.
-
-Comerciante:
-- Puede registrar y editar únicamente su propio comercio.
-- Puede administrar únicamente los productos de su comercio.
-
-Comprador:
-- Puede navegar por el marketplace.
-- Puede consultar productos y comercios.
-- Puede usar su carrito.
-- No puede acceder a CRUD administrativos.
-
-## Relaciones actuales
-
-Un comercio pertenece a un usuario Comerciante mediante:
-
-usuarioId
-
-Un producto pertenece a un comercio mediante:
-
-negocioId
-
-El carrito utiliza:
-
-usuarioId
-productoId
-cantidad
-
-## Reglas de desarrollo
-
-- Revisar el código existente antes de modificarlo.
-- No reescribir archivos completos innecesariamente.
-- Mantener lo que ya funciona.
-- Hacer cambios pequeños e incrementales.
-- Explicar qué se modifica y por qué.
-- Mantener nombres consistentes entre frontend y backend.
-- No crear nuevas dependencias sin necesidad.
-- No usar frameworks CSS.
-- No introducir React, Vue, Angular u otros frameworks.
-- Mantener diseño responsive.
-- Mantener la identidad visual actual.
-- No cambiar la arquitectura sin aprobación.
+Una clase ausente del HTML no prueba código muerto. Buscar globalmente en scripts, templates, `innerHTML`, `classList`, `className`, selectores, `data-*`, estados, media queries y tests. Antes de eliminar, explicar la evidencia y ejecutar las regresiones correspondientes. No borrar assets ni funciones exportadas solo por una búsqueda superficial. Verificar consola/CSP y vistas móviles.
 
 ## Seguridad
 
-- No guardar secretos en frontend.
-- No agregar credenciales reales al repositorio.
-- La autenticación actual con LocalStorage es académica y no apta para producción.
-- No ejecutar git push automáticamente.
-- No ejecutar git reset --hard.
-- No eliminar archivos sin explicar primero por qué.
-- No modificar .git o historial Git sin autorización explícita.
+Conservar scrypt, sesiones HttpOnly/SameSite, CSRF, origen, CSP estricta, roles, autorización por propiedad, límites, validaciones y errores seguros. No agregar `unsafe-inline` ni `unsafe-eval`. No guardar autenticación en LocalStorage, secretos en frontend ni credenciales en Git. No crear cuentas demo en arranque. El único bootstrap es el Administrador explícito mediante entorno.
+
+Las consultas SQL usan parámetros; los nombres de tablas/columnas proceden de listas cerradas. Cambios del esquema requieren una migración nueva: no editar una migración aplicada. La suite MySQL solo se ejecuta contra una base dedicada cuyo nombre termine en `_test`; destruye sus entidades. No ejecutar estas pruebas contra datos del usuario.
+
+## Verificación
+
+Usar Node 24. Instalar dependencias con `npm ci --prefix backend` y `npm ci --prefix tests`.
+
+- Suite completa independiente de MySQL: `npm test --prefix tests`.
+- Backend y adaptador simulado: `npm test --prefix backend`.
+- Navegador: `npm run test:browser --prefix tests`; instalar Chromium o indicar `CHROMIUM_PATH`.
+- Integración MySQL separada: `npm run test:mysql --prefix tests`, con entorno de prueba configurado.
+- Dependencias: `npm audit --omit=dev --prefix backend`.
+- Revisar sintaxis y `git diff --check` antes de entregar.
+
+No afirmar pruebas no ejecutadas. Informar archivos creados/modificados/eliminados, dependencias, evidencia de limpieza, resultado y riesgos. Consolidar información vigente en README, AGENTS y los cuatro documentos de docs; no usar Markdown como diario de cada paso. Git y PR conservan la historia.
 
 ## Git
 
-Antes de cambios importantes:
-- ejecutar git status
-- revisar los archivos involucrados
-
-Después de cambios:
-- mostrar qué archivos fueron modificados
-- no hacer commit ni push salvo solicitud explícita
-
-## Forma de trabajo
-
-Antes de implementar una tarea:
-
-1. Revisar los archivos relacionados.
-2. Explicar brevemente qué se va a cambiar.
-3. Modificar solamente lo necesario.
-4. Verificar que no se haya roto funcionalidad existente.
-5. Indicar cómo probar el cambio.
+No ejecutar `git reset --hard`, modificar historial, hacer merge ni trabajar directamente sobre main. No hacer commit ni push salvo solicitud explícita del usuario. Explicar eliminaciones antes de realizarlas y dejar el diff revisable. Las instrucciones explícitas del usuario prevalecen sobre este archivo.

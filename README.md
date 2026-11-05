@@ -1,105 +1,92 @@
 # Reactiva Pereira
 
-Marketplace universitario para visibilizar comercios de Pereira, descubrir productos locales y apoyar la reactivación de la ciudad.
+Marketplace universitario para visibilizar comercios de Pereira, descubrir productos locales y apoyar la reactivación de la ciudad. Conserva las experiencias de Administrador, Comerciante, Comprador y visitante, el Coverflow 3D con SVG y el storytelling existente.
 
-Aplicación fullstack con experiencias de Administrador, Comerciante y Comprador. Implementadas las fases 2–13 del [roadmap de ejecución](docs/ROADMAP.md), sobre la Fase 1 previamente validada. No incluye pagos reales ni MySQL.
+## Stack y estado
 
-## Stack y arquitectura
-
-HTML, CSS y JavaScript nativo; Node.js 24 y Express 5. Sin framework frontend, framework CSS ni ORM.
+HTML5, CSS3 y JavaScript nativo; Node.js 24, Express 5 y `mysql2/promise`. API REST del mismo origen, sin ORM ni frameworks frontend/CSS.
 
 ```text
-Navegador → api.js / fetch → Express
-                             → Routes
-                             → Controllers
-                             → Services
-                             → Repositories async
-                             → memoria temporal
+Browser → fetch → Express API → Controller → Service → Repository → Memory / MySQL
 ```
 
-Express sirve tanto el frontend como `/api`, desde el mismo origen. No se necesita un servidor Python separado. Las entidades principales y la autenticación ya no dependen de LocalStorage.
+Usuarios, negocios y productos pueden persistir en MySQL. `DATA_SOURCE=memory` sigue siendo el valor predeterminado y permite ejecutar las pruebas sin una base. Sesiones y rate limits permanecen en memoria del proceso. El carrito es temporal del navegador: no hay pedidos, pagos, reservas ni descuento de stock.
 
-## Instalación y ejecución
+## Instalar y ejecutar
+
+Con Node 24 (ver `.nvmrc`):
 
 ```bash
-# Desde la raíz del repositorio, con Node.js 24:
 npm ci --prefix backend
+cp backend/.env.example backend/.env
 npm start --prefix backend
 ```
 
-La aplicación y la API se sirven en el puerto 3000 por defecto. Para desarrollo con recarga del backend:
+Abrir [http://localhost:3000](http://localhost:3000). Express sirve el frontend y `/api`; no hay compilación frontend ni servidor estático separado. `PORT` cambia el puerto y `npm run dev --prefix backend` activa nodemon.
+
+### Persistencia
+
+- `DATA_SOURCE=memory`: no requiere DB; cada reinicio borra entidades.
+- `DATA_SOURCE=mysql`: configurar `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` en `backend/.env` o en el entorno. Crear la base/usuario y ejecutar las migraciones **antes** del servidor:
 
 ```bash
-npm run dev --prefix backend
+npm run db:migrate --prefix backend
+npm start --prefix backend
 ```
 
-No hay paso de compilación frontend. `PORT` permite cambiar el puerto. El archivo `.nvmrc` indica Node 24. Se comprobaron Node 24.19.0 y npm 11.9.0.
+MySQL >= 8.0.16; se recomienda 8.4 LTS. Instrucciones, permisos, modelo y recuperación de migraciones en [DATABASE](docs/DATABASE.md). El servidor falla si MySQL no está preparado; no sustituye silenciosamente la base por memoria. Las migraciones son explícitas, no se ejecutan al arrancar.
 
-### Cuentas y administrador inicial
+### Cuentas
 
-El registro público crea Comerciantes o Compradores. No se distribuyen cuentas ni contraseñas predeterminadas.
+No se crean usuarios demo ni contraseñas predeterminadas. El registro público crea Comerciantes o Compradores. Para crear el primer Administrador, configurar juntas `ADMIN_EMAIL` y `ADMIN_PASSWORD` (12–128 caracteres); se crea solo si no existe ningún Administrador. En MySQL queda persistido; las variables no cambian la contraseña de una cuenta ya existente. Retirar las variables de bootstrap tras la creación. Nunca incorporar `.env` ni secretos a Git.
 
-Para habilitar el Administrador inicial, configura **ambas** variables `ADMIN_EMAIL` y `ADMIN_PASSWORD` en el entorno del proceso. También puedes copiar `backend/.env.example` a `backend/.env` y completarlas localmente; `.env` está ignorado por Git y los scripts de arranque lo leen mediante Node. La contraseña debe tener entre 12 y 128 caracteres. Nunca incorporar ese archivo o valores reales al repositorio.
+## Uso y roles
 
-Las cuentas, comercios, productos y sesiones permanecen **solo en memoria**: reiniciar el backend los restablece. El administrador se vuelve a crear al arrancar si las variables están configuradas. Esta limitación es intencional hasta la futura persistencia; no cargar aquí datos únicos sin respaldo.
-
-Para un despliegue externo se requiere HTTPS, `NODE_ENV=production` y `APP_ORIGIN` con el origen HTTPS exacto, sin ruta. Los [avisos de seguridad conocidos](docs/SECURITY.md) deben revisarse antes de considerar un despliegue comercial.
-
-## Roles
-
-| Rol | Inicio | Capacidades |
+| Rol | Entrada | Capacidades |
 |---|---|---|
-| Administrador | `dashboard.html` | KPIs, alertas, actividad y CRUD de usuarios, negocios y productos |
-| Comerciante | `mi-negocio.html` | Su comercio, indicadores, preview público y sus productos |
-| Comprador | `marketplace.html` | Catálogo, detalle y carrito temporal propio |
-| Visitante | `index.html` / marketplace | Explorar catálogo público y detalle; debe iniciar sesión para usar carrito |
+| Visitante | `index.html` / `marketplace.html` | Catálogo, comercios y detalle públicos |
+| Comprador | `marketplace.html` | Catálogo y carrito temporal propio |
+| Comerciante | `mi-negocio.html` | Un comercio propio, indicadores, preview y sus productos |
+| Administrador | `dashboard.html` | KPIs, alertas y gestión de usuarios, negocios y productos |
 
-La propiedad y los permisos se comprueban en servidor. El carrito no genera pedidos, cobra pagos, reserva ni descuenta inventario.
+La API comprueba roles y propiedad en servidor. La autenticación usa cookies HttpOnly; nunca LocalStorage. Los datos del prototipo antiguo se ofrecen como respaldo descargable sin contraseñas, sin importar identidades o permisos al servidor; los comercios/productos se deben volver a publicar. No hay importación automática de IDs ni migración automática desde memory a MySQL.
 
-## Datos del prototipo anterior
-
-Al detectar los antiguos `usuarios`, `usuarioSesion`, `negocios`, `productos` o `carrito`, el navegador prepara un respaldo descargable **sin contraseñas**, fuera del modelo activo. No importa identidades ni roles manipulables al servidor. Es necesario registrar las cuentas y volver a publicar los datos pertinentes. No hay migración automática de IDs.
-
-LocalStorage queda para carrito temporal por comprador/instancia, notificaciones entre pestañas y respaldo legado sin credenciales. La sesión usa una cookie HttpOnly; ni contraseña ni token de autenticación se guardan en LocalStorage.
-
-## Pruebas
+## Comandos de calidad
 
 ```bash
 npm ci --prefix tests
 npx --prefix tests playwright install chromium
 npm test --prefix tests
+npm test --prefix backend
+npm audit --omit=dev --prefix backend
 ```
 
-Si Chromium ya está instalado:
+Con Chrome/Chromium instalado: `CHROMIUM_PATH=/ruta/al/chromium npm test --prefix tests`.
+
+La suite normal usa memory y no necesita MySQL. La integración real se ejecuta separadamente con `DATA_SOURCE=mysql` y una `DB_NAME` terminada en `_test`: **borra las entidades de esa base de prueba**.
 
 ```bash
-CHROMIUM_PATH=/usr/bin/chromium npm test --prefix tests
+npm run test:mysql --prefix tests
 ```
 
-API sin navegador: `npm test --prefix backend`.
+Cobertura, controles, CI y límites: [SECURITY_TESTING](docs/SECURITY_TESTING.md).
 
-Resultado final: **52 pruebas aprobadas, 0 fallidas, 0 omitidas**. Incluyen API real, Chromium, permisos, sesiones, CRUD, carrito, imágenes, fallos de red, CSP, enlaces y responsive a 360/768/1024/1440 px. Detalle en [TESTING](docs/TESTING.md).
-
-## Estructura
+## Estructura y documentación
 
 ```text
 backend/
-  config/ controllers/ data/ middleware/ repositories/ routes/ services/ utils/
-  app.js
-frontend/
-  páginas HTML, css/estilos.css, js/
-tests/
-  api.test.cjs, phase1.test.cjs, structure.test.cjs
-docs/
-  arquitectura, API, roles, UI, pruebas, seguridad y evolución
+  config/ controllers/ routes/ services/ middleware/ utils/
+  repositories/           # contrato, memory y mysql
+  db/                    # pool, runner y migraciones SQL
+frontend/                # HTML, CSS, módulos JS y assets propios
+tests/                   # API, navegador, estructura y persistencia
+.github/workflows/       # CI memory + MySQL
 ```
 
-## Documentación
+- [AGENTS](AGENTS.md): instrucciones de trabajo y ciclos XP.
+- [ARCHITECTURE](docs/ARCHITECTURE.md): flujo, responsabilidades, roles, UI y estado local.
+- [API](docs/API.md): endpoints, contratos y errores.
+- [DATABASE](docs/DATABASE.md): modelo, restricciones, transacciones y operación.
+- [SECURITY_TESTING](docs/SECURITY_TESTING.md): seguridad, pruebas y limitaciones.
 
-- [Arquitectura](docs/ARCHITECTURE.md) y [contrato HTTP](docs/API.md).
-- [Roles](docs/ROLES.md) y [seguridad y limitaciones](docs/SECURITY.md).
-- [UX/UI](docs/UX_UI.md), [preparación MySQL](docs/MYSQL_READY.md) y [pruebas](docs/TESTING.md).
-- [Cambios y justificación por fase](docs/CHANGELOG.md).
-- [Archivos, diff y estado Git](docs/REVISION_GIT.md).
-
-No se realizó commit ni push como parte de esta ejecución.
+Para exposición externa: HTTPS, `NODE_ENV=production`, `APP_ORIGIN` con el origen exacto sin ruta y revisión de los límites documentados. No se presenta como sistema de pagos ni despliegue multiinstancia preparado para producción.
