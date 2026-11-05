@@ -12,6 +12,7 @@ const accionesPermitidas = new Set([
   "buscarMarketplace",
   "limpiarFiltros",
   "filtrarCategoria",
+  "moverCarruselCategorias",
   "cambiarCantidadDetalle",
   "agregarAlCarrito",
   "vaciarCarrito",

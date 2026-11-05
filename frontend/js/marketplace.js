@@ -33,16 +33,109 @@ function buscarMarketplace() {
   mostrarProductosMarketplace(filtrados);
 }
 function filtrarCategoria(categoria) {
-  categoriaSeleccionada = categoria;
+
+  categoriaSeleccionada =
+    categoria;
+
+
+  const tarjetas =
+    document.querySelectorAll(
+      "#carruselCategorias .categoria-3d"
+    );
+
+
+  tarjetas.forEach(
+    (tarjeta) => {
+
+      const activa =
+        tarjeta.dataset.valor ===
+        categoria;
+
+
+      tarjeta.classList.toggle(
+        "activa",
+        activa
+      );
+
+
+      tarjeta.setAttribute(
+        "aria-pressed",
+        String(activa)
+      );
+
+
+      if (activa) {
+
+        centrarCategoria(
+          tarjeta
+        );
+
+      }
+
+    }
+  );
+
+
   buscarMarketplace();
-  document.getElementById("productos").scrollIntoView({ behavior: "smooth" });
+
+
+  document
+    .getElementById("productos")
+    .scrollIntoView({
+      behavior:
+        "smooth",
+
+      block:
+        "start",
+    });
+
 }
 function limpiarFiltros() {
+
   negocioSeleccionado = 0;
-  history.replaceState(null, "", location.pathname);
+
+  history.replaceState(
+    null,
+    "",
+    location.pathname
+  );
+
+
   categoriaSeleccionada = "";
-  document.getElementById("buscarMarketplace").value = "";
+
+  document
+    .getElementById(
+      "buscarMarketplace"
+    )
+    .value = "";
+
+
+  document
+    .querySelectorAll(
+      "#carruselCategorias .categoria-chip"
+    )
+    .forEach((boton) => {
+
+      const activa =
+        boton.dataset.valor === "";
+
+
+      boton.classList.toggle(
+        "activa",
+        activa
+      );
+
+
+      boton.setAttribute(
+        "aria-pressed",
+        String(activa)
+      );
+
+    });
+
+
   buscarMarketplace();
+
 }
 function mostrarPopulares() {
   const lista = productos

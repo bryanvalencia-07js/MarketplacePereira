@@ -297,44 +297,53 @@
                 </div>
 
 
-                <div class="categorias-market">
+                <div class="categorias-3d-wrapper">
 
                     <button
-                        data-click="filtrarCategoria" data-valor=""
+                        type="button"
+                        class="categorias-control categorias-control-anterior"
+                        data-click="moverCarruselCategorias"
+                        data-numero="-1"
+                        aria-label="Categoría anterior"
                     >
-                        Todos
+                        ←
                     </button>
-
+                
+                
+                    <div
+                        class="categorias-3d-viewport"
+                        id="carruselCategorias"
+                        aria-label="Categorías del marketplace"
+                    >
+                    </div>
+                
+                
                     <button
-                        data-click="filtrarCategoria" data-valor="Alimentos"
+                        type="button"
+                        class="categorias-control categorias-control-siguiente"
+                        data-click="moverCarruselCategorias"
+                        data-numero="1"
+                        aria-label="Siguiente categoría"
                     >
-                        Alimentos
+                        →
                     </button>
-
-                    <button
-                        data-click="filtrarCategoria" data-valor="Ropa"
-                    >
-                        Ropa
-                    </button>
-
-                    <button
-                        data-click="filtrarCategoria" data-valor="Tecnología"
-                    >
-                        Tecnología
-                    </button>
-
-                    <button
-                        data-click="filtrarCategoria" data-valor="Servicios"
-                    >
-                        Servicios
-                    </button>
-
-                    <button
-                        data-click="filtrarCategoria" data-valor="Hogar"
-                    >
-                        Hogar
-                    </button>
-
+                
+                </div>
+                
+                
+                <div
+                    class="categorias-progreso"
+                    aria-hidden="true"
+                >
+                    <span></span>
+                </div>
+                
+                
+                <div
+                    class="categorias-progreso"
+                    aria-hidden="true"
+                >
+                    <span></span>
                 </div>
 
             </div>
@@ -570,7 +579,9 @@
 <script src="js/api.js"></script>
 <script src="js/sesion.js"></script>
 <script src="js/legado.js"></script>
+<script src="js/categorias.js"></script>
 <script src="js/app-init.js"></script>
+
 </body>
 
 </html>

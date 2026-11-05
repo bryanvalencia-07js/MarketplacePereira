@@ -3935,7 +3935,7 @@ img {
     margin:
         60px auto;
 
-    padding: 50px;
+    padding: 50px;  
 
     border:
         1px solid var(--borde);
@@ -7197,4 +7197,920 @@ body.intro-activa {
             3rem 1.5rem;
     }
 
+}
+
+
+/* =========================================================
+   BARRA DE PROGRESO
+========================================================= */
+
+.categorias-progreso {
+    width:
+        min(420px, 70%);
+
+    height: 3px;
+
+    margin:
+        1rem auto 0;
+
+    overflow:
+        hidden;
+
+    border-radius:
+        999px;
+
+    background:
+        rgba(70, 50, 45, .12);
+}
+
+
+.categorias-progreso span {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    border-radius:
+        inherit;
+
+    background:
+        linear-gradient(
+            90deg,
+            var(--rojo-rp),
+            var(--amarillo-rp)
+        );
+
+    transform:
+        scaleX(0);
+
+    transform-origin:
+        left;
+}
+/* =========================================================
+   SCROLL-DRIVEN ANIMATIONS
+========================================================= */
+
+@keyframes progresoCategorias {
+
+    from {
+        transform:
+            scaleX(0);
+    }
+
+    to {
+        transform:
+            scaleX(1);
+    }
+
+}
+
+
+@keyframes categoriaEnFoco {
+
+    0%,
+    100% {
+        opacity: .58;
+
+        transform:
+            scale(.92);
+    }
+
+
+    42%,
+    58% {
+        opacity: 1;
+
+        transform:
+            scale(1);
+    }
+
+}
+
+
+@supports (animation-timeline: scroll()) {
+
+    .categorias-progreso span {
+
+        animation:
+            progresoCategorias
+            linear
+            both;
+
+        animation-timeline:
+            --categorias-scroll;
+
+    }
+
+}
+
+
+@supports (animation-timeline: view(inline)) {
+
+    .categoria-chip:not(.activa) {
+
+        animation:
+            categoriaEnFoco
+            linear
+            both;
+
+        animation-timeline:
+            view(inline);
+
+        animation-range:
+            entry 0%
+            exit 100%;
+
+    }
+
+}
+@media (max-width: 650px) {
+
+    .categorias-carrusel {
+        grid-template-columns:
+            minmax(0, 1fr);
+    }
+
+
+    .categorias-flecha {
+        display:
+            none;
+    }
+
+
+    .categorias-market {
+        width:
+            calc(100vw - 8vw);
+
+        padding:
+            .65rem .15rem
+            1rem;
+    }
+
+
+    .categoria-chip {
+        min-height:
+            44px;
+
+        padding:
+            0 1.1rem;
+    }
+
+
+    .categorias-progreso {
+        width:
+            80%;
+    }
+
+}
+@media (prefers-reduced-motion: reduce) {
+
+    .categoria-chip,
+    .categorias-progreso span {
+
+        animation:
+            none !important;
+
+        transform:
+            none;
+
+        opacity:
+            1;
+    }
+
+}
+
+/* =========================================================
+   REACTIVA PEREIRA · CATEGORÍAS COVERFLOW 3D
+========================================================= */
+
+.categorias-3d-wrapper {
+    position: relative;
+
+    display: grid;
+
+    grid-template-columns:
+        52px
+        minmax(0, 1fr)
+        52px;
+
+    align-items: center;
+
+    gap: 1rem;
+
+    width: 100%;
+
+    perspective: 1200px;
+}
+
+
+/* =========================================================
+   VIEWPORT
+========================================================= */
+
+.categorias-3d-viewport {
+    position: relative;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: clamp(
+        .7rem,
+        1.5vw,
+        1.3rem
+    );
+
+    width: 100%;
+
+    min-height: 245px;
+
+    padding:
+        2.5rem
+        calc(50% - 90px);
+
+    overflow-x: auto;
+    overflow-y: visible;
+
+    scroll-snap-type:
+        x mandatory;
+
+    scroll-behavior:
+        smooth;
+
+    overscroll-behavior-inline:
+        contain;
+
+    scrollbar-width:
+        none;
+
+    transform-style:
+        preserve-3d;
+
+    scroll-timeline:
+        --categoriasScroll inline;
+}
+
+
+.categorias-3d-viewport::-webkit-scrollbar {
+    display: none;
+}
+
+
+/* =========================================================
+   TARJETA
+========================================================= */
+
+.categoria-3d {
+    position: relative;
+
+    flex:
+        0 0
+        clamp(
+            145px,
+            14vw,
+            180px
+        );
+
+    height:
+        170px;
+
+    padding: 0;
+
+    border: 0;
+
+    background:
+        transparent;
+
+    cursor:
+        pointer;
+
+    scroll-snap-align:
+        center;
+
+    transform-style:
+        preserve-3d;
+
+    will-change:
+        transform,
+        opacity;
+
+    transition:
+        opacity .25s ease,
+        filter .25s ease;
+
+    z-index: 1;
+}
+
+
+/* =========================================================
+   SUPERFICIE
+========================================================= */
+
+.categoria-3d-contenido {
+    position: absolute;
+
+    inset: 0;
+
+    display: flex;
+
+    flex-direction:
+        column;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    gap:
+        1rem;
+
+    padding:
+        1.3rem;
+
+    border:
+        1px solid
+        rgba(
+            80,
+            60,
+            50,
+            .12
+        );
+
+    border-radius:
+        28px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(
+                255,
+                255,
+                255,
+                .98
+            ),
+            rgba(
+                249,
+                244,
+                234,
+                .94
+            )
+        );
+
+    box-shadow:
+        0 18px 45px
+        rgba(
+            64,
+            41,
+            33,
+            .08
+        );
+
+    transform-style:
+        preserve-3d;
+
+    transition:
+        transform .38s
+        cubic-bezier(
+            .22,
+            1,
+            .36,
+            1
+        ),
+        box-shadow .38s ease,
+        border-color .3s ease,
+        background .3s ease;
+}
+
+
+/* =========================================================
+   ICONO / LOGO
+========================================================= */
+
+.categoria-3d-icono {
+
+    border-radius: 
+    20px 20px 20px 7px;
+    
+    width:
+        66px;
+
+    height:
+        66px;
+
+    display:
+        grid;
+
+    place-items:
+        center;
+
+    border-radius:
+        22px;
+
+    background:
+        linear-gradient(
+            145deg,
+            #fff7db,
+            #f5df9b
+        );
+
+    box-shadow:
+        inset 0 1px 0
+        rgba(
+            255,
+            255,
+            255,
+            .8
+        ),
+        0 10px 24px
+        rgba(
+            83,
+            56,
+            33,
+            .09
+        );
+
+    transform:
+        translateZ(28px);
+
+    transition:
+        transform .35s
+        cubic-bezier(
+            .22,
+            1,
+            .36,
+            1
+        ),
+        background .3s ease;
+}
+
+/* =========================================================
+   ICONOS SVG · CATEGORÍAS
+========================================================= */
+
+.categoria-3d-icono svg {
+    width: 34px;
+    height: 34px;
+
+    display: block;
+
+    color:
+        var(--rojo-rp);
+
+    overflow:
+        visible;
+
+    transform:
+        translateZ(8px);
+
+    transition:
+        color .3s ease,
+        transform .35s
+        cubic-bezier(
+            .22,
+            1,
+            .36,
+            1
+        );
+}
+
+.categoria-3d-nombre {
+    max-width:
+        130px;
+
+    color:
+        var(--texto);
+
+    font-size:
+        .88rem;
+
+    font-weight:
+        700;
+
+    line-height:
+        1.2;
+
+    text-align:
+        center;
+
+    transform:
+        translateZ(20px);
+}
+
+
+/* =========================================================
+   HOVER 3D
+========================================================= */
+
+@media (hover: hover) and (pointer: fine) {
+
+    .categoria-3d:hover {
+        z-index: 20;
+    }
+
+
+    .categoria-3d:hover
+    .categoria-3d-contenido {
+
+        transform:
+            translateY(-14px)
+            translateZ(55px)
+            rotateX(5deg)
+            scale(1.04);
+
+        border-color:
+            rgba(
+                170,
+                41,
+                59,
+                .28
+            );
+
+        box-shadow:
+            0 32px 65px
+            rgba(
+                73,
+                41,
+                32,
+                .18
+            );
+    }
+
+
+    .categoria-3d:hover
+    .categoria-3d-icono {
+
+        transform:
+            translateZ(48px)
+            scale(1.10);
+    }
+
+    .categoria-3d:hover
+    .categoria-3d-icono svg {
+        transform:
+            translateZ(14px)
+            scale(1.12);
+
+        color:
+            var(--rojo-oscuro);
+    }
+}
+
+
+/* =========================================================
+   CATEGORÍA ACTIVA
+========================================================= */
+
+.categoria-3d.activa {
+    opacity:
+        1 !important;
+
+    z-index:
+        15;
+}
+
+
+.categoria-3d.activa
+.categoria-3d-contenido {
+
+    border-color:
+        rgba(
+            170,
+            41,
+            59,
+            .38
+        );
+
+    background:
+        linear-gradient(
+            145deg,
+            #b72b40,
+            var(--rojo-oscuro)
+        );
+
+    color:
+        white;
+
+    box-shadow:
+        0 28px 70px
+        rgba(
+            125,
+            30,
+            46,
+            .25
+        );
+}
+
+
+.categoria-3d.activa
+.categoria-3d-nombre {
+
+    color:
+        white;
+}
+
+
+.categoria-3d.activa
+.categoria-3d-icono {
+
+    background:
+        linear-gradient(
+            145deg,
+            #ffe792,
+            var(--amarillo-rp)
+        );
+
+    transform:
+        translateZ(38px);
+}
+
+.categoria-3d.activa
+.categoria-3d-icono svg {
+    color:
+        var(--rojo-oscuro);
+
+    transform:
+        translateZ(12px)
+        scale(1.08);
+}
+
+
+/* =========================================================
+   CONTROLES
+========================================================= */
+
+.categorias-control {
+    position:
+        relative;
+
+    z-index:
+        30;
+
+    width:
+        50px;
+
+    height:
+        50px;
+
+    display:
+        grid;
+
+    place-items:
+        center;
+
+    border:
+        1px solid
+        var(--borde);
+
+    border-radius:
+        50%;
+
+    background:
+        white;
+
+    color:
+        var(--rojo-rp);
+
+    font-size:
+        1.25rem;
+
+    cursor:
+        pointer;
+
+    box-shadow:
+        0 12px 32px
+        rgba(
+            56,
+            37,
+            30,
+            .1
+        );
+
+    transition:
+        transform .25s ease,
+        background .25s ease,
+        color .25s ease;
+}
+
+
+.categorias-control:hover {
+
+    transform:
+        scale(1.1);
+
+    background:
+        var(--rojo-rp);
+
+    color:
+        white;
+}
+
+
+/* =========================================================
+   PROGRESO
+========================================================= */
+
+.categorias-progreso {
+    width:
+        min(
+            440px,
+            70%
+        );
+
+    height:
+        3px;
+
+    margin:
+        1.4rem auto 0;
+
+    overflow:
+        hidden;
+
+    border-radius:
+        999px;
+
+    background:
+        rgba(
+            70,
+            50,
+            45,
+            .12
+        );
+}
+
+
+.categorias-progreso span {
+
+    display:
+        block;
+
+    width:
+        100%;
+
+    height:
+        100%;
+
+    background:
+        linear-gradient(
+            90deg,
+            var(--rojo-rp),
+            var(--amarillo-rp)
+        );
+
+    transform:
+        scaleX(0);
+
+    transform-origin:
+        left;
+}
+
+
+/* =========================================================
+   SCROLL-DRIVEN PROGRESS
+========================================================= */
+
+@keyframes progresoCategorias {
+
+    from {
+        transform:
+            scaleX(0);
+    }
+
+    to {
+        transform:
+            scaleX(1);
+    }
+
+}
+
+
+@supports (
+    animation-timeline:
+    scroll()
+) {
+
+    .categorias-progreso span {
+
+        animation:
+            progresoCategorias
+            linear
+            both;
+
+        animation-timeline:
+            --categoriasScroll;
+    }
+
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 650px) {
+
+    .categorias-3d-wrapper {
+
+        grid-template-columns:
+            1fr;
+
+        gap: 0;
+    }
+
+
+    .categorias-control {
+
+        display:
+            none;
+    }
+
+
+    .categorias-3d-viewport {
+
+        width:
+            calc(
+                100vw - 8vw
+            );
+
+        min-height:
+            220px;
+
+        padding:
+            2rem
+            calc(
+                50% - 72px
+            );
+    }
+
+
+    .categoria-3d {
+
+        flex-basis:
+            145px;
+
+        height:
+            155px;
+    }
+
+
+    .categoria-3d-icono {
+
+        width:
+            30px;
+
+        height:
+            30px;
+    }
+
+}
+
+
+/* =========================================================
+   ACCESIBILIDAD
+========================================================= */
+
+@media (
+    prefers-reduced-motion:
+    reduce
+) {
+
+    .categoria-3d,
+    .categoria-3d-contenido,
+    .categoria-3d-icono,
+    .categorias-progreso span {
+
+        transition:
+            none !important;
+
+        animation:
+            none !important;
+    }
+
+}
+.categoria-3d-icono svg {
+    width: 34px;
+    height: 34px;
+
+    fill: none;
+
+    stroke: var(--rojo-rp);
+
+    stroke-width: 1.8;
+
+    stroke-linecap: round;
+    stroke-linejoin: round;
+
+    transition:
+        stroke .3s ease,
+        transform .35s ease;
+}
+
+.categoria-3d.activa
+.categoria-3d-icono svg {
+    stroke: var(--rojo-oscuro);
+}
+
+.categoria-3d:hover
+.categoria-3d-icono svg {
+    transform: scale(1.08);
 }
