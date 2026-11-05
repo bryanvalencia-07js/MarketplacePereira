@@ -439,6 +439,32 @@ test("catálogo: visibilidad en búsqueda, categorías, populares y recientes", 
   assert.equal(await page.locator("#listaProductos article").count(), 1);
 });
 
+test("Coverflow: categorías, SVG, filtro, selección accesible y limpiar", async () => {
+  await abrir("marketplace.html");
+  await listo("buscarMarketplace");
+  const tarjetas = page.locator("#carruselCategorias .categoria-3d");
+  assert.equal(await tarjetas.count(), 25);
+  assert.equal(await tarjetas.locator("svg use").count(), 25);
+  for (const href of await tarjetas.locator("use").evaluateAll((xs) => xs.map((x) => x.getAttribute("href")))) {
+    assert.match(href, /^assets\/icons\/categorias.svg#[\w-]+$/);
+  }
+  const ropa = page.locator('.categoria-3d[data-valor="Ropa"]');
+  await ropa.focus();
+  await page.keyboard.press("Enter");
+  await page.waitForFunction(() => document.querySelector('.categoria-3d[data-valor="Ropa"]').getAttribute("aria-pressed") === "true");
+  assert.equal(await page.locator("#listaProductos article").count(), 0);
+  assert.equal(await tarjetas.locator(".categoria-3d-contenido").count(), 25);
+  await page.evaluate(() => limpiarFiltros());
+  assert.equal(await page.locator("#listaProductos article").count(), 1);
+  assert.equal(await page.locator('.categoria-3d[data-valor=""]').getAttribute("aria-pressed"), "true");
+  assert.equal(await page.locator(".categoria-3d.activa").count(), 1);
+  for (const width of [360, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    assert.equal(await tarjetas.first().isVisible(), true);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
+  }
+});
+
 test("detalle: vendedor, visita, stock acumulado y contador global", async () => {
   await abrir("detalle-producto.html?id=1");
   await listo("agregarAlCarrito");

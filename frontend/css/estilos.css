@@ -24,7 +24,6 @@
 }
 
 
-
 /* =========================================
    RESET
 ========================================= */
@@ -69,7 +68,6 @@ img {
 }
 
 
-
 /* =========================================
    CONTENEDOR GENERAL
 ========================================= */
@@ -78,7 +76,6 @@ img {
     width: min(1180px, 92%);
     margin: 0 auto;
 }
-
 
 
 /* =========================================
@@ -110,7 +107,6 @@ img {
 
     gap: 30px;
 }
-
 
 
 /* =========================================
@@ -171,37 +167,6 @@ img {
 
     font-size: 11px;
 }
-
-
-
-/* =========================================
-   NAVEGACIÓN
-========================================= */
-
-.menu-principal {
-    display: flex;
-    align-items: center;
-    gap: 24px;
-
-    font-size: 14px;
-    font-weight: 600;
-}
-
-
-.menu-principal > a:not(.boton) {
-    color:
-        var(--texto-secundario);
-
-    transition:
-        color 0.2s ease;
-}
-
-
-.menu-principal > a:not(.boton):hover {
-    color:
-        var(--rojo-rp);
-}
-
 
 
 /* =========================================
@@ -271,27 +236,6 @@ img {
 }
 
 
-.boton-claro {
-    background:
-        white;
-
-    color:
-        var(--texto);
-
-    box-shadow:
-        var(--sombra);
-}
-
-
-.boton-blanco {
-    background:
-        white;
-
-    color:
-        var(--rojo-oscuro);
-}
-
-
 .boton-grande {
     min-height: 52px;
 
@@ -300,60 +244,9 @@ img {
 }
 
 
-
 /* =========================================
    HERO
 ========================================= */
-
-.hero {
-    position: relative;
-
-    overflow: hidden;
-
-    padding:
-        95px 0 90px;
-
-    background:
-        linear-gradient(
-            135deg,
-            #f9f5ec 0%,
-            #f5e8df 100%
-        );
-}
-
-
-.hero::after {
-    content: "";
-
-    position: absolute;
-
-    width: 420px;
-    height: 420px;
-
-    right: -140px;
-    top: -120px;
-
-    border-radius:
-        50%;
-
-    background:
-        rgba(170, 41, 59, 0.07);
-}
-
-
-.hero-grid {
-    position: relative;
-    z-index: 1;
-
-    display: grid;
-
-    grid-template-columns:
-        1.1fr 0.9fr;
-
-    align-items: center;
-
-    gap: 80px;
-}
 
 
 .etiqueta {
@@ -388,243 +281,6 @@ img {
 }
 
 
-.hero h1 {
-    max-width:
-        720px;
-
-    font-family:
-        var(--serif);
-
-    font-size:
-        clamp(
-            48px,
-            6vw,
-            76px
-        );
-
-    line-height:
-        1.03;
-
-    letter-spacing:
-        -0.03em;
-}
-
-
-.hero h1 span {
-    color:
-        var(--rojo-rp);
-}
-
-
-.hero-texto {
-    max-width:
-        610px;
-
-    margin-top:
-        24px;
-
-    color:
-        var(--texto-secundario);
-
-    font-size:
-        18px;
-
-    line-height:
-        1.8;
-}
-
-
-.hero-acciones {
-    display: flex;
-    flex-wrap: wrap;
-
-    gap: 14px;
-
-    margin-top:
-        34px;
-}
-
-
-.hero-datos {
-    display: grid;
-
-    grid-template-columns:
-        repeat(3, 1fr);
-
-    gap:
-        18px;
-
-    margin-top:
-        55px;
-}
-
-
-.hero-datos div {
-    padding-left:
-        16px;
-
-    border-left:
-        2px solid
-        var(--rojo-rp);
-}
-
-
-.hero-datos strong {
-    display: block;
-
-    margin-bottom:
-        4px;
-}
-
-
-.hero-datos span {
-    color:
-        var(--texto-secundario);
-
-    font-size:
-        12px;
-}
-
-
-
-/* =========================================
-   TARJETA HERO
-========================================= */
-
-.hero-visual {
-    display: flex;
-    justify-content: center;
-}
-
-
-.tarjeta-destacada {
-    width: 100%;
-    max-width: 430px;
-
-    padding:
-        32px;
-
-    border:
-        1px solid rgba(255,255,255,.8);
-
-    border-radius:
-        28px;
-
-    background:
-        rgba(255, 255, 255, 0.78);
-
-    backdrop-filter:
-        blur(18px);
-
-    box-shadow:
-        0 30px 60px
-        rgba(31, 41, 51, 0.13);
-}
-
-
-.tarjeta-etiqueta {
-    color:
-        var(--rojo-rp);
-
-    font-size:
-        12px;
-
-    font-weight:
-        700;
-
-    text-transform:
-        uppercase;
-}
-
-
-.tarjeta-imagen {
-    height: 190px;
-
-    margin:
-        20px 0 24px;
-
-    display: grid;
-    place-items: center;
-
-    border-radius:
-        20px;
-
-    background:
-        linear-gradient(
-            145deg,
-            var(--rojo-rp),
-            var(--rojo-oscuro)
-        );
-
-    color:
-        white;
-
-    font-family:
-        var(--serif);
-
-    font-size:
-        58px;
-
-    font-weight:
-        700;
-}
-
-
-.tarjeta-destacada h2 {
-    font-family:
-        var(--serif);
-
-    font-size:
-        27px;
-
-    line-height:
-        1.25;
-}
-
-
-.tarjeta-destacada p {
-    margin-top:
-        15px;
-
-    color:
-        var(--texto-secundario);
-}
-
-
-.estado-comercio {
-    display: flex;
-    align-items: center;
-
-    gap:
-        8px;
-
-    margin-top:
-        22px;
-
-    font-size:
-        13px;
-
-    font-weight:
-        600;
-}
-
-
-.estado-punto {
-    width:
-        9px;
-
-    height:
-        9px;
-
-    border-radius:
-        50%;
-
-    background:
-        #27ae60;
-}
-
-
-
 /* =========================================
    SECCIONES
 ========================================= */
@@ -635,95 +291,9 @@ img {
 }
 
 
-.seccion-alterna {
-    background:
-        white;
-}
-
-
-.encabezado-seccion {
-    max-width:
-        700px;
-
-    margin-bottom:
-        48px;
-}
-
-
-.encabezado-seccion h2 {
-    font-family:
-        var(--serif);
-
-    font-size:
-        clamp(
-            34px,
-            4vw,
-            48px
-        );
-
-    line-height:
-        1.15;
-}
-
-
-.encabezado-seccion p {
-    margin-top:
-        18px;
-
-    color:
-        var(--texto-secundario);
-
-    font-size:
-        17px;
-}
-
-
-
 /* =========================================
    TARJETAS DE INFORMACIÓN
 ========================================= */
-
-.tarjetas-info {
-    display: grid;
-
-    grid-template-columns:
-        repeat(3, 1fr);
-
-    gap:
-        24px;
-}
-
-
-.tarjeta-info {
-    min-height:
-        240px;
-
-    padding:
-        30px;
-
-    border:
-        1px solid
-        var(--borde);
-
-    border-radius:
-        var(--radio);
-
-    background:
-        white;
-
-    transition:
-        transform 0.2s ease,
-        box-shadow 0.2s ease;
-}
-
-
-.tarjeta-info:hover {
-    transform:
-        translateY(-5px);
-
-    box-shadow:
-        var(--sombra);
-}
 
 
 .numero {
@@ -739,28 +309,6 @@ img {
     font-weight:
         700;
 }
-
-
-.tarjeta-info h3 {
-    margin-top:
-        36px;
-
-    font-family:
-        var(--serif);
-
-    font-size:
-        24px;
-}
-
-
-.tarjeta-info p {
-    margin-top:
-        12px;
-
-    color:
-        var(--texto-secundario);
-}
-
 
 
 /* =========================================
@@ -795,33 +343,6 @@ img {
 }
 
 
-.paso-numero {
-    flex:
-        0 0 44px;
-
-    width:
-        44px;
-
-    height:
-        44px;
-
-    display: grid;
-    place-items: center;
-
-    border-radius:
-        50%;
-
-    background:
-        var(--rojo-rp);
-
-    color:
-        white;
-
-    font-weight:
-        700;
-}
-
-
 .paso h3 {
     font-family:
         var(--serif);
@@ -843,54 +364,9 @@ img {
 }
 
 
-
 /* =========================================
    CTA
 ========================================= */
-
-.cta {
-    padding:
-        75px 0;
-
-    background:
-        var(--rojo-oscuro);
-
-    color:
-        white;
-}
-
-
-.cta-contenido {
-    display: flex;
-
-    align-items:
-        center;
-
-    justify-content:
-        space-between;
-
-    gap:
-        40px;
-}
-
-
-.cta h2 {
-    max-width:
-        690px;
-
-    font-family:
-        var(--serif);
-
-    font-size:
-        clamp(
-            34px,
-            4vw,
-            48px
-        );
-
-    line-height:
-        1.15;
-}
 
 
 .etiqueta-clara {
@@ -907,7 +383,6 @@ img {
     backdrop-filter:
         blur(8px);
 }
-
 
 
 /* =========================================
@@ -957,71 +432,20 @@ img {
 }
 
 
-
 /* =========================================
    RESPONSIVE
 ========================================= */
 
 @media (max-width: 950px) {
 
-    .menu-principal > a:not(.boton) {
-        display: none;
-    }
 
-
-    .hero-grid {
-        grid-template-columns:
-            1fr;
-
-        gap:
-            60px;
-    }
-
-
-    .hero-contenido {
-        text-align:
-            center;
-    }
-
-
-    .hero-texto {
-        margin-left:
-            auto;
-
-        margin-right:
-            auto;
-    }
-
-
-    .hero-acciones {
-        justify-content:
-            center;
-    }
-
-
-    .hero-datos {
-        text-align:
-            left;
-    }
-
-
-    .tarjetas-info,
     .pasos {
         grid-template-columns:
             1fr;
     }
 
 
-    .cta-contenido {
-        flex-direction:
-            column;
-
-        align-items:
-            flex-start;
-    }
-
 }
-
 
 
 @media (max-width: 650px) {
@@ -1041,75 +465,6 @@ img {
     .marca-subtitulo {
         display:
             none;
-    }
-
-
-    .menu-principal {
-        gap:
-            8px;
-    }
-
-
-    .menu-principal .boton-secundario {
-        display:
-            none;
-    }
-
-
-    .menu-principal .boton {
-        padding:
-            0 14px;
-
-        font-size:
-            12px;
-    }
-
-
-    .hero {
-        padding:
-            70px 0;
-    }
-
-
-    .hero h1 {
-        font-size:
-            44px;
-    }
-
-
-    .hero-texto {
-        font-size:
-            16px;
-    }
-
-
-    .hero-acciones {
-        flex-direction:
-            column;
-    }
-
-
-    .hero-acciones .boton {
-        width:
-            100%;
-    }
-
-
-    .hero-datos {
-        grid-template-columns:
-            1fr;
-
-        gap:
-            20px;
-
-        margin-top:
-            40px;
-    }
-
-
-    .tarjeta-destacada {
-        padding:
-            22px;
     }
 
 
@@ -1145,7 +500,6 @@ img {
     min-height: 100vh;
     align-items: stretch;
 }
-
 
 
 /* LADO IZQUIERDO */
@@ -1257,7 +611,6 @@ img {
 }
 
 
-
 /* LADO DERECHO */
 
 .auth-formulario-contenedor {
@@ -1295,7 +648,6 @@ img {
     color:
         var(--texto-secundario);
 }
-
 
 
 /* FORMULARIO */
@@ -1383,7 +735,6 @@ img {
 }
 
 
-
 /* MENSAJES */
 
 .mensaje-formulario {
@@ -1405,7 +756,6 @@ img {
     color:
         var(--rojo-rp);
 }
-
 
 
 /* PIE */
@@ -1433,7 +783,6 @@ img {
 
     font-weight: 700;
 }
-
 
 
 /* RESPONSIVE AUTH */
@@ -1578,7 +927,6 @@ img {
 }
 
 
-
 /* CONTENIDO */
 
 .dashboard-main {
@@ -1619,7 +967,6 @@ img {
     font-size:
         16px;
 }
-
 
 
 /* MÓDULOS */
@@ -1803,7 +1150,6 @@ img {
 }
 
 
-
 /* PANEL */
 
 .panel-admin {
@@ -1848,7 +1194,6 @@ img {
 }
 
 
-
 /* FORMULARIO */
 
 .form-grid {
@@ -1876,7 +1221,6 @@ img {
 
     flex-wrap: wrap;
 }
-
 
 
 /* BUSCADOR */
@@ -1921,7 +1265,6 @@ img {
         0 0 0 3px
         rgba(170, 41, 59,.12);
 }
-
 
 
 /* TABLA */
@@ -1978,13 +1321,6 @@ img {
 }
 
 
-.usuario-tabla strong {
-    font-size:
-        13px;
-}
-
-
-
 /* BADGES */
 
 .badge {
@@ -2031,7 +1367,6 @@ img {
     color:
         #b42318;
 }
-
 
 
 /* ACCIONES */
@@ -2345,7 +1680,6 @@ img {
 }
 
 
-
 /* BUSCADOR */
 
 .market-buscador {
@@ -2406,7 +1740,6 @@ img {
 }
 
 
-
 /* USUARIO */
 
 .market-usuario {
@@ -2433,7 +1766,6 @@ img {
 
     font-size: 11px;
 }
-
 
 
 /* MENÚ */
@@ -2476,7 +1808,6 @@ img {
     color:
         var(--rojo-rp);
 }
-
 
 
 /* HERO */
@@ -2575,7 +1906,6 @@ img {
 }
 
 
-
 /* SECCIONES */
 
 .market-seccion {
@@ -2610,47 +1940,6 @@ img {
 
     font-size: 35px;
 }
-
-
-
-/* CATEGORÍAS */
-
-.categorias-market {
-    display: flex;
-
-    flex-wrap: wrap;
-
-    gap: 10px;
-}
-
-
-.categorias-market button {
-    padding:
-        10px 17px;
-
-    border:
-        1px solid var(--borde);
-
-    border-radius:
-        999px;
-
-    background:
-        white;
-
-    cursor: pointer;
-
-    font-weight: 600;
-}
-
-
-.categorias-market button:hover {
-    border-color:
-        var(--rojo-rp);
-
-    color:
-        var(--rojo-rp);
-}
-
 
 
 /* PRODUCTOS */
@@ -2715,18 +2004,6 @@ img {
 }
 
 
-.producto-market-imagen.destacado {
-    background:
-        linear-gradient(
-            145deg,
-            var(--rojo-rp),
-            var(--rojo-oscuro)
-        );
-
-    color: white;
-}
-
-
 .producto-market-contenido {
     padding: 20px;
 }
@@ -2773,7 +2050,6 @@ img {
 
     font-size: 20px;
 }
-
 
 
 /* COMERCIOS */
@@ -2824,7 +2100,6 @@ img {
 
     font-size: 12px;
 }
-
 
 
 /* RESPONSIVE */
@@ -3033,32 +2308,6 @@ img {
 }
 
 
-.producto-cabecera {
-    display: flex;
-
-    align-items: center;
-
-    justify-content:
-        space-between;
-
-    gap: 10px;
-}
-
-
-.producto-descripcion {
-    min-height: 42px;
-
-    margin-top: 10px;
-
-    color:
-        var(--texto-secundario);
-
-    font-size: 13px;
-
-    line-height: 1.5;
-}
-
-
 .producto-stock {
     margin-bottom: 16px;
 
@@ -3133,7 +2382,6 @@ img {
 }
 
 
-
 /* IMAGEN */
 
 .detalle-producto-imagen {
@@ -3186,7 +2434,6 @@ img {
 }
 
 
-
 /* INFORMACIÓN */
 
 .detalle-producto-info {
@@ -3236,7 +2483,6 @@ img {
 }
 
 
-
 /* DATOS */
 
 .detalle-datos {
@@ -3281,7 +2527,6 @@ img {
 }
 
 
-
 /* COMERCIO */
 
 .detalle-comercio {
@@ -3315,7 +2560,6 @@ img {
 }
 
 
-
 /* NO ENCONTRADO */
 
 .detalle-no-encontrado {
@@ -3344,7 +2588,6 @@ img {
     color:
         var(--texto-secundario);
 }
-
 
 
 /* RESPONSIVE */
@@ -3561,7 +2804,6 @@ img {
 }
 
 
-
 /* LAYOUT */
 
 .carrito-layout {
@@ -3610,7 +2852,6 @@ img {
 
     cursor: pointer;
 }
-
 
 
 /* PRODUCTO */
@@ -3727,7 +2968,6 @@ img {
 }
 
 
-
 /* CANTIDAD */
 
 .carrito-producto-cantidad {
@@ -3801,18 +3041,6 @@ img {
         var(--texto-secundario);
 }
 
-.carrito-producto-cantidad .mensaje-stock {
-    min-height: 16px;
-    margin-top: 2px;
-
-    color: var(--peligro);
-
-    font-size: 11px;
-    font-weight: 600;
-    text-align: center;
-    line-height: 1.3;
-}
-
 
 /* SUBTOTAL */
 
@@ -3830,7 +3058,6 @@ img {
 .carrito-producto-subtotal strong {
     font-size: 18px;
 }
-
 
 
 /* RESUMEN */
@@ -3926,7 +3153,6 @@ img {
 }
 
 
-
 /* VACÍO */
 
 .carrito-vacio {
@@ -3992,7 +3218,6 @@ img {
     color:
         var(--texto-secundario);
 }
-
 
 
 /* RESPONSIVE */
@@ -4218,18 +3443,11 @@ input:focus, select:focus, textarea:focus { border-color: var(--rojo-rp); }
 .hero-rp h1 { font-family: var(--serif); font-size: clamp(3rem, 6vw, 5.8rem); line-height: 1.02; letter-spacing: -.04em; margin: 1rem 0 1.5rem; }
 .hero-rp h1 em { color: var(--rojo-rp); font-style: normal; }
 .hero-rp p { max-width: 50ch; color: var(--texto-secundario); margin-bottom: 1.5rem; }
-.hero-escena { position: relative; padding: 3rem 2rem; background: var(--amarillo-rp); border-radius: 46% 46% 16px 16px; min-height: 360px; display: grid; place-content: center; transform: rotate(2deg); }
-.hero-escena::after { content: ''; position: absolute; width: 70px; height: 70px; border: 13px solid var(--rojo-rp); border-radius: 50%; right: -15px; top: 12px; }
-.escena-tienda { background: var(--superficie); border-radius: 15px; padding: 2rem; box-shadow: 12px 15px 0 var(--rojo-rp); transform: rotate(-4deg); }
-.escena-tienda strong { display: block; font-family: var(--serif); font-size: 2.6rem; color: var(--rojo-oscuro); }
-.escena-tienda span { font-size: .8rem; text-transform: uppercase; letter-spacing: .16em; }
+
+
 .franja-local { background: var(--rojo-oscuro); color: #fff; text-align: center; padding: 1rem; letter-spacing: .06em; }
-.narrativa-grid { display: grid; grid-template-columns: .65fr 1.35fr; gap: 4rem; }
-.numero-escena { font-family: var(--serif); font-size: clamp(4rem, 10vw, 8rem); color: var(--rojo-rp); line-height: 1; }
-.flujo-local { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin-top: 2rem; }
-.flujo-local article { padding: 2rem; border: 1px solid var(--borde); border-radius: var(--radio); background: var(--superficie); }
-.flujo-local span { color: var(--rojo-rp); font-weight: 700; }
-.flujo-local h3 { margin-block: .75rem; font-family: var(--serif); font-size: 1.5rem; }
+
+
 .fondo-crema { background: #f2ecdf; }
 .cierre-rp { background: var(--rojo-oscuro); color: #fff; text-align: center; }
 .cierre-rp h2, .cierre-rp p { margin-inline: auto; }
@@ -4242,9 +3460,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--rojo-rp); }
 .actividad-lista li { padding: .5rem; border-bottom: 1px solid var(--borde); }
 .tabla-contenedor { max-width: 100%; overflow-x: auto; }
 @media (max-width: 768px) {
- .hero-rp-grid, .narrativa-grid { grid-template-columns: 1fr; gap: 2rem; }
- .hero-escena { min-height: 260px; margin: 1rem; }
- .flujo-local { grid-template-columns: 1fr; }
+ .hero-rp-grid { grid-template-columns: 1fr; gap: 2rem; }
+
+
  .landing-nav { flex-wrap: wrap; }
  .landing-nav nav { gap: .6rem; }
  .landing-nav nav .boton { padding: .6rem .8rem; font-size: .85rem; }
@@ -4491,7 +3709,6 @@ body.intro-activa {
 }
 
 
-
 /* =========================================================
    EL PROPÓSITO · STORYTELLING · ESCENA 01
 ========================================================= */
@@ -4699,7 +3916,6 @@ body.intro-activa {
 }
 
 
-
 /* =========================================================
    RESPONSIVE STORY
 ========================================================= */
@@ -4841,11 +4057,6 @@ body.intro-activa {
             transparent 50%,
             rgba(20, 15, 13, .18)
         );
-}
-
-
-.story-numero-grande {
-    display: none;
 }
 
 
@@ -5410,7 +4621,6 @@ body.intro-activa {
 }
 
 
-
 /* =========================================================
    COPY
 ========================================================= */
@@ -5540,7 +4750,6 @@ body.intro-activa {
 }
 
 
-
 /* =========================================================
    PROGRESO
 ========================================================= */
@@ -5580,7 +4789,6 @@ body.intro-activa {
 }
 
 
-
 /* =========================================================
    TRANSFORMACIÓN VISUAL
 ========================================================= */
@@ -5594,7 +4802,6 @@ body.intro-activa {
     perspective:
         1200px;
 }
-
 
 
 /* =========================================================
@@ -5708,7 +4915,6 @@ body.intro-activa {
     line-height:
         1.1;
 }
-
 
 
 /* =========================================================
@@ -5887,7 +5093,6 @@ body.intro-activa {
 }
 
 
-
 /* =========================================================
    PRODUCTO
 ========================================================= */
@@ -6053,7 +5258,6 @@ body.intro-activa {
 }
 
 
-
 /* =========================================================
    SELLO FINAL
 ========================================================= */
@@ -6102,7 +5306,6 @@ body.intro-activa {
     transform:
         translateY(0);
 }
-
 
 
 /* =========================================================
@@ -6352,7 +5555,6 @@ body.intro-activa {
 }
 
 
-
 /* =========================================================
    FLUJO
 ========================================================= */
@@ -6368,7 +5570,6 @@ body.intro-activa {
     gap:
         clamp(1.2rem, 3vw, 2.5rem);
 }
-
 
 
 /* =========================================================
@@ -6417,7 +5618,6 @@ body.intro-activa {
         transform .9s
         cubic-bezier(.22, 1, .36, 1);
 }
-
 
 
 /* =========================================================
@@ -6709,7 +5909,6 @@ body.intro-activa {
 }
 
 
-
 /* =========================================
    VIDEO DE FONDO
 ========================================= */
@@ -6745,7 +5944,6 @@ body.intro-activa {
 }
 
 
-
 /* =========================================
    FUSIÓN VIDEO → FONDO CREMA
 ========================================= */
@@ -6766,7 +5964,6 @@ body.intro-activa {
             transparent 76%
         );
 }
-
 
 
 /* =========================================
@@ -6854,14 +6051,6 @@ body.intro-activa {
         gap: 2.5rem;
     }
 
-    .hero-rp-visual {
-        align-items: stretch;
-    }
-
-    .hero-bandera-wrap {
-        width: 100%;
-        aspect-ratio: 16 / 11;
-    }
 
     .hero-coordenadas {
         align-self: flex-start;
@@ -7127,7 +6316,6 @@ body.intro-activa {
     }
 
 
-
 /* =========================================================
    AUTH · TABLET Y MÓVIL
 ========================================================= */
@@ -7250,42 +6438,6 @@ body.intro-activa {
    SCROLL-DRIVEN ANIMATIONS
 ========================================================= */
 
-@keyframes progresoCategorias {
-
-    from {
-        transform:
-            scaleX(0);
-    }
-
-    to {
-        transform:
-            scaleX(1);
-    }
-
-}
-
-
-@keyframes categoriaEnFoco {
-
-    0%,
-    100% {
-        opacity: .58;
-
-        transform:
-            scale(.92);
-    }
-
-
-    42%,
-    58% {
-        opacity: 1;
-
-        transform:
-            scale(1);
-    }
-
-}
-
 
 @supports (animation-timeline: scroll()) {
 
@@ -7304,56 +6456,7 @@ body.intro-activa {
 }
 
 
-@supports (animation-timeline: view(inline)) {
-
-    .categoria-chip:not(.activa) {
-
-        animation:
-            categoriaEnFoco
-            linear
-            both;
-
-        animation-timeline:
-            view(inline);
-
-        animation-range:
-            entry 0%
-            exit 100%;
-
-    }
-
-}
 @media (max-width: 650px) {
-
-    .categorias-carrusel {
-        grid-template-columns:
-            minmax(0, 1fr);
-    }
-
-
-    .categorias-flecha {
-        display:
-            none;
-    }
-
-
-    .categorias-market {
-        width:
-            calc(100vw - 8vw);
-
-        padding:
-            .65rem .15rem
-            1rem;
-    }
-
-
-    .categoria-chip {
-        min-height:
-            44px;
-
-        padding:
-            0 1.1rem;
-    }
 
 
     .categorias-progreso {
@@ -7364,7 +6467,7 @@ body.intro-activa {
 }
 @media (prefers-reduced-motion: reduce) {
 
-    .categoria-chip,
+
     .categorias-progreso span {
 
         animation:
@@ -7591,7 +6694,7 @@ body.intro-activa {
 
     border-radius: 
     20px 20px 20px 7px;
-    
+
     width:
         66px;
 

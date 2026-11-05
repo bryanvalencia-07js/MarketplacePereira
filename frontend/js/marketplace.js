@@ -112,7 +112,7 @@ function limpiarFiltros() {
 
   document
     .querySelectorAll(
-      "#carruselCategorias .categoria-chip"
+      "#carruselCategorias .categoria-3d"
     )
     .forEach((boton) => {
 
