@@ -5,14 +5,16 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env app.js",
     "dev": "nodemon --exec \"node --env-file-if-exists=.env\" app.js",
-    "test": "node --test ../tests/api.test.cjs"
+    "test": "node --test ../tests/api.test.cjs ../tests/mysql.test.cjs",
+    "db:migrate": "node --env-file-if-exists=.env db/migrate.js"
   },
   "keywords": [],
   "author": "Bryan Alejandro Valencia, Juan Betancur Arana",
   "license": "ISC",
   "description": "API REST del marketplace Reactiva Pereira",
   "dependencies": {
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "mysql2": "^3.24.6"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

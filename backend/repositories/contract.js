@@ -1,7 +1,8 @@
 /* Cada adaptador es async y devuelve copias/DTOs; no expone su almacén interno.
    list() -> Array, find(id) -> Object|null, create(dto) -> Object,
    update(id,dto) -> Object|null, delete(id) -> boolean.
-   transaccion(callback) serializa reglas de unicidad; SQL deberá usar transacciones. */
+   transaccion(callback) serializa escrituras; MySQL confirma o revierte el callback.
+   memory solo serializa por proceso, sin rollback de callbacks arbitrarios. */
 function validarRepositories(repositories) {
   for (const nombre of ["usuario", "negocio", "producto"]) {
     for (const metodo of ["list", "find", "create", "update", "delete"]) {

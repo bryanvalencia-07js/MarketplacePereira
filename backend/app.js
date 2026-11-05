@@ -1,7 +1,7 @@
 const express = require("express");
 const { randomUUID } = require("node:crypto");
 const path = require("node:path");
-const { createRepositories } = require("./repositories");
+const { repositoriesFromConfig } = require("./repositories");
 const { validarRepositories } = require("./repositories/contract");
 const { createAuthService } = require("./services/auth.service");
 const { createUsuarioService } = require("./services/usuario.service");
@@ -19,13 +19,16 @@ const { errorHandler } = require("./middleware/errors");
 const { AppError } = require("./utils/errors");
 
 async function createApplication({
-  repositories = createRepositories(),
+  dataSource = "memory",
+  db,
+  repositories = repositoriesFromConfig({ dataSource, db }),
   origin,
   secure = false,
   admin,
   sessionOptions,
 } = {}) {
   validarRepositories(repositories);
+  await repositories.ready?.();
   const instancia = randomUUID();
   const app = express();
   app.disable("x-powered-by");
@@ -51,61 +54,6 @@ async function createApplication({
       rol: "Administrador",
     });
   }
-
-  /* =========================================================
-    USUARIOS DEMO · SOLO MIENTRAS NO HAYA BASE DE DATOS
-  ========================================================= */
-
-  const usuariosDemo = [
-    {
-      nombre: "Angel",
-      apellido: "Gutierrez",
-      correo: "comprador@reactivapereira.local",
-      password: "CompradorDemo2026!",
-      rol: "Comprador",
-    },
-
-    {
-      nombre: "Juan",
-      apellido: "Betancur",
-      correo: "comerciante1@reactivapereira.local",
-      password: "ComercianteDemo2026!",
-      rol: "Comerciante",
-    },
-
-    {
-      nombre: "Andrea",
-      apellido: "Torres",
-      correo: "comerciante2@reactivapereira.local",
-      password: "ComercianteDemo2026!",
-      rol: "Comerciante",
-    },
-  ];
-
-
-  const usuariosExistentes =
-    await repositories.usuario.list();
-
-
-  for (const demo of usuariosDemo) {
-
-    const existe =
-      usuariosExistentes.some(
-        (usuario) =>
-          usuario.correo === demo.correo
-      );
-
-
-    if (!existe) {
-
-      await usuarios.crear(
-        null,
-        demo
-      );
-
-    }
-
-  } 
 
   app.use(cabeceras);
   app.use(
@@ -174,20 +122,38 @@ if (require.main === module) {
   const { configuracion } = require("./config");
   (async () => {
     const config = configuracion();
-    const { app } = await createApplication(config);
+    const repositories = repositoriesFromConfig(config);
+    let app;
+    try {
+      ({ app } = await createApplication({ ...config, repositories }));
+    } catch (error) {
+      await repositories.close?.();
+      throw error;
+    }
     const server = app.listen(config.port, () =>
       console.log(
-        `Reactiva Pereira disponible en puerto ${config.port}. Persistencia temporal en memoria.`,
+        `Reactiva Pereira disponible en puerto ${config.port}. DATA_SOURCE=${config.dataSource}.`,
       ),
     );
     server.requestTimeout = 30000;
     server.headersTimeout = 15000;
-    server.on("error", (error) => {
+    server.on("error", async (error) => {
       console.error("No se pudo iniciar el servidor:", error.code);
+      await repositories.close?.();
       process.exitCode = 1;
     });
+    const cerrar = () => {
+      const limite = setTimeout(() => server.closeAllConnections(), 10000);
+      limite.unref();
+      server.close(async () => {
+        clearTimeout(limite);
+        await repositories.close?.();
+      });
+    };
+    process.once("SIGTERM", cerrar);
+    process.once("SIGINT", cerrar);
   })().catch((error) => {
-    console.error("No se pudo preparar el servidor:", error.message);
+    console.error("No se pudo preparar el servidor:", error.code || error.message);
     process.exitCode = 1;
   });
 }

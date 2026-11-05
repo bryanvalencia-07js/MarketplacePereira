@@ -6,7 +6,7 @@ function createRepositories(inicial = createInitialData()) {
     usuario: createMemoryRepository(inicial.usuarios),
     negocio: createMemoryRepository(inicial.negocios),
     producto: createMemoryRepository(inicial.productos),
-    // Una futura implementación SQL debe sustituir esta exclusión por transacciones.
+    // Exclusión por proceso; memory no ofrece rollback de callbacks arbitrarios.
     transaccion(accion) {
       const actual = cola.then(accion);
       cola = actual.catch(() => {});
@@ -14,4 +14,11 @@ function createRepositories(inicial = createInitialData()) {
     },
   };
 }
-module.exports = { createRepositories };
+function repositoriesFromConfig({ dataSource = "memory", db } = {}) {
+  if (dataSource === "memory") return createRepositories();
+  if (dataSource !== "mysql") throw new Error("DATA_SOURCE inválido.");
+  const { createPool } = require("../db/pool");
+  const { createMysqlRepositories } = require("./mysql");
+  return createMysqlRepositories(createPool(db));
+}
+module.exports = { createRepositories, repositoriesFromConfig };
