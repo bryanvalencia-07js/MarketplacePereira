@@ -29,14 +29,28 @@ const UI = (() => {
     if (!nodo) return;
     nodo.setAttribute("aria-busy", String(activa));
     if (activa && !nodo.children.length) {
-      nodo.innerHTML = Array.from(
-        { length: 3 },
-        () =>
-          '<div class="skeleton-card" aria-hidden="true"><span></span><span></span><span></span></div>',
+      const indicadores = nodo.id.startsWith("kpis");
+      const columnas =
+        getComputedStyle(nodo).gridTemplateColumns.split(/\s+/).length;
+      const cantidad = indicadores
+        ? nodo.id === "kpisAdministrador"
+          ? 4
+          : 6
+        : columnas;
+      const cards = Array.from({ length: cantidad }, () =>
+        indicadores
+          ? '<div class="skeleton-card skeleton-kpi" aria-hidden="true"><span></span><span></span></div>'
+          : '<div class="skeleton-card skeleton-producto" aria-hidden="true"><div class="skeleton-media"></div><div class="skeleton-contenido"><span></span><span></span><span></span></div></div>',
       ).join("");
+      nodo.innerHTML =
+        indicadores && !nodo.classList.contains("kpi-grid")
+          ? `<div class="kpi-grid" data-skeleton>${cards}</div>`
+          : cards;
     }
-    if (!activa)
+    if (!activa) {
       nodo.querySelectorAll(".skeleton-card").forEach((n) => n.remove());
+      nodo.querySelectorAll("[data-skeleton]").forEach((n) => n.remove());
+    }
   }
   async function tarea(boton, accion, mensajeId = "estadoAplicacion") {
     if (boton?.disabled) return;

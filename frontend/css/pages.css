@@ -2329,3 +2329,12 @@ html:not(.narrativa-animada) .story-visibilidad-indicador {
 .market-hero .market-hero-card p {
   color: #fff4e9;
 }
+
+#kpisAdministrador {
+  min-height: 210px;
+}
+@media (max-width: 768px) {
+  #kpisAdministrador {
+    min-height: 320px;
+  }
+}

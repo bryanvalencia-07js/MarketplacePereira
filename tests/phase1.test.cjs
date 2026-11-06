@@ -1076,6 +1076,42 @@ test("dashboard: indicadores principales y detalle accesible por teclado", async
   );
 });
 
+test("dashboard: carga lenta conserva una fila de cuatro indicadores skeleton", async () => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await abrir("dashboard.html", { usuario: 1 });
+  await listo("presentarResumen");
+  let liberar;
+  const espera = new Promise((resolve) => {
+    liberar = resolve;
+  });
+  await page.route("**/api/usuarios", async (route) => {
+    await espera;
+    await route.continue();
+  });
+  try {
+    await page.reload();
+    await page
+      .locator("#kpisAdministrador[aria-busy=true] .skeleton-card")
+      .first()
+      .waitFor();
+    assert.equal(
+      await page.locator("#kpisAdministrador .skeleton-card").count(),
+      4,
+    );
+    const altura = await page
+      .locator("#kpisAdministrador > .kpi-grid")
+      .evaluate((n) => n.getBoundingClientRect().height);
+    assert.ok(altura < 200, `Altura provisional excesiva: ${altura}`);
+  } finally {
+    liberar();
+  }
+  await page.waitForFunction(() => document.body.dataset.estado === "listo");
+  assert.equal(
+    await page.locator("#kpisAdministrador > .kpi-grid .kpi").count(),
+    4,
+  );
+});
+
 test("landing: ScrollTrigger solo en escritorio y limpieza al cambiar preferencia", async () => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
