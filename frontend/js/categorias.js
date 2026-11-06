@@ -278,13 +278,7 @@ function actualizarPerspectivaCategorias() {
       );
 
 
-    const opacidad =
-      Math.max(
-        .38,
-        1 - absoluta * .18
-      );
-
-
+    // La profundidad usa perspectiva y escala; el texto conserva su contraste.
     tarjeta.style.transform =
       `
         perspective(1000px)
@@ -292,10 +286,6 @@ function actualizarPerspectivaCategorias() {
         translateZ(${profundidad}px)
         scale(${escala})
       `;
-
-
-    tarjeta.style.opacity =
-      opacidad;
 
   });
 
@@ -335,17 +325,14 @@ function centrarCategoria(
   if (!tarjeta) return;
 
 
-  tarjeta.scrollIntoView({
-    behavior:
-      animar && !matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "smooth"
-        : "auto",
-
-    inline:
-      "center",
-
-    block:
-      "nearest",
+  const carrusel = tarjeta.closest(".categorias-3d-viewport");
+  if (!carrusel) return;
+  // Solo desplazar el eje horizontal: scrollIntoView también movía el hero.
+  carrusel.scrollTo({
+    left: tarjeta.offsetLeft + tarjeta.offsetWidth / 2 - carrusel.clientWidth / 2,
+    behavior: animar && !matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "smooth"
+      : "instant",
   });
 
 }

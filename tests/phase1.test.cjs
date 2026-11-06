@@ -829,14 +829,35 @@ test("responsive, IDs, enlaces locales y formularios en todos los roles", async 
           "El estado vacío no debe ocupar una celda del hero",
         );
       }
-      if (capturas)
+      if (capturas) {
+        // Capturar el documento completo exige cargar también las imágenes fuera
+        // del viewport. Esto solo prepara la evidencia, no el arranque medido.
+        await page.evaluate(async () => {
+          await document.fonts.ready;
+          await Promise.all([...document.images].map(async (imagen) => {
+            imagen.loading = "eager";
+            if (imagen.getAttribute("src")) await imagen.decode().catch(() => {});
+          }));
+          // Recorrer la página también prepara las capas 3D fuera de pantalla.
+          for (let top = 0; top < document.documentElement.scrollHeight; top += innerHeight) {
+            window.scrollTo({ top, behavior: "instant" });
+            await new Promise(requestAnimationFrame);
+            await new Promise(requestAnimationFrame);
+          }
+          window.scrollTo({ top: 0, behavior: "instant" });
+          await new Promise(requestAnimationFrame);
+          await new Promise(requestAnimationFrame);
+        });
+        const altura = await page.evaluate(() => document.documentElement.scrollHeight);
         await page.screenshot({
           path: path.join(
             capturas,
             `${archivo.split("?")[0].replace(".html", "")}-${width}.png`,
           ),
           fullPage: true,
+          clip: { x: 0, y: 0, width, height: altura },
         });
+      }
     }
     if (archivo === "marketplace.html") {
       await page.setViewportSize({ width: 360, height: 900 });
@@ -1237,7 +1258,12 @@ test("accesibilidad: páginas públicas y tres roles sin infracciones WCAG A/AA 
     ["mis-productos.html", 2],
     ["productos.html", 1],
   ]) {
-    await abrir(archivo, { usuario });
+    await abrir(archivo, {
+      usuario,
+      datos: archivo === "carrito.html"
+        ? { carrito: [{ usuarioId: 3, productoId: 1, cantidad: 2 }] }
+        : {},
+    });
     await page.waitForFunction(() => document.body.dataset.estado === "listo");
     await page.evaluate(() => document.fonts.ready);
     for (const width of [360, 1440]) {
@@ -1282,4 +1308,79 @@ test("landing: movimiento reducido evita vídeo y ScrollTrigger; acceso inmediat
       .evaluate((e) => getComputedStyle(e).opacity),
     "1",
   );
+});
+
+test("apertura: firma breve, una vez por sesión y contenido disponible detrás", async () => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto(base + "/index.html", { waitUntil: "domcontentloaded" });
+  assert.equal(await page.locator("#firmaApertura").evaluate((n) => n.hidden), false);
+  assert.equal(await page.locator(".hero-rp h1").isVisible(), true);
+  assert.equal(await page.locator("#firmaApertura").evaluate((n) => getComputedStyle(n).pointerEvents), "none");
+  await page.waitForFunction(() => document.getElementById("firmaApertura").hidden, null, { timeout: 2000 });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  assert.equal(await page.locator("#firmaApertura").evaluate((n) => n.hidden), true);
+});
+
+test("apertura: rueda, teclado, scroll, tacto y foco descartan inmediatamente", async () => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto(base + "/index.html");
+  for (const evento of ["wheel", "keydown", "scroll", "touchstart", "focusin"]) {
+    await page.evaluate(() => sessionStorage.removeItem("rp-apertura-v1"));
+    await page.reload({ waitUntil: "domcontentloaded" });
+    assert.equal(await page.locator("#firmaApertura").evaluate((n) => n.hidden), false);
+    await page.evaluate((tipo) => window.dispatchEvent(new Event(tipo)), evento);
+    assert.equal(await page.locator("#firmaApertura").evaluate((n) => n.hidden), true);
+  }
+});
+
+test("apertura: clic permite navegar y cambiar a movimiento reducido la descarta", async () => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto(base + "/index.html", { waitUntil: "domcontentloaded" });
+  await page.locator(".hero-botones a").first().click();
+  await page.waitForURL("**/marketplace.html");
+  await page.evaluate(() => sessionStorage.removeItem("rp-apertura-v1"));
+  await page.goto(base + "/index.html", { waitUntil: "domcontentloaded" });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.waitForFunction(() => document.getElementById("firmaApertura").hidden);
+});
+
+test("apertura: preferencia reducida y almacenamiento denegado dan acceso inmediato", async () => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(base + "/index.html", { waitUntil: "domcontentloaded" });
+  assert.equal(await page.locator("#firmaApertura").evaluate((n) => n.hidden), true);
+  assert.equal(await page.evaluate(() => sessionStorage.getItem("rp-apertura-v1")), null);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await context.addInitScript(() => {
+    Storage.prototype.setItem = () => { throw new DOMException("Denegado", "SecurityError"); };
+  });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  assert.equal(await page.locator("#firmaApertura").evaluate((n) => n.hidden), true);
+});
+
+test("landing: sin JavaScript la historia y los enlaces siguen disponibles", async () => {
+  const sinJS = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    const vista = await sinJS.newPage();
+    await vista.goto(base + "/index.html");
+    assert.equal(await vista.locator("#firmaApertura").isVisible(), false);
+    assert.equal(await vista.locator(".hero-rp h1").isVisible(), true);
+    assert.equal(await vista.locator(".story-problema").count(), 3);
+    for (const mensaje of await vista.locator(".story-problema").all())
+      assert.equal(await mensaje.isVisible(), true);
+    await vista.locator(".hero-botones a").first().click();
+    await vista.waitForURL("**/marketplace.html");
+  } finally { await sinJS.close(); }
+});
+
+test("Coverflow: centrar categorías conserva la posición vertical de la página", async () => {
+  await page.setViewportSize({ width: 360, height: 900 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await abrir("marketplace.html");
+  await listo("buscarMarketplace");
+  await page.evaluate(() => new Promise(requestAnimationFrame));
+  assert.equal(await page.evaluate(() => scrollY), 0, "El catálogo debe abrir mostrando su hero");
+  await page.evaluate(() => {
+    centrarCategoria(document.querySelector('[data-valor="Ropa"]'), false);
+  });
+  assert.equal(await page.evaluate(() => scrollY), 0, "Centrar el carrusel no desplaza el documento");
 });

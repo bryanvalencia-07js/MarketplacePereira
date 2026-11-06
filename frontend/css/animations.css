@@ -27,3 +27,16 @@
     background-position: -150% 0;
   }
 }
+
+@keyframes firmaTexto {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes firmaSalida {
+  0%, 72% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes feedbackEntrada {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}

@@ -110,7 +110,21 @@ const UI = (() => {
   function tarjetaProducto(producto, negocios) {
     const negocio = negocios.find((n) => RP.mismoId(n.id, producto.negocioId));
     const imagen = RP.imagenSegura(producto.imagen);
-    return `<article class="producto-market-card"><a class="producto-market-imagen" href="detalle-producto.html?id=${Number(producto.id)}" aria-label="Ver ${e(producto.nombre)}">${imagen ? `<img loading="lazy" src="${imagen}" alt="${e(producto.nombre)}" class="producto-imagen-real">` : `<span>${e(String(producto.nombre).charAt(0))}</span>`}</a><div class="producto-market-contenido"><span class="producto-categoria">${e(producto.categoria)}</span><h3>${e(producto.nombre)}</h3><p class="producto-comercio">${e(negocio?.nombre)}</p><strong class="producto-precio">${RP.dinero(producto.precio)}</strong><p class="producto-stock">${RP.stock(producto) ? `${RP.stock(producto)} disponibles` : "Agotado"}</p><a class="boton boton-primario" href="detalle-producto.html?id=${Number(producto.id)}">Ver producto</a></div></article>`;
+    const disponible = RP.stock(producto) > 0;
+    return `<article class="producto-market-card">
+      <a class="producto-market-imagen" href="detalle-producto.html?id=${Number(producto.id)}" aria-label="Ver ${e(producto.nombre)}">
+        ${imagen ? `<img loading="lazy" src="${imagen}" alt="${e(producto.nombre)}" class="producto-imagen-real">` : `<span class="producto-sin-foto"><strong>${e(String(producto.nombre).charAt(0))}</strong><small>Imagen por publicar</small></span>`}
+        <span class="producto-sello">Comercio local</span>
+      </a>
+      <div class="producto-market-contenido">
+        <span class="producto-categoria">${e(producto.categoria)}</span>
+        <h3>${e(producto.nombre)}</h3>
+        <p class="producto-comercio">${icono("store")}<span>${e(negocio?.nombre)}</span></p>
+        <div class="producto-oferta"><strong class="producto-precio">${RP.dinero(producto.precio)}</strong><span class="producto-moneda">COP</span></div>
+        <p class="producto-stock ${disponible ? "disponible" : "agotado"}">${disponible ? `${RP.stock(producto)} disponibles` : "Agotado"}</p>
+        <a class="boton boton-secundario" href="detalle-producto.html?id=${Number(producto.id)}">Ver producto <span aria-hidden="true">↗</span></a>
+      </div>
+    </article>`;
   }
   function tarjetaNegocio(negocio) {
     return `<article class="comercio-market-card"><span class="negocio-avatar">${e(String(negocio.nombre).charAt(0))}</span><div><span class="modulo-tipo">${e(negocio.categoria)}</span><h3>${e(negocio.nombre)}</h3><p>${e(negocio.direccion)}</p><a href="marketplace.html?negocioId=${Number(negocio.id)}" class="enlace-acento">Explorar comercio →</a></div></article>`;

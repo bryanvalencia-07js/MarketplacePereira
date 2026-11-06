@@ -1,21 +1,23 @@
 /* tokens: Reactiva Pereira. */
 :root {
-  --amarillo-rp: #f4c548;
-  --rojo-rp: #aa293b;
-  --rojo-oscuro: #7b1d2d;
-  --crema: #faf7f1;
+  --amarillo-rp: #efc75e;
+  --rojo-rp: #a33242;
+  --rojo-oscuro: #642635;
+  --crema: #faf7f0;
   --superficie: #ffffff;
-  --texto: #252830;
-  --texto-secundario: #5b606a;
+  --texto: #2b302d;
+  --texto-secundario: #65665f;
   --exito: #176346;
   --peligro: #a22535;
-  --borde: #e5dfd5;
-  --sombra: 0 16px 44px rgba(52, 36, 27, 0.07);
-  --rojo-suave: #faedef;
-  --radio: 16px;
-  --radio-control: 10px;
+  --borde: #dfd9cd;
+  --sombra: 0 18px 45px rgba(62, 43, 29, 0.08);
+  --rojo-suave: #f5e9e7;
+  --radio: 18px;
+  --radio-control: 8px;
   --espacio-seccion: clamp(3rem, 5vw, 5rem);
-  --arena: #f5f1e8;
+  --arena: #f0ebdf;
+  --tinta-marca: #293d35;
+  --papel: #fffcf6;
   --blanco: #ffffff;
   --serif: "Playfair Display", Georgia, serif;
   --sans: "Inter", Arial, sans-serif;

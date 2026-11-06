@@ -29,8 +29,6 @@ async function actualizarMovimiento() {
   contextoNarrativa?.revert();
   contextoNarrativa = null;
   document.documentElement.classList.remove("narrativa-animada");
-  const video = document.querySelector(".hero-bandera");
-  video?.pause();
   if (!movimientoNarrativa.matches) return;
   try {
     // Solo la landing y solo en escritorio con movimiento permitido.
@@ -115,35 +113,12 @@ async function actualizarMovimiento() {
           ?.classList.toggle("visible", p > 0.78);
       });
     });
-    // El vídeo decorativo se detiene al salir de pantalla o de la pestaña.
-    if (video) video.play().catch(() => {});
   } catch {
     contextoNarrativa?.revert();
     document.documentElement.classList.remove("narrativa-animada");
   }
 }
 movimientoNarrativa.addEventListener("change", actualizarMovimiento);
-const videoHero = document.querySelector(".hero-bandera");
-if (videoHero && "IntersectionObserver" in window) {
-  const observer = new IntersectionObserver((entries) => {
-    if (
-      entries[0].isIntersecting &&
-      movimientoNarrativa.matches &&
-      !document.hidden
-    )
-      videoHero.play().catch(() => {});
-    else videoHero.pause();
-  });
-  observer.observe(videoHero);
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) videoHero.pause();
-    else if (
-      movimientoNarrativa.matches &&
-      videoHero.getBoundingClientRect().bottom > 0
-    )
-      videoHero.play().catch(() => {});
-  });
-}
 
 function cargarProductoStory(productos, negocios) {
   const producto = productos.find((p) => RP.visible(p, negocios));

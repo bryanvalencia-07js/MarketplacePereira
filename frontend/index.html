@@ -11,8 +11,12 @@
     <link rel="stylesheet" href="css/estilos.css" />
       <link rel="preload" href="assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="assets/fonts/playfair-display.woff2" as="font" type="font/woff2" crossorigin>
+    <script src="js/apertura.js" defer></script>
 </head>
-  <body>
+  <body class="pagina-landing">
+    <div id="firmaApertura" class="firma-apertura" hidden aria-hidden="true">
+      <strong>PEREIRA</strong><em>se levanta.</em><span>Reactiva Pereira</span>
+    </div>
     <a class="saltar-contenido" href="#contenido">Saltar al contenido</a>
     <header class="header-principal">
       <div class="contenedor landing-nav">
@@ -49,98 +53,36 @@
       </div>
     </header>
     <main id="contenido">
-      <section class="hero-rp">
-
-        <!-- VIDEO DE FONDO -->
-
-        <div class="hero-video-fondo" aria-hidden="true">
-
-            <video
-                class="hero-bandera"
-                muted
-                loop
-                playsinline
-                preload="none"
-                poster="assets/storytelling/pereira-panoramica.jpg"
-            >
-
-                <source
-                    src="assets/storytelling/bandera-pereira.webm"
-                    type="video/webm"
-                >
-
-                <source
-                    src="assets/storytelling/bandera-pereira.mp4"
-                    type="video/mp4"
-                >
-
-            </video>
-
-            <div class="hero-video-velo"></div>
-
-        </div>
-
-
-        <!-- CONTENIDO -->
-
+      <section class="hero-rp" aria-labelledby="heroTitulo">
         <div class="contenedor hero-rp-grid">
-
-            <div class="hero-rp-copy">
-
-                <span class="hero-etiqueta">
-                    De Pereira, para Pereira
-                </span>
-
-                <h1>
-                    El futuro de Pereira
-                    <span>se compra local.</span>
-                </h1>
-
-                <p>
-                    Detrás de cada puerta abierta hay una historia que merece continuar.
-                    Descubre productos de nuestra ciudad y conecta con quienes la hacen avanzar.
-                </p>
-
-
-                <div class="hero-botones">
-
-                    <a
-                        href="marketplace.html"
-                        class="boton boton-primario"
-                    >
-                        Explorar marketplace →
-                    </a>
-
-                    <a
-                        href="registro.html"
-                        class="boton boton-secundario"
-                    >
-                        Registrar mi comercio
-                    </a>
-
-                </div>
-
+          <div class="hero-rp-copy">
+            <span class="hero-etiqueta">El futuro se compra local</span>
+            <h1 id="heroTitulo"><span>Pereira</span><span>se levanta.</span><em>Contigo.</em></h1>
+            <p>Detrás de cada puerta abierta hay una historia que merece continuar. Descubre lo nuestro y conecta con quienes hacen avanzar la ciudad.</p>
+            <div class="hero-botones">
+              <a href="marketplace.html" class="boton boton-primario">Explorar marketplace →</a>
+              <a href="registro.html" class="boton boton-secundario">Registrar mi comercio</a>
             </div>
-
-
-            <div class="hero-coordenadas">
-
-                <span>
-                    PEREIRA
-                </span>
-
-                <small>
-                    04°48′ N · 75°41′ O
-                </small>
-
+            <div class="hero-pie">
+              <svg class="icono" aria-hidden="true"><use href="assets/icons/lucide.svg#store"></use></svg>
+              <span>Personas reales. Comercios de aquí. Nuevas posibilidades.</span>
             </div>
-
+          </div>
+          <div class="hero-editorial">
+            <figure class="hero-retrato">
+              <img src="assets/storytelling/comerciante-negocio.webp" width="1200" height="600" fetchpriority="high" alt="Comerciante en su tienda, junto a los productos de su negocio">
+              <figcaption><small>Historias que siguen abiertas</small><strong>Aquí, cada puerta abre una posibilidad.</strong></figcaption>
+            </figure>
+            <div class="hero-sello" aria-hidden="true">Con orgullo<strong>de aquí.</strong>Reactiva Pereira</div>
+            <div class="hero-postal" aria-hidden="true">
+              <img src="assets/storytelling/pereira-panoramica.jpg" width="1920" height="1080" loading="lazy" alt="">
+              <span>La ciudad que nos mueve.</span>
+            </div>
+            <div class="hero-coordenadas"><span>PEREIRA · COLOMBIA</span><small>04°48′ N · 75°41′ O</small></div>
+          </div>
         </div>
-
       </section>
-      <div class="franja-local">
-        Talento de aquí. Encuentros que reactivan. Compra local.
-      </div>
+      <div class="franja-local"><span>Talento de aquí.</span> ✳ <span>Encuentros que reactivan.</span> ✳ <span>Compra local.</span></div>
       <!-- =========================================
           EL PROPÓSITO · STORYTELLING
       ========================================= -->
@@ -152,6 +94,7 @@
               <div class="story-impacto-imagen" aria-hidden="true">
                   <img
                       src="assets/storytelling/pereira-panoramica.jpg"
+                          width="1920" height="1080" loading="lazy"
                       alt=""
                       id="imagenImpactoPereira"
                   >
@@ -202,6 +145,7 @@
                       <img
                           id="imagenStoryHumana"
                           src="assets/storytelling/comerciante.jpg"
+                          width="1920" height="1080" loading="lazy"
                           alt="Comerciante atendiendo a un cliente dentro de su negocio"
                       >
 
@@ -269,6 +213,7 @@
                       <img
                           id="imagenStoryVisibilidad"
                           src="assets/storytelling/comerciosInformalesPereira.webp"
+                          width="1600" height="1066" loading="lazy"
                           alt=""
                           aria-hidden="true"
                       >
@@ -458,6 +403,7 @@
 
                           <img
                               src="assets/storytelling/comerciante-negocio.webp"
+                          width="1200" height="600" loading="lazy"
                               alt="Comerciante dentro de su negocio"
                           >
 
