@@ -2,7 +2,7 @@ name: Continuous testing
 on:
   pull_request:
   push:
-    branches: [main, feat/mysql-foundation-xp]
+    branches: [main]
 permissions:
   contents: read
 jobs:
@@ -34,7 +34,16 @@ jobs:
           path: test-artifacts
           if-no-files-found: ignore
       - run: npm audit --omit=dev --prefix backend
-      - run: rg --files backend frontend/js scripts tests -g '*.js' -g '*.cjs' | xargs -n1 node --check
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          syntax_files="$RUNNER_TEMP/js-syntax-files"
+          find backend frontend/js scripts tests \
+            -type d -name node_modules -prune -o \
+            -type f \( -name '*.js' -o -name '*.cjs' \) -print0 > "$syntax_files"
+          test -s "$syntax_files"
+          xargs -0 -r -n1 sh -c 'printf "Checking %s\n" "$1"; exec node --check "$1"' _ < "$syntax_files"
       - run: git diff --check
   mysql:
     runs-on: ubuntu-latest
