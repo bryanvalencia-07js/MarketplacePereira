@@ -110,7 +110,7 @@ No puede desaparecer el último administrador activo. No se permite eliminar la 
 
 ## UI, accesibilidad y storytelling
 
-Las categorías usan el Coverflow 3D de `categorias.js`, tarjetas creadas dinámicamente y SVG propios de `assets/icons/categorias.svg`. Se conservan flechas, scroll, hover, selección activa, `aria-pressed` y filtros compartidos con los selects de formularios.
+Las categorías usan el Coverflow 3D de `categorias.js`, tarjetas creadas dinámicamente y SVG propios de `assets/icons/categorias.svg`. Se conservan flechas, scroll táctil, hover 3D, selección activa, `aria-pressed` y filtros compartidos con los selects de formularios. El centrado usa scroll horizontal del carrusel: `scrollIntoView` desplazaba verticalmente el nuevo hero móvil durante el arranque. Perspectiva y escala mantienen la profundidad; se retiró la atenuación de opacidad del texto para conservar contraste en todas las categorías.
 
 ### Identidad
 
@@ -118,13 +118,13 @@ Variables centralizadas en un único `:root` de `frontend/css/tokens.css`; escal
 
 | Token | Valor / uso |
 |---|---|
-| `--amarillo-rp` | `#f4c548`: energía, ilustración y acentos |
-| `--rojo-rp` | `#aa293b`: acciones e identidad |
-| `--rojo-oscuro` | `#7b1d2d`: contraste y secciones narrativas |
-| `--crema` | `#faf7f1`: fondo cálido |
+| `--amarillo-rp` | `#efc75e`: energía, ilustración y acentos |
+| `--rojo-rp` | `#a33242`: acciones e identidad |
+| `--rojo-oscuro` | `#642635`: contraste y secciones narrativas |
+| `--crema` | `#faf7f0`: fondo cálido |
 | `--superficie` | Blanco: formularios y tarjetas |
-| `--texto` | `#252830`: texto principal |
-| `--texto-secundario` | `#5b606a`: información secundaria |
+| `--texto` | `#2b302d`: texto principal |
+| `--texto-secundario` | `#65665f`: información secundaria |
 | `--exito` | `#176346`: estados positivos |
 | `--peligro` | `#a22535`: errores y acciones destructivas |
 
@@ -132,11 +132,24 @@ Playfair Display para identidad/títulos e Inter para interfaz, ambas WOFF2 vari
 
 ### Landing y scrollytelling
 
-Narrativa: contexto de la comunidad → comerciante publica → comprador descubre → apoyo local → comunidad activa. Hero con identidad y multimedia locales, CTA a explorar y registro de comerciante. Comercios, productos e indicadores se obtienen de API; no se inventan cifras o publicaciones.
+Narrativa: contexto de la comunidad → comerciante publica → comprador descubre → apoyo local → comunidad activa. Hero editorial con retrato local en arco, postal de la ciudad, firma «Pereira se levanta. Contigo.», CTA a explorar y registro de comerciante. Comercios, productos e indicadores se obtienen de API; no se inventan cifras o publicaciones.
 
-Se eliminó la intro que bloqueaba la entrada durante cinco segundos. `IntersectionObserver` conserva reveal y contadores puntuales. GSAP + ScrollTrigger reemplazan cuatro manejadores manuales de scroll y sus bucles; solo se cargan en la landing por encima de 900 px y con `prefers-reduced-motion: no-preference`. Un contexto revierte estilos y elimina triggers al cambiar la preferencia o el ancho. No hay animación de filtros de imagen durante scroll. El vídeo decorativo usa poster, preload none y pausa fuera de pantalla/pestaña; no se reproduce en móvil ni con movimiento reducido.
+La antigua intro de cinco segundos sigue retirada. La nueva firma de apertura (`apertura.js`, diferida e independiente de API) dura 1250 ms, no captura puntero ni foco y se descarta con pointerdown, rueda, scroll, tacto, teclado o foco. Usa una clave de sessionStorage para mostrarse una sola vez por sesión; con movimiento reducido, ancla inicial, scroll restaurado o almacenamiento denegado, el acceso es inmediato. `pagehide` y el cambio de preferencia limpian listeners y temporizador. No modifica el scroll del documento ni intercepta navegación. `IntersectionObserver` conserva reveal y contadores puntuales. GSAP + ScrollTrigger reemplazan cuatro manejadores manuales de scroll y sus bucles; solo se cargan en la landing por encima de 900 px y con `prefers-reduced-motion: no-preference`. Un contexto revierte estilos y elimina triggers al cambiar la preferencia o el ancho. No hay animación de filtros de imagen durante scroll. La landing usa fotografía local con dimensiones reservadas y carga diferida fuera del hero. Se retiró el vídeo del hero y sus observadores: los archivos históricos se conservan, pero no se solicitan desde la landing.
 
 Sin movimiento o sin la biblioteca, todos los mensajes narrativos se muestran en orden estático. Todas las páginas ofrecen salto al contenido, foco visible y controles accesibles por teclado.
+
+
+### Dirección de arte: Pereira se levanta
+
+La composición toma la puerta del comercio como motivo: arcos fotográficos, serif editorial y acentos de amarillo sobre papel cálido. El rojo profundo guía acciones y selección; la tinta verde `#293d35` sostiene narrativa y resumen del carrito; `#fffcf6` distingue las superficies. No se añaden colores a los estados de manera decorativa: éxito y error conservan sus significados. Playfair Display e Inter continúan como fuentes locales.
+
+- Landing: apertura breve → retrato de comerciante → impacto → personas → visibilidad → vitrina digital → descubrimiento → acción. Los capítulos se distinguen por fotografía, papel y ritmo tipográfico; GSAP conserva cuatro triggers y solo se carga por encima de 900 px con movimiento permitido. Los dos capítulos progresivos duran 240vh en escritorio; móvil, reduced motion y ausencia de JS muestran mensajes en secuencia estática.
+- Marketplace: hero fotográfico, búsqueda con foco compartido, categorías con selección marcada y tarjetas con comercio, precio/COP y stock diferenciados. Los productos sin imagen se identifican como «Imagen por publicar». No se inventan ofertas, ventas, reseñas ni fotografías de producto.
+- Detalle y carrito: ruta de regreso, fotografía reservada, precio protagonista, disponibilidad y vendedor visibles; lista y resumen de selección con cantidades y totales. El texto explica que el carrito no reserva ni cobra.
+- Acceso: fotografía de encuentro comercial, firma de Pereira y formulario en papel; escritorio presenta relato y formulario en paralelo, móvil conserva una cabecera narrativa compacta y campos de ancho completo.
+- Gestión: navegación lateral a partir de 1200 px; cabecera horizontal en tablet y menú móvil por debajo de 768 px. KPIs jerarquizados, alertas/actividad y superficies de formulario/listado; sin cambiar autenticación, acciones, permisos o datos.
+
+No hay dependencias nuevas, framework, SPA, CDN ni cambios de seguridad. El CSS sigue en los seis módulos existentes; `estilos.css` se regenera. La eliminación se limita a la presentación del hero anterior y sus listeners de vídeo, que ya no tenían un elemento al que atender.
 
 ### Decisiones de herramientas
 

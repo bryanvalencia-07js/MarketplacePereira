@@ -81,7 +81,11 @@ npm ci
 npm run assets
 ```
 
-El Coverflow conserva motor nativo, scroll táctil, SVG propios, hover y selección; suma flechas de teclado, Home y End. GSAP se carga únicamente en la landing de escritorio con movimiento permitido; en móvil y con movimiento reducido, los capítulos son contenido estático legible. Formularios con errores asociados, contraseña visible opcional, botones loading, skeletons, notificaciones descartables y navegación móvil por rol. La CI verifica que los assets sean reproducibles y adjunta capturas responsive.
+La dirección visual «Pereira se levanta» usa composición editorial, fotografía local, arcos de puerta y superficies de papel. La apertura dura 1,25 s, aparece una vez por sesión y se descarta inmediatamente al interactuar; movimiento reducido permite acceso directo. El hero fotográfico no solicita los vídeos históricos.
+
+El Coverflow conserva motor nativo, scroll táctil, SVG propios, hover 3D y selección; flechas de teclado, Home y End. El centrado mueve solo el carrusel horizontal y las etiquetas conservan contraste. GSAP se carga únicamente en la landing de escritorio con movimiento permitido; en móvil y con movimiento reducido, los capítulos son contenido estático legible. Catálogo, detalle, carrito, acceso y paneles comparten identidad; la gestión tiene navegación lateral desde 1200 px y menú móvil. No cambian seguridad, API ni persistencia. No se añaden dependencias.
+
+Las decisiones visuales se documentan en [ARCHITECTURE](docs/ARCHITECTURE.md); la cobertura y sus límites, en [SECURITY_TESTING](docs/SECURITY_TESTING.md). Las comparativas de las doce vistas a 360/768/1024/1440 px se conservan en [docs/visual](docs/visual/): descargar esa carpeta y abrir `index.html` para usar la galería offline. También se adjuntan al PR.
 
 ## Estructura y documentación
 

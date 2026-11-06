@@ -65,16 +65,39 @@ Esta suite aplica/verifica migraciones y **borra las entidades de esa base antes
 | Grupo | Casos | Comportamiento comprobado |
 |---|---:|---|
 | API real con memory | 22 | Registro/login/hash/cookies, CSRF/origen/CSP, roles/propiedad, CRUD/filtros/fechas, unicidad concurrente, validación, revocación, último admin, rate limits, errores y compresión |
-| Chromium | 40 | Tres roles y visitante; formularios/CRUD/imágenes; catálogo/detalle/carrito; red caída, XSS, legado sin credenciales, sesión entre pestañas; loading/feedback; modal/foco; Coverflow/SVG/selección por teclado/limpiar; responsive |
+| Chromium | 46 | Tres roles y visitante; formularios/CRUD/imágenes; catálogo/detalle/carrito; red caída, XSS, legado sin credenciales, sesión entre pestañas; loading/feedback; modal/foco; Coverflow/SVG/selección por teclado/limpiar; responsive |
 | Estructura | 3 | Enlaces/anclas/recursos, labels, scripts compatibles con CSP, variables y reduced motion |
 | Adaptador MySQL simulado/config | 7 | Contrato, parámetros y DTOs; BEGIN/COMMIT/ROLLBACK/release; fallo de commit/rollback; aislamiento de contexto y errores seguros |
 | MySQL real (separado) | 7 | Migración repetible y detección de drift/fallo parcial; CRUD/decimales/fechas; UNIQUE/FK/CHECK/rol; rollback de varias entidades; concurrencia entre pools; visitas/último admin; API/CSRF/cookie y persistencia al recrear aplicación |
 
-La suite independiente de MySQL contiene 72 casos; la modernización añade regresiones de loading/restauración, validación y contraseña, menú/foco, skeletons, toast/SVG, teclado del Coverflow, indicadores desplegables, movimiento reducido y limpieza de ScrollTrigger, recuperación HTTP y acciones móviles. Axe revisa las doce páginas a 360 y 1440 px con reglas WCAG A/AA; esta comprobación automática no equivale a una certificación. La integración real agrega 7. No se modificaron aserciones existentes para esconder regresiones. El baseline inicial tenía cuatro fallos por cuentas demo introducidas automáticamente; al retirar ese arranque inseguro, las 52 pruebas originales pasaron sin modificar sus expectativas.
+La suite independiente de MySQL contiene 78 casos; la modernización añade regresiones de loading/restauración, validación y contraseña, menú/foco, skeletons, toast/SVG, teclado del Coverflow, indicadores desplegables, movimiento reducido y limpieza de ScrollTrigger, recuperación HTTP y acciones móviles. Axe revisa las doce páginas a 360 y 1440 px, incluido el carrito con productos, con reglas WCAG A/AA; esta comprobación automática no equivale a una certificación. La integración real agrega 7. La fase visual añade seis regresiones: duración y sesión de apertura; descarte por interacción; clic y cambio a reduced motion; preferencia reducida y almacenamiento denegado; narrativa sin JavaScript; y centrado del Coverflow sin salto vertical. Se mantienen todas las aserciones previas y se amplía el fixture de axe para incluir el resumen con productos. No se modificaron aserciones existentes para esconder regresiones. El baseline inicial tenía cuatro fallos por cuentas demo introducidas automáticamente; al retirar ese arranque inseguro, las 52 pruebas originales pasaron sin modificar sus expectativas.
 
-La depuración CSS comprobó referencias en HTML, templates, scripts, clases dinámicas, selectores, estados y tests. Además de las regresiones, se compararon estilos calculados en 12 páginas × 4 anchos (360/768/1024/1440), con reduced motion: sin diferencias en las propiedades comparadas. Esta comparación puntual excluye propiedades temporales de animación y no sustituye una auditoría visual de todas las posiciones de scroll o estados hover.
+En la fase técnica anterior, la depuración CSS comprobó referencias en HTML, templates, scripts, clases dinámicas, selectores, estados y tests. Además de las regresiones, se compararon estilos calculados en 12 páginas × 4 anchos (360/768/1024/1440), con reduced motion: sin diferencias en las propiedades comparadas. Esta comparación puntual excluye propiedades temporales de animación y no sustituye una auditoría visual de todas las posiciones de scroll o estados hover.
 
 La CI en `.github/workflows/ci.yml` configura Node 24, regeneración y comparación de assets, suite memory/navegador y una integración separada con MySQL 8.4. `UI_SCREENSHOTS=../test-artifacts npm test --prefix tests` guarda 48 capturas (12 páginas × 360/768/1024/1440); Actions las publica como artefacto `responsive-chromium`. La ejecución local se verificó con Node 24.22.2, Playwright 1.62.1, Chrome del sistema y MySQL 8.0.46. La existencia del workflow no prueba una ejecución remota exitosa; comprobar el resultado de Actions en el PR.
+
+## Validación de la dirección visual
+
+Baseline de `main` (`0e0f1c6`): 72/72 casos, 48 capturas y axe sin infracciones detectadas. La nueva apertura tuvo pruebas fallando por ausencia del elemento antes de incorporarla; el salto vertical del Coverflow se reprodujo con una regresión que observó 209 px de scroll al iniciar. La primera revisión completa detectó contraste en números narrativos y etiquetas atenuadas del carrusel; se corrigieron colores y opacidad sin omitir reglas de axe.
+
+La revisión visual usa los mismos fixtures ficticios (no son datos de producción) en las doce vistas y cuatro anchos, con reduced motion para comparar estados estables. Para las capturas completas se espera a fuentes e imágenes diferidas, se vuelve al inicio y se fija el límite del documento; esta preparación no se usa para medir el arranque. El PR adjunta comparativas antes/después, medidas locales de LCP/CLS y tamaño de recursos; estas mediciones de laboratorio no equivalen a métricas de campo. No se modifican backend, CSP, autenticación, roles ni MySQL en esta fase.
+
+### Resultado local de la fase visual
+
+Node 24.22.2 y Chrome del sistema: 78/78 pruebas completas; backend/adaptador simulado 29/29; MySQL 8.0.46 en base aislada nueva 7/7. Axe A/AA no detectó infracciones en las 24 combinaciones de vista/ancho verificadas; responsive generó 48 capturas sin overflow. Sintaxis válida en 53 archivos, regeneración reproducible de 10 assets y audit de producción con 0 vulnerabilidades detectadas.
+
+| Landing / mediana de 3 ejecuciones | Antes | Después |
+|---|---:|---:|
+| LCP, 360 px | 1236 ms | 476 ms |
+| LCP, 1440 px | 556 ms | 484 ms |
+| CLS, 360 px | 0 | 0 |
+| CLS, 1440 px | 0.000334 | 0.000334 |
+| Transferencia de recursos, 360 px | 1 348 906 B | 1 085 324 B |
+| Transferencia de recursos, 1440 px | 1 467 546 B | 1 203 964 B |
+
+Medición de laboratorio en Chrome local: caché fría, CPU 4×, red 10 Mbit/s, latencia 40 ms y ventana de observación de 5,5 s; movimiento permitido y apertura incluida. La transferencia cuenta recursos observados en esa ventana, no el peso total del sitio. El arranque mantiene 0 triggers en móvil y 4 en escritorio. Datos completos y tamaños del bundle en [visual](visual/); [galería offline](visual/index.html), con 48 pares antes/después. Las PNG originales se entregan como evidencia externa; el repositorio conserva WebP de las mismas capturas para reducir su tamaño.
+
+Deuda de validación: Safari/Firefox, dispositivos físicos y métricas de campo (incluido INP) siguen pendientes. Las imágenes de producto dependen del catálogo del comerciante; los fixtures de comparación usan explícitamente el estado sin fotografía. La revisión humana de dirección de arte queda pendiente en el PR. No se implementan checkout, pagos ni infraestructura fuera del alcance visual.
 
 ## Método XP
 
