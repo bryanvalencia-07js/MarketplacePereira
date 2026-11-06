@@ -1,61 +1,4 @@
-history.scrollRestoration = "manual";
-
-window.addEventListener("load", () => {
-  window.scrollTo({
-    top: 0,
-    left: 0,
-    behavior: "auto"
-  });
-});
-
-window.addEventListener("pageshow", () => {
-
-  const navegacion =
-    performance.getEntriesByType("navigation")[0];
-
-
-  if (navegacion?.type !== "reload") {
-    return;
-  }
-
-
-  history.replaceState(
-    null,
-    "",
-    window.location.pathname +
-    window.location.search
-  );
-
-
-  window.scrollTo({
-    top: 0,
-    left: 0,
-    behavior: "auto"
-  });
-
-});
-
-
-function iniciarIntroPereira() {
-
-  const intro = document.getElementById("introPereira");
-
-  if (!intro) return;
-
-
-  document.body.classList.add("intro-activa");
-
-
-  setTimeout(() => {
-
-    document.body.classList.remove("intro-activa");
-
-    intro.remove();
-
-  }, 5100);
-
-}
-
+/* Narrativa progresiva: el contenido permanece legible sin efectos. */
 function activarNarrativa() {
   if (
     matchMedia("(prefers-reduced-motion: reduce)").matches ||
@@ -64,195 +7,188 @@ function activarNarrativa() {
     return;
   document.documentElement.classList.add("reveal-listo");
   const observer = new IntersectionObserver(
-    (entradas) => {
-      for (const entrada of entradas)
-        if (entrada.isIntersecting) {
-          entrada.target.classList.add("visible");
-          observer.unobserve(entrada.target);
+    (entries) => {
+      for (const entry of entries)
+        if (entry.isIntersecting) {
+          entry.target.classList.add("visible");
+          observer.unobserve(entry.target);
         }
     },
     { threshold: 0.12 },
   );
-  document
-    .querySelectorAll(".reveal")
-    .forEach((nodo) => observer.observe(nodo));
+  document.querySelectorAll(".reveal").forEach((n) => observer.observe(n));
 }
 
-function activarEscenaImpacto() {
-
-  const escena = document.querySelector(".story-impacto");
-  const imagen = document.getElementById("imagenImpactoPereira");
-
-  if (!escena || !imagen) return;
-
-
-  let ejecutando = false;
-
-
-  function actualizar() {
-
-    const rect = escena.getBoundingClientRect();
-
-    const recorrido =
-      escena.offsetHeight - window.innerHeight;
-
-
-    const progreso = Math.min(
-      1,
-      Math.max(
-        0,
-        -rect.top / recorrido
-      )
-    );
-
-
-    const escala =
-      1.02 + progreso * 0.12;
-
-
-    const desplazamiento =
-      progreso * 22;
-
-
-    const saturacion =
-      0.72 - progreso * 0.18;
-
-
-    imagen.style.transform =
-      `scale(${escala}) translateY(${desplazamiento}px)`;
-
-
-    imagen.style.filter =
-      `saturate(${saturacion}) contrast(1.04)`;
-
-
-    ejecutando = false;
-
+let contextoNarrativa;
+let versionMovimiento = 0;
+const movimientoNarrativa = matchMedia(
+  "(min-width: 901px) and (prefers-reduced-motion: no-preference)",
+);
+async function actualizarMovimiento() {
+  const version = ++versionMovimiento;
+  contextoNarrativa?.revert();
+  contextoNarrativa = null;
+  document.documentElement.classList.remove("narrativa-animada");
+  const video = document.querySelector(".hero-bandera");
+  video?.pause();
+  if (!movimientoNarrativa.matches) return;
+  try {
+    // Solo la landing y solo en escritorio con movimiento permitido.
+    if (!window.gsap) await cargarScript("js/vendor/gsap.min.js");
+    if (!window.ScrollTrigger)
+      await cargarScript("js/vendor/ScrollTrigger.min.js");
+    if (version !== versionMovimiento || !movimientoNarrativa.matches) return;
+    gsap.registerPlugin(ScrollTrigger);
+    contextoNarrativa = gsap.context(() => {
+      document.documentElement.classList.add("narrativa-animada");
+      const escena = (selector, update) => {
+        const node = document.querySelector(selector);
+        if (!node) return;
+        ScrollTrigger.create({
+          trigger: node,
+          start: "top top",
+          end: () => "+=" + Math.max(1, node.offsetHeight - innerHeight),
+          invalidateOnRefresh: true,
+          onUpdate: (self) => update(self.progress),
+          onRefresh: (self) => update(self.progress),
+        });
+      };
+      const transformar = (selector, vars) => {
+        if (document.querySelector(selector)) gsap.set(selector, vars);
+      };
+      escena(".story-impacto", (p) =>
+        transformar("#imagenImpactoPereira", {
+          scale: 1.02 + p * 0.08,
+          y: p * 18,
+        }),
+      );
+      escena("#storyHumana", (p) => {
+        transformar("#imagenStoryHumana", {
+          scale: 1.06 - p * 0.04,
+          x: (p - 0.5) * 20,
+        });
+        document.querySelectorAll(".story-fragmento").forEach((n) => {
+          gsap.set(n, {
+            opacity: p >= Number(n.dataset.inicio || 0) ? 1 : 0,
+            y: p >= Number(n.dataset.inicio || 0) ? 0 : 18,
+          });
+        });
+      });
+      escena("#storyVisibilidad", (p) => {
+        const mensajes = [...document.querySelectorAll(".story-problema")];
+        mensajes.forEach((n, i) =>
+          n.classList.toggle(
+            "activo",
+            i ===
+              Math.min(mensajes.length - 1, Math.floor(p * mensajes.length)),
+          ),
+        );
+        transformar("#progresoVisibilidad", { scaleY: p });
+        transformar("#imagenStoryVisibilidad", { scale: 1.04 + p * 0.06 });
+        document
+          .querySelector("#storyNaceReactiva")
+          ?.classList.toggle("visible", p > 0.82);
+      });
+      escena("#storyDigital", (p) => {
+        const digital = Math.min(1, Math.max(0, (p - 0.22) / 0.48));
+        transformar("#storyNegocioFisico", {
+          opacity: 1 - digital,
+          x: -p * 25,
+        });
+        transformar("#storyMarketplaceUI", {
+          opacity: digital,
+          y: 50 * (1 - digital),
+          scale: 0.85 + digital * 0.15,
+        });
+        transformar("#progresoDigital", { scaleX: p });
+        transformar("#storyTransformacionLuz", { opacity: 0 });
+        document
+          .querySelectorAll(".story-digital-mensaje")
+          .forEach((n, i) =>
+            n.classList.toggle(
+              "activo",
+              i === (p < 0.32 ? 0 : p < 0.68 ? 1 : 2),
+            ),
+          );
+        document
+          .querySelector("#storyDigitalSello")
+          ?.classList.toggle("visible", p > 0.78);
+      });
+    });
+    // El vídeo decorativo se detiene al salir de pantalla o de la pestaña.
+    if (video) video.play().catch(() => {});
+  } catch {
+    contextoNarrativa?.revert();
+    document.documentElement.classList.remove("narrativa-animada");
   }
-
-
-  function solicitarActualizacion() {
-
-    if (ejecutando) return;
-
-    ejecutando = true;
-
-    requestAnimationFrame(actualizar);
-
-  }
-
-
-  window.addEventListener(
-    "scroll",
-    solicitarActualizacion,
-    { passive: true }
-  );
-
-
-  window.addEventListener(
-    "resize",
-    solicitarActualizacion
-  );
-
-
-  actualizar();
-
+}
+movimientoNarrativa.addEventListener("change", actualizarMovimiento);
+const videoHero = document.querySelector(".hero-bandera");
+if (videoHero && "IntersectionObserver" in window) {
+  const observer = new IntersectionObserver((entries) => {
+    if (
+      entries[0].isIntersecting &&
+      movimientoNarrativa.matches &&
+      !document.hidden
+    )
+      videoHero.play().catch(() => {});
+    else videoHero.pause();
+  });
+  observer.observe(videoHero);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) videoHero.pause();
+    else if (
+      movimientoNarrativa.matches &&
+      videoHero.getBoundingClientRect().bottom > 0
+    )
+      videoHero.play().catch(() => {});
+  });
 }
 
 function cargarProductoStory(productos, negocios) {
-
-  const producto =
-    productos.find(
-      (p) => RP.visible(p, negocios)
-    );
-
+  const producto = productos.find((p) => RP.visible(p, negocios));
 
   if (!producto) return;
 
+  const negocio = negocios.find((n) => RP.mismoId(n.id, producto.negocioId));
 
-  const negocio =
-    negocios.find(
-      (n) =>
-        RP.mismoId(
-          n.id,
-          producto.negocioId
-        )
-    );
+  const imagenContenedor = document.getElementById("storyProductoImagen");
 
-
-  const imagenContenedor =
-    document.getElementById(
-      "storyProductoImagen"
-    );
-
-
-  const imagen =
-    RP.imagenSegura(
-      producto.imagen
-    );
-
+  const imagen = RP.imagenSegura(producto.imagen);
 
   if (imagenContenedor) {
-
     if (imagen) {
-
-      imagenContenedor.innerHTML =
-        `<img
+      imagenContenedor.innerHTML = `<img
           src="${imagen}"
           alt="${UI.e(producto.nombre)}"
         >`;
-
     } else {
-
-      imagenContenedor.textContent =
-        String(
-          producto.nombre || "R"
-        )
+      imagenContenedor.textContent = String(producto.nombre || "R")
         .charAt(0)
         .toUpperCase();
-
     }
-
   }
 
-
   const datos = {
+    storyProductoCategoria: producto.categoria,
 
-    storyProductoCategoria:
-      producto.categoria,
+    storyProductoNombre: producto.nombre,
 
-    storyProductoNombre:
-      producto.nombre,
+    storyProductoNegocio: negocio?.nombre || "Comercio local",
 
-    storyProductoNegocio:
-      negocio?.nombre ||
-      "Comercio local",
-
-    storyProductoPrecio:
-      RP.dinero(producto.precio),
+    storyProductoPrecio: RP.dinero(producto.precio),
 
     storyProductoStock:
-      RP.stock(producto) > 0
-        ? `${RP.stock(producto)} disponibles`
-        : "Agotado"
-
+      RP.stock(producto) > 0 ? `${RP.stock(producto)} disponibles` : "Agotado",
   };
 
-
-  for (
-    const [id, valor]
-    of Object.entries(datos)
-  ) {
-
-    const nodo =
-      document.getElementById(id);
+  for (const [id, valor] of Object.entries(datos)) {
+    const nodo = document.getElementById(id);
 
     if (nodo) {
       nodo.textContent = valor;
     }
-
   }
-
 }
 
 async function cargarLanding() {
@@ -271,10 +207,7 @@ async function cargarLanding() {
         .map((p) => UI.tarjetaProducto(p, negocios))
         .join("") ||
       '<p class="estado-vacio">Pronto descubrirás aquí los primeros productos publicados.</p>';
-    cargarProductoStory(
-      productos,
-      negocios
-    );
+    cargarProductoStory(productos, negocios);
     UI.kpis(document.getElementById("landingImpacto"), [
       ["Comercios activos", negocios.length],
       ["Productos publicados", productos.length],
@@ -289,12 +222,6 @@ async function cargarLanding() {
         '<p class="estado-vacio">No pudimos cargar esta sección. Recarga para intentar nuevamente.</p>';
   }
 }
-iniciarIntroPereira();
-activarNarrativa();
-activarEscenaImpacto();
-
-window.moduloListo = cargarLanding();
-
 function animarIndicadores() {
   if (
     matchMedia("(prefers-reduced-motion: reduce)").matches ||
@@ -324,629 +251,5 @@ function animarIndicadores() {
     .forEach((n) => observador.observe(n));
 }
 
-/* =========================================================
-   UTILIDADES DEL STORYTELLING
-========================================================= */
-
-function limitar(valor, minimo = 0, maximo = 1) {
-
-  return Math.min(
-    maximo,
-    Math.max(minimo, valor)
-  );
-
-}
-
-
-function obtenerProgresoEscena(escena) {
-
-  const rect =
-    escena.getBoundingClientRect();
-
-  const recorrido =
-    escena.offsetHeight -
-    window.innerHeight;
-
-
-  if (recorrido <= 0) return 0;
-
-
-  return limitar(
-    -rect.top / recorrido
-  );
-
-}
-
-
-/* =========================================================
-   ESCENA 02 · PERSONAS
-========================================================= */
-
-function activarEscenaHumana() {
-
-  const escena =
-    document.getElementById("storyHumana");
-
-  const imagen =
-    document.getElementById("imagenStoryHumana");
-
-
-  if (!escena || !imagen) return;
-
-
-  const fragmentos =
-    [
-      ...escena.querySelectorAll(
-        ".story-fragmento"
-      )
-    ];
-
-
-  let pendiente = false;
-
-
-  function actualizar() {
-
-    const progreso =
-      obtenerProgresoEscena(escena);
-
-
-    const escala =
-      1.08 -
-      progreso * .05;
-
-
-    const desplazamiento =
-      (progreso - .5) * 28;
-
-
-    imagen.style.transform =
-      `
-      scale(${escala})
-      translateX(${desplazamiento}px)
-      `;
-
-
-    imagen.style.filter =
-      `
-      saturate(${.82 + progreso * .18})
-      contrast(1.03)
-      `;
-
-
-    fragmentos.forEach(
-      (fragmento) => {
-
-        const inicio =
-          Number(
-            fragmento.dataset.inicio || 0
-          );
-
-
-        fragmento.classList.toggle(
-          "visible",
-          progreso >= inicio
-        );
-
-      }
-    );
-
-
-    pendiente = false;
-
-  }
-
-
-  function solicitar() {
-
-    if (pendiente) return;
-
-    pendiente = true;
-
-    requestAnimationFrame(
-      actualizar
-    );
-
-  }
-
-
-  window.addEventListener(
-    "scroll",
-    solicitar,
-    { passive: true }
-  );
-
-
-  window.addEventListener(
-    "resize",
-    solicitar
-  );
-
-
-  actualizar();
-
-}
-
-function activarEscenaVisibilidad() {
-
-  const escena =
-    document.getElementById("storyVisibilidad");
-
-  const imagen =
-    document.getElementById("imagenStoryVisibilidad");
-
-  const problemas =
-    [...escena?.querySelectorAll(".story-problema") || []];
-
-  const indicador =
-    document.getElementById("progresoVisibilidad");
-
-  const cierre =
-    document.getElementById("storyNaceReactiva");
-
-
-  if (
-    !escena ||
-    !imagen ||
-    !problemas.length
-  ) return;
-
-
-  let pendiente = false;
-
-
-  function actualizar() {
-
-    const progreso =
-      obtenerProgresoEscena(escena);
-
-
-    const paso =
-      Math.min(
-        problemas.length - 1,
-        Math.floor(
-          progreso * problemas.length
-        )
-      );
-
-
-    problemas.forEach(
-      (problema, indice) => {
-
-        problema.classList.toggle(
-          "activo",
-          indice === paso
-        );
-
-      }
-    );
-
-
-    if (indicador) {
-
-      indicador.style.transform =
-        `scaleY(${progreso})`;
-
-    }
-
-
-    imagen.style.transform =
-      `scale(${1.08 + progreso * .08})`;
-
-
-    imagen.style.filter =
-      `saturate(${.72 + progreso * .12})
-       brightness(${.62 - progreso * .06})`;
-
-
-    cierre?.classList.toggle(
-      "visible",
-      progreso > .82
-    );
-
-
-    pendiente = false;
-
-  }
-
-
-  function solicitar() {
-
-    if (pendiente) return;
-
-    pendiente = true;
-
-    requestAnimationFrame(actualizar);
-
-  }
-
-
-  window.addEventListener(
-    "scroll",
-    solicitar,
-    { passive: true }
-  );
-
-
-  window.addEventListener(
-    "resize",
-    solicitar
-  );
-
-
-  actualizar();
-
-}
-
-
-
-/* =========================================================
-   ESCENA 04 · TRANSFORMACIÓN DIGITAL
-========================================================= */
-
-function activarEscenaDigital() {
-
-  const escena =
-    document.getElementById("storyDigital");
-
-
-  if (!escena) return;
-
-
-  const fisico =
-    document.getElementById(
-      "storyNegocioFisico"
-    );
-
-
-  const interfaz =
-    document.getElementById(
-      "storyMarketplaceUI"
-    );
-
-
-  const luz =
-    document.getElementById(
-      "storyTransformacionLuz"
-    );
-
-
-  const progresoNodo =
-    document.getElementById(
-      "progresoDigital"
-    );
-
-
-  const sello =
-    document.getElementById(
-      "storyDigitalSello"
-    );
-
-
-  const mensajes =
-    [
-      ...escena.querySelectorAll(
-        ".story-digital-mensaje"
-      )
-    ];
-
-
-  let pendiente = false;
-
-
-  function actualizar() {
-
-    const progreso =
-      obtenerProgresoEscena(escena);
-
-
-    /*
-     * 0.00 → comercio físico
-     * 0.25 → comienza transformación
-     * 0.48 → destello máximo
-     * 0.70 → marketplace domina
-     * 1.00 → transformación completa
-     */
-
-
-    const entradaDigital =
-      limitar(
-        (progreso - .22) / .48
-      );
-
-
-    const salidaFisica =
-      limitar(
-        progreso / .62
-      );
-
-
-    /*
-     * La luz empieza aproximadamente
-     * en 0.25, alcanza su máximo cerca
-     * de 0.48 y desaparece hacia 0.70.
-     */
-    const momentoLuz =
-      limitar(
-        1 -
-        Math.abs(progreso - .48) / .23
-      );
-
-
-    /* =========================
-       NEGOCIO FÍSICO
-    ========================= */
-
-    if (fisico) {
-
-      fisico.style.opacity =
-        String(
-          1 - salidaFisica * .94
-        );
-
-
-      fisico.style.transform =
-        `
-        scale(${1 + progreso * .1})
-        translateX(${-progreso * 35}px)
-        `;
-
-
-      fisico.style.filter =
-        `
-        saturate(${1 - progreso * .45})
-        brightness(${1 - progreso * .22})
-        `;
-
-    }
-
-
-    /* =========================
-       INTERFAZ DIGITAL
-    ========================= */
-
-    if (interfaz) {
-
-      const escala =
-        .76 +
-        entradaDigital * .24;
-
-
-      const desplazamiento =
-        70 *
-        (1 - entradaDigital);
-
-
-      const rotacion =
-        -9 *
-        (1 - entradaDigital);
-
-
-      interfaz.style.opacity =
-        String(entradaDigital);
-
-
-      interfaz.style.transform =
-        `
-        translateY(${desplazamiento}px)
-        scale(${escala})
-        rotateY(${rotacion}deg)
-        `;
-
-    }
-
-
-    /* =========================
-       DESTELLO
-    ========================= */
-
-    if (luz) {
-
-      luz.style.opacity =
-        String(
-          momentoLuz * .95
-        );
-
-
-      const escalaLuz =
-        .3 +
-        momentoLuz * 3.2;
-
-
-      luz.style.transform =
-        `
-        translate(-50%, -50%)
-        scale(${escalaLuz})
-        `;
-
-    }
-
-
-    /* =========================
-       BARRA DE PROGRESO
-    ========================= */
-
-    if (progresoNodo) {
-
-      progresoNodo.style.transform =
-        `scaleX(${progreso})`;
-
-    }
-
-
-    /* =========================
-       CAMBIO DE MENSAJES
-    ========================= */
-
-    const paso =
-      progreso < .32
-        ? 0
-        : progreso < .68
-          ? 1
-          : 2;
-
-
-    mensajes.forEach(
-      (mensaje, indice) => {
-
-        mensaje.classList.toggle(
-          "activo",
-          indice === paso
-        );
-
-      }
-    );
-
-
-    /* =========================
-       SELLO FINAL
-    ========================= */
-
-    sello?.classList.toggle(
-      "visible",
-      progreso > .78
-    );
-
-
-    pendiente = false;
-
-  }
-
-
-  function solicitar() {
-
-    if (pendiente) return;
-
-
-    pendiente = true;
-
-
-    requestAnimationFrame(
-      actualizar
-    );
-
-  }
-
-
-  window.addEventListener(
-    "scroll",
-    solicitar,
-    { passive: true }
-  );
-
-
-  window.addEventListener(
-    "resize",
-    solicitar
-  );
-
-
-  actualizar();
-
-}
-
-/* =========================================================
-   CÓMO FUNCIONA
-========================================================= */
-
-function activarComoFunciona() {
-
-  const seccion =
-    document.getElementById(
-      "como-funciona"
-    );
-
-
-  if (!seccion) return;
-
-
-  const pasos =
-    [
-      ...seccion.querySelectorAll(
-        ".como-paso"
-      )
-    ];
-
-
-  const progreso =
-    document.getElementById(
-      "comoFuncionaProgreso"
-    );
-
-
-  if (!pasos.length) return;
-
-
-  const observador =
-    new IntersectionObserver(
-
-      (entradas) => {
-
-        entradas.forEach(
-          (entrada) => {
-
-            if (
-              !entrada.isIntersecting
-            ) return;
-
-
-            const paso =
-              entrada.target;
-
-
-            paso.classList.add(
-              "activo"
-            );
-
-
-            const indice =
-              Number(
-                paso.dataset.comoPaso
-              );
-
-
-            const porcentaje =
-              (indice + 1) /
-              pasos.length;
-
-
-            if (progreso) {
-
-              const esMovil =
-                window.innerWidth <= 800;
-
-
-              progreso.style.transform =
-                esMovil
-                  ? `scaleY(${porcentaje})`
-                  : `scaleX(${porcentaje})`;
-
-            }
-
-          }
-        );
-
-      },
-
-      {
-        threshold: .45
-      }
-
-    );
-
-
-  pasos.forEach(
-    (paso) =>
-      observador.observe(paso)
-  );
-
-}
-
-/* =========================================================
-   ACTIVAR STORYTELLING
-========================================================= */
-
-activarEscenaHumana();
-activarEscenaVisibilidad();
-activarEscenaDigital();
-activarComoFunciona();
+activarNarrativa();
+window.moduloListo = Promise.all([cargarLanding(), actualizarMovimiento()]);

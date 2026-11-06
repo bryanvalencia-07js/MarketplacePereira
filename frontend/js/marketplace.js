@@ -11,6 +11,15 @@ function mostrarProductosMarketplace(lista) {
   document.getElementById("contadorProductos").textContent =
     `${lista.length} producto(s)`;
   document.getElementById("sinProductos").hidden = lista.length > 0;
+  const comercio = negocios.find((n) => RP.mismoId(n.id, negocioSeleccionado));
+  document.getElementById("resumenFiltros").textContent =
+    [
+      document.getElementById("buscarMarketplace").value.trim(),
+      categoriaSeleccionada,
+      comercio?.nombre,
+    ]
+      .filter(Boolean)
+      .join(" · ") || "Todos los productos";
 }
 function buscarMarketplace() {
   const texto = document
@@ -33,109 +42,54 @@ function buscarMarketplace() {
   mostrarProductosMarketplace(filtrados);
 }
 function filtrarCategoria(categoria) {
+  categoriaSeleccionada = categoria;
 
-  categoriaSeleccionada =
-    categoria;
-
-
-  const tarjetas =
-    document.querySelectorAll(
-      "#carruselCategorias .categoria-3d"
-    );
-
-
-  tarjetas.forEach(
-    (tarjeta) => {
-
-      const activa =
-        tarjeta.dataset.valor ===
-        categoria;
-
-
-      tarjeta.classList.toggle(
-        "activa",
-        activa
-      );
-
-
-      tarjeta.setAttribute(
-        "aria-pressed",
-        String(activa)
-      );
-
-
-      if (activa) {
-
-        centrarCategoria(
-          tarjeta
-        );
-
-      }
-
-    }
+  const tarjetas = document.querySelectorAll(
+    "#carruselCategorias .categoria-3d",
   );
 
+  tarjetas.forEach((tarjeta) => {
+    const activa = tarjeta.dataset.valor === categoria;
+
+    tarjeta.classList.toggle("activa", activa);
+
+    tarjeta.setAttribute("aria-pressed", String(activa));
+
+    if (activa) {
+      centrarCategoria(tarjeta);
+    }
+  });
 
   buscarMarketplace();
 
+  document.getElementById("productos").scrollIntoView({
+    behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "auto"
+      : "smooth",
 
-  document
-    .getElementById("productos")
-    .scrollIntoView({
-      behavior:
-        "smooth",
-
-      block:
-        "start",
-    });
-
+    block: "start",
+  });
 }
 function limpiarFiltros() {
-
   negocioSeleccionado = 0;
 
-  history.replaceState(
-    null,
-    "",
-    location.pathname
-  );
-
+  history.replaceState(null, "", location.pathname);
 
   categoriaSeleccionada = "";
 
-  document
-    .getElementById(
-      "buscarMarketplace"
-    )
-    .value = "";
-
+  document.getElementById("buscarMarketplace").value = "";
 
   document
-    .querySelectorAll(
-      "#carruselCategorias .categoria-3d"
-    )
+    .querySelectorAll("#carruselCategorias .categoria-3d")
     .forEach((boton) => {
+      const activa = boton.dataset.valor === "";
 
-      const activa =
-        boton.dataset.valor === "";
+      boton.classList.toggle("activa", activa);
 
-
-      boton.classList.toggle(
-        "activa",
-        activa
-      );
-
-
-      boton.setAttribute(
-        "aria-pressed",
-        String(activa)
-      );
-
+      boton.setAttribute("aria-pressed", String(activa));
     });
 
-
   buscarMarketplace();
-
 }
 function mostrarPopulares() {
   const lista = productos
@@ -154,7 +108,17 @@ function mostrarComercios() {
       .join("") ||
     '<p class="estado-vacio">Todavía no hay comercios publicados.</p>';
 }
+let cargandoMarketplace = false;
 async function actualizarMarketplace() {
+  if (cargandoMarketplace) return;
+  cargandoMarketplace = true;
+  const listas = [
+    ...document.querySelectorAll(
+      "#listaProductos, #productosPopulares, #productosRecientes, #listaComercios",
+    ),
+  ];
+  listas.forEach((n) => UI.carga(n));
+  document.getElementById("reintentarMarketplace")?.remove();
   UI.estado("Cargando productos…", "carga", "mensajeMarketplace");
   try {
     [negocios, productos] = await Promise.all([
@@ -181,6 +145,15 @@ async function actualizarMarketplace() {
     UI.estado("", "exito", "mensajeMarketplace");
   } catch (error) {
     UI.estado(error.message, "error", "mensajeMarketplace");
+    const reintentar = document.createElement("button");
+    reintentar.id = "reintentarMarketplace";
+    reintentar.className = "boton boton-secundario";
+    reintentar.textContent = "Reintentar carga";
+    reintentar.addEventListener("click", actualizarMarketplace);
+    document.getElementById("mensajeMarketplace").after(reintentar);
+  } finally {
+    listas.forEach((n) => UI.carga(n, false));
+    cargandoMarketplace = false;
   }
 }
 window.addEventListener("storage", (event) => {

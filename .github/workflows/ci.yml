@@ -15,14 +15,26 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: |
+            package-lock.json
             backend/package-lock.json
             tests/package-lock.json
+      - run: npm ci
+      - run: npm run assets
+      - run: git diff --exit-code -- frontend/css/estilos.css frontend/assets frontend/js/vendor
       - run: npm ci --prefix backend
       - run: npm ci --prefix tests
       - run: npx --prefix tests playwright install --with-deps chromium
       - run: npm test --prefix tests
+        env:
+          UI_SCREENSHOTS: ../test-artifacts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: responsive-chromium
+          path: test-artifacts
+          if-no-files-found: ignore
       - run: npm audit --omit=dev --prefix backend
-      - run: rg --files backend frontend/js tests -g '*.js' -g '*.cjs' | xargs -n1 node --check
+      - run: rg --files backend frontend/js scripts tests -g '*.js' -g '*.cjs' | xargs -n1 node --check
       - run: git diff --check
   mysql:
     runs-on: ubuntu-latest

@@ -19,7 +19,7 @@ Aplicar Simple Design, Small Releases, Continuous Testing, Refactoring y Collect
 
 ## UI y limpieza
 
-Conservar identidad, responsive, accesibilidad y experiencia existente; esta fundación no incluye un gran rediseño. Preservar Coverflow 3D, SVG de categorías, filtrado, hover, selección activa, teclado y storytelling.
+Conservar identidad, responsive y accesibilidad. La fase UI moderniza navegación, formularios, estados y catálogo sin cambiar API, roles ni persistencia. CSS fuente en seis módulos; `estilos.css` es generado: editar módulos y ejecutar `npm run assets`. No editar directamente vendor ni fuentes: regenerarlos desde dependencias fijadas de raíz. Preservar Coverflow 3D, SVG de categorías, filtrado, hover, selección activa, teclado y storytelling.
 
 Una clase ausente del HTML no prueba código muerto. Buscar globalmente en scripts, templates, `innerHTML`, `classList`, `className`, selectores, `data-*`, estados, media queries y tests. Antes de eliminar, explicar la evidencia y ejecutar las regresiones correspondientes. No borrar assets ni funciones exportadas solo por una búsqueda superficial. Verificar consola/CSP y vistas móviles.
 
@@ -31,11 +31,11 @@ Las consultas SQL usan parámetros; los nombres de tablas/columnas proceden de l
 
 ## Verificación
 
-Usar Node 24. Instalar dependencias con `npm ci --prefix backend` y `npm ci --prefix tests`.
+Usar Node 24. Instalar dependencias con `npm ci`, `npm ci --prefix backend` y `npm ci --prefix tests`. `npm run assets` regenera CSS, fuentes, Lucide y GSAP locales; comprobar que no haya drift en el resultado versionado.
 
 - Suite completa independiente de MySQL: `npm test --prefix tests`.
 - Backend y adaptador simulado: `npm test --prefix backend`.
-- Navegador: `npm run test:browser --prefix tests`; instalar Chromium o indicar `CHROMIUM_PATH`.
+- Navegador: `npm run test:browser --prefix tests`; instalar Chromium o indicar `CHROMIUM_PATH`. Incluye axe A/AA en las doce páginas a 360/1440; `UI_SCREENSHOTS=../test-artifacts` guarda las 48 vistas responsive. Revisar también los estados de menú, loading, error y teclado.
 - Integración MySQL separada: `npm run test:mysql --prefix tests`, con entorno de prueba configurado.
 - Dependencias: `npm audit --omit=dev --prefix backend`.
 - Revisar sintaxis y `git diff --check` antes de entregar.

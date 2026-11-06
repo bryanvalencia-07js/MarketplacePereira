@@ -28,6 +28,28 @@ function presentarResumen(usuarios, negocios, productos) {
       productos.filter((p) => RP.stock(p) > 0 && RP.stock(p) <= 5).length,
     ],
   ]);
+  const indicadores = document.getElementById("kpisAdministrador");
+  const principal = document.createElement("div");
+  principal.className = "kpi-grid";
+  const secundario = document.createElement("div");
+  secundario.className = "kpi-grid";
+  const destacados = new Set([
+    "Usuarios",
+    "Comercios",
+    "Productos",
+    "Stock bajo",
+  ]);
+  for (const card of [...indicadores.children])
+    (destacados.has(card.querySelector("span").textContent)
+      ? principal
+      : secundario
+    ).append(card);
+  const detalles = document.createElement("details");
+  detalles.className = "indicadores-detalle";
+  const resumen = document.createElement("summary");
+  resumen.textContent = "Ver todos los indicadores";
+  detalles.append(resumen, secundario);
+  indicadores.replaceChildren(principal, detalles);
   const alertas = [
     [
       "usuarios inactivos",

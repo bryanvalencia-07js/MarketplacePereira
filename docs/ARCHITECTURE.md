@@ -40,7 +40,7 @@ El adaptador de memoria no es almacenamiento duradero ni una implementación dis
 - `api.js`: única ubicación de `fetch`, prefijo `/api`, JSON, timeout, credenciales, CSRF y errores HTTP.
 - `sesion.js`: identidad obtenida del servidor, destinos por rol y logout. No decide los permisos reales del backend.
 - `app-init.js`: enlaza eventos mediante atributos `data-*`, espera la sesión y carga solo el módulo permitido. Sin `eval`, scripts inline ni frameworks.
-- `ui.js`: tareas con loading, mensajes accesibles, confirmación con `<dialog>`, KPIs y tarjetas escapadas.
+- `ui.js`: tareas con loading y restauración del botón, mensajes inline y notificaciones descartables, skeletons, validación asociada al campo, contraseña visible opcional, menú móvil con Escape, confirmación con `<dialog>`, KPIs y tarjetas escapadas. Un observador decora controles dinámicos con el sprite Lucide local.
 - `estado-local.js`: IDs, precios, texto/imagen segura y reconciliación del carrito temporal con datos actuales de API.
 - `imagenes.js`: lectura, preview, redimensionado y compresión local. Aislado del CRUD para reemplazarlo después por upload.
 - `legado.js`: respaldo local de la etapa anterior, sin credenciales y sin importación de identidades.
@@ -114,7 +114,7 @@ Las categorías usan el Coverflow 3D de `categorias.js`, tarjetas creadas dinám
 
 ### Identidad
 
-Variables centralizadas en un único `:root` de `frontend/css/estilos.css`:
+Variables centralizadas en un único `:root` de `frontend/css/tokens.css`; escala de espacios, radios y tipografías compartidos. `base.css`, `layout.css`, `components.css`, `pages.css` y `animations.css` separan responsabilidades; `estilos.css` es el resultado compacto generado mediante `npm run assets`, nunca la fuente a editar:
 
 | Token | Valor / uso |
 |---|---|
@@ -128,13 +128,21 @@ Variables centralizadas en un único `:root` de `frontend/css/estilos.css`:
 | `--exito` | `#176346`: estados positivos |
 | `--peligro` | `#a22535`: errores y acciones destructivas |
 
-Serif para identidad/títulos, sans serif para interfaz, con fallbacks locales. Rojo y amarillo se concentran en CTAs, bordes, ilustración y narrativa; el verde queda para estados positivos. Se unificaron botones, tarjetas, KPIs, badges, mensajes, formularios, modal, foco y estados disabled.
+Playfair Display para identidad/títulos e Inter para interfaz, ambas WOFF2 variables locales precargadas, con fallbacks de sistema. Rojo y amarillo se concentran en CTAs, bordes, ilustración y narrativa; el verde queda para estados positivos. Se unificaron botones, tarjetas, KPIs, badges, mensajes, formularios, modal, foco y estados disabled.
 
 ### Landing y scrollytelling
 
 Narrativa: contexto de la comunidad → comerciante publica → comprador descubre → apoyo local → comunidad activa. Hero con identidad y multimedia locales, CTA a explorar y registro de comerciante. Comercios, productos e indicadores se obtienen de API; no se inventan cifras o publicaciones.
 
-`IntersectionObserver` revela secciones y activa los contadores al entrar en viewport. No hay biblioteca de animación. Con `prefers-reduced-motion` se omiten reveal y contadores animados; sin soporte de observer el contenido sigue visible. La página incluye enlace para saltar al contenido.
+Se eliminó la intro que bloqueaba la entrada durante cinco segundos. `IntersectionObserver` conserva reveal y contadores puntuales. GSAP + ScrollTrigger reemplazan cuatro manejadores manuales de scroll y sus bucles; solo se cargan en la landing por encima de 900 px y con `prefers-reduced-motion: no-preference`. Un contexto revierte estilos y elimina triggers al cambiar la preferencia o el ancho. No hay animación de filtros de imagen durante scroll. El vídeo decorativo usa poster, preload none y pausa fuera de pantalla/pestaña; no se reproduce en móvil ni con movimiento reducido.
+
+Sin movimiento o sin la biblioteca, todos los mensajes narrativos se muestran en orden estático. Todas las páginas ofrecen salto al contenido, foco visible y controles accesibles por teclado.
+
+### Decisiones de herramientas
+
+`package.json` de raíz contiene solo herramientas de preparación: PostCSS, lucide-static, GSAP y paquetes Fontsource variables. `scripts/prepare-ui.cjs` genera un CSS compacto, un sprite con 19 iconos funcionales, dos fuentes y dos scripts minificados, con licencias. Assets versionados permiten mantener el arranque Express existente; la CI regenera y detecta drift. No se introdujo Vite: este procesamiento acotado no necesita otro servidor ni cambiar rutas, módulos o despliegue.
+
+Swiper fue evaluado: el componente actual ya resuelve scroll táctil, perspectiva y selección con un frame por evento. Se mantuvo para conservar `filtrarCategoria()`, SVG, hover y semántica de botones, añadiendo ArrowLeft/Right y Home/End sin otra dependencia. El estado sigue siendo local por página y no justifica Alpine CSP; no se añadió framework reactivo.
 
 ### Experiencias
 
@@ -142,7 +150,7 @@ Narrativa: contexto de la comunidad → comerciante publica → comprador descub
 - Detalle: imagen, categoría, descripción, precio, stock, estado, datos del vendedor, selector y feedback de compra. Agotado deshabilita selector y agregar.
 - Carrito: cantidades, stock actual, quitar, vaciar con confirmación, estado vacío correcto y totales actualizados. No simula pago.
 - Comerciante: KPIs de catálogo, activos/inactivos, agotados, stock bajo y visitas; completitud del perfil, edición y accesos a productos/preview.
-- Administrador: KPIs, alertas y actividad con `createdAt`; usuarios, negocios con dueño real y catálogo global.
+- Administrador: cuatro KPIs principales y ocho desplegables mediante details/summary; alertas y actividad en paralelo, navegación vigente con aria-current, usuarios, negocios con dueño real y catálogo global.
 
 ### Accesibilidad y feedback
 

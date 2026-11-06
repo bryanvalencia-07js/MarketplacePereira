@@ -65,7 +65,29 @@ test("HTML: labels y scripts compatibles con política CSP estricta", async () =
 });
 
 test("CSS: una sola raíz de variables y preferencias de movimiento respetadas", async () => {
-  const css = await fs.readFile(path.join(frontend, "css/estilos.css"), "utf8");
+  const entrada = await fs.readFile(
+    path.join(frontend, "css/estilos.css"),
+    "utf8",
+  );
+  assert.match(entrada, /Generado por npm run assets/);
+  assert.doesNotMatch(entrada, /@import/);
+  const imports = [
+    "tokens.css",
+    "base.css",
+    "layout.css",
+    "components.css",
+    "pages.css",
+    "animations.css",
+  ];
+  const partes = await Promise.all(
+    imports.map((file) =>
+      fs.readFile(path.join(frontend, "css", file), "utf8"),
+    ),
+  );
+  const postcss = require("../node_modules/postcss");
+  assert.doesNotThrow(() => postcss.parse(entrada));
+  for (const parte of partes) assert.doesNotThrow(() => postcss.parse(parte));
+  const css = partes.join("\n");
   assert.equal([...css.matchAll(/:root\s*\{/g)].length, 1);
   assert.match(css, /prefers-reduced-motion/);
   assert.match(css, /--amarillo-rp:/);

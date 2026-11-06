@@ -33,6 +33,7 @@ El audit completo de backend mantiene dos avisos moderados de desarrollo, en `mi
 Node 24, indicado en `.nvmrc` y `engines`:
 
 ```bash
+npm ci
 npm ci --prefix backend
 npm ci --prefix tests
 npx --prefix tests playwright install chromium
@@ -49,7 +50,7 @@ node --test tests/structure.test.cjs
 node --test tests/mysql.test.cjs
 ```
 
-La suite normal usa repositorios memory aislados, puertos efímeros y fixtures ficticios. No lee credenciales de una base ni necesita un servidor ya iniciado. Chromium intercepta fuentes externas para no depender de Google Fonts. Se requiere un entorno que permita puertos locales y lanzar el navegador.
+La suite normal usa repositorios memory aislados, puertos efímeros y fixtures ficticios. No lee credenciales de una base ni necesita un servidor ya iniciado. Las fuentes e iconos se sirven localmente. Chromium conserva la interceptación de fuentes externas como protección contra dependencias de red accidentales. Se requiere un entorno que permita puertos locales y lanzar el navegador.
 
 Para MySQL, crear una base dedicada cuyo nombre termine en `_test`, completar las variables DB y `DATA_SOURCE=mysql` en `backend/.env` o en el entorno:
 
@@ -64,16 +65,16 @@ Esta suite aplica/verifica migraciones y **borra las entidades de esa base antes
 | Grupo | Casos | Comportamiento comprobado |
 |---|---:|---|
 | API real con memory | 22 | Registro/login/hash/cookies, CSRF/origen/CSP, roles/propiedad, CRUD/filtros/fechas, unicidad concurrente, validación, revocación, último admin, rate limits, errores y compresión |
-| Chromium | 28 | Tres roles y visitante; formularios/CRUD/imágenes; catálogo/detalle/carrito; red caída, XSS, legado sin credenciales, sesión entre pestañas; loading/feedback; modal/foco; Coverflow/SVG/selección por teclado/limpiar; responsive |
+| Chromium | 39 | Tres roles y visitante; formularios/CRUD/imágenes; catálogo/detalle/carrito; red caída, XSS, legado sin credenciales, sesión entre pestañas; loading/feedback; modal/foco; Coverflow/SVG/selección por teclado/limpiar; responsive |
 | Estructura | 3 | Enlaces/anclas/recursos, labels, scripts compatibles con CSP, variables y reduced motion |
 | Adaptador MySQL simulado/config | 7 | Contrato, parámetros y DTOs; BEGIN/COMMIT/ROLLBACK/release; fallo de commit/rollback; aislamiento de contexto y errores seguros |
 | MySQL real (separado) | 7 | Migración repetible y detección de drift/fallo parcial; CRUD/decimales/fechas; UNIQUE/FK/CHECK/rol; rollback de varias entidades; concurrencia entre pools; visitas/último admin; API/CSRF/cookie y persistencia al recrear aplicación |
 
-La suite independiente de MySQL contiene 60 casos. La integración real agrega 7. No se modificaron aserciones existentes para esconder regresiones. El baseline inicial tenía cuatro fallos por cuentas demo introducidas automáticamente; al retirar ese arranque inseguro, las 52 pruebas originales pasaron sin modificar sus expectativas.
+La suite independiente de MySQL contiene 71 casos; la modernización añade regresiones de loading/restauración, validación y contraseña, menú/foco, skeletons, toast/SVG, teclado del Coverflow, indicadores desplegables, movimiento reducido y limpieza de ScrollTrigger, recuperación HTTP y acciones móviles. Axe revisa las doce páginas a 360 y 1440 px con reglas WCAG A/AA; esta comprobación automática no equivale a una certificación. La integración real agrega 7. No se modificaron aserciones existentes para esconder regresiones. El baseline inicial tenía cuatro fallos por cuentas demo introducidas automáticamente; al retirar ese arranque inseguro, las 52 pruebas originales pasaron sin modificar sus expectativas.
 
 La depuración CSS comprobó referencias en HTML, templates, scripts, clases dinámicas, selectores, estados y tests. Además de las regresiones, se compararon estilos calculados en 12 páginas × 4 anchos (360/768/1024/1440), con reduced motion: sin diferencias en las propiedades comparadas. Esta comparación puntual excluye propiedades temporales de animación y no sustituye una auditoría visual de todas las posiciones de scroll o estados hover.
 
-La CI en `.github/workflows/ci.yml` configura Node 24, suite memory/navegador y una integración separada con MySQL 8.4. La ejecución local se verificó con Node 24.22.2, Playwright 1.62.1, Chrome del sistema y MySQL 8.0.46. La existencia del workflow no prueba una ejecución remota exitosa; comprobar el resultado de Actions en el PR.
+La CI en `.github/workflows/ci.yml` configura Node 24, regeneración y comparación de assets, suite memory/navegador y una integración separada con MySQL 8.4. `UI_SCREENSHOTS=../test-artifacts npm test --prefix tests` guarda 48 capturas (12 páginas × 360/768/1024/1440); Actions las publica como artefacto `responsive-chromium`. La ejecución local se verificó con Node 24.22.2, Playwright 1.62.1, Chrome del sistema y MySQL 8.0.46. La existencia del workflow no prueba una ejecución remota exitosa; comprobar el resultado de Actions en el PR.
 
 ## Método XP
 

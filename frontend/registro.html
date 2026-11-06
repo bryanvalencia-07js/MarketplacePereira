@@ -11,27 +11,12 @@
 
     <title>Registro | Reactiva Pereira</title>
 
-    <!-- Tipografías -->
-    <link
-        rel="preconnect"
-        href="https://fonts.googleapis.com"
-    >
-
-    <link
-        rel="preconnect"
-        href="https://fonts.gstatic.com"
-        crossorigin
-    >
-
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
-        rel="stylesheet"
-    >
-
     <link
         rel="stylesheet"
         href="css/estilos.css"
     >
+    <link rel="preload" href="assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="assets/fonts/playfair-display.woff2" as="font" type="font/woff2" crossorigin>
 </head>
 
 
@@ -126,7 +111,7 @@
 
                             <input
                                 type="text"
-                                id="nombre"
+                                id="nombre" required autocomplete="given-name" maxlength="80"
                                 placeholder="Ej. Andrea"
                             >
 
@@ -141,7 +126,7 @@
 
                             <input
                                 type="text"
-                                id="apellido"
+                                id="apellido" required autocomplete="family-name" maxlength="80"
                                 placeholder="Ej. Torres"
                             >
 
@@ -158,7 +143,7 @@
 
                         <input
                             type="email"
-                            id="correo"
+                            id="correo" required autocomplete="email" maxlength="254"
                             placeholder="correo@ejemplo.com"
                         >
 
@@ -173,13 +158,14 @@
 
                         <input
                             type="password" minlength="12" maxlength="128" autocomplete="new-password"
-                            id="password"
-                            placeholder="Ingresa una contraseña"
+                            id="password" required
+                            placeholder="Al menos 12 caracteres" aria-describedby="ayudaPassword"
                         >
 
                     </div>
 
 
+                    <p id="ayudaPassword" class="ayuda-campo">Usa entre 12 y 128 caracteres. Una frase larga es fácil de recordar.</p>
                     <div class="campo">
 
                         <label for="rol">
@@ -187,7 +173,7 @@
                         </label>
 
                         <select
-                            id="rol"
+                            id="rol" required
                             required
                         >
 

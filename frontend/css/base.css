@@ -1,0 +1,106 @@
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../assets/fonts/inter.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url("../assets/fonts/playfair-display.woff2") format("woff2");
+}
+/* base: Reactiva Pereira. */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+a {
+  text-decoration: none;
+  color: inherit;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+img {
+  max-width: 100%;
+  display: block;
+}
+[hidden] {
+  display: none !important;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--rojo-rp);
+  outline-offset: 3px;
+}
+:focus-visible {
+  outline: 3px solid var(--rojo-rp);
+  outline-offset: 4px;
+}
+input,
+select,
+textarea {
+  accent-color: var(--rojo-rp);
+}
+textarea {
+  width: 100%;
+  resize: vertical;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--rojo-rp);
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 160px;
+}
+body {
+  font-family: var(--sans);
+  background: var(--crema);
+  color: var(--texto);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+main {
+  min-width: 0;
+}
+main:focus {
+  outline: none;
+}
+@media (max-width: 768px) {
+  html {
+    scroll-padding-top: 170px;
+  }
+}
+
+h1,
+h2,
+h3 {
+  overflow-wrap: anywhere;
+}

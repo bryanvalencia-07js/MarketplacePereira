@@ -3,12 +3,48 @@ const UI = (() => {
   const e = (valor) => RP.escapar(valor);
   function estado(texto, tipo = "exito", id = "estadoAplicacion") {
     RP.mensaje(texto, tipo, id);
+    if (texto && tipo === "exito") notificar(texto);
+  }
+  const icono = (nombre) =>
+    `<svg class="icono" width="20" height="20" aria-hidden="true" focusable="false"><use href="assets/icons/lucide.svg#${nombre}"></use></svg>`;
+  function notificar(texto) {
+    let region = document.getElementById("notificaciones");
+    if (!region) {
+      region = document.createElement("div");
+      region.id = "notificaciones";
+      region.setAttribute("aria-label", "Notificaciones");
+      document.body.append(region);
+    }
+    const aviso = document.createElement("div");
+    aviso.className = "toast";
+    // El mensaje inline ya se anuncia; evitar dos anuncios idénticos.
+    aviso.innerHTML = `${icono("circle-check")}<span></span><button type="button" aria-label="Descartar notificación">${icono("x")}</button>`;
+    aviso.querySelector("span").textContent = texto;
+    aviso
+      .querySelector("button")
+      .addEventListener("click", () => aviso.remove());
+    region.replaceChildren(aviso);
+  }
+  function carga(nodo, activa = true) {
+    if (!nodo) return;
+    nodo.setAttribute("aria-busy", String(activa));
+    if (activa && !nodo.children.length) {
+      nodo.innerHTML = Array.from(
+        { length: 3 },
+        () =>
+          '<div class="skeleton-card" aria-hidden="true"><span></span><span></span><span></span></div>',
+      ).join("");
+    }
+    if (!activa)
+      nodo.querySelectorAll(".skeleton-card").forEach((n) => n.remove());
   }
   async function tarea(boton, accion, mensajeId = "estadoAplicacion") {
     if (boton?.disabled) return;
+    const contenido = boton ? [...boton.childNodes] : [];
     if (boton) {
       boton.disabled = true;
       boton.setAttribute("aria-busy", "true");
+      boton.textContent = "Procesando…";
     }
     estado("Procesando…", "carga", mensajeId);
     try {
@@ -21,6 +57,7 @@ const UI = (() => {
       );
     } finally {
       if (boton) {
+        boton.replaceChildren(...contenido);
         boton.disabled = false;
         boton.removeAttribute("aria-busy");
       }
@@ -64,5 +101,174 @@ const UI = (() => {
   function tarjetaNegocio(negocio) {
     return `<article class="comercio-market-card"><span class="negocio-avatar">${e(String(negocio.nombre).charAt(0))}</span><div><span class="modulo-tipo">${e(negocio.categoria)}</span><h3>${e(negocio.nombre)}</h3><p>${e(negocio.direccion)}</p><a href="marketplace.html?negocioId=${Number(negocio.id)}" class="enlace-acento">Explorar comercio →</a></div></article>`;
   }
-  return { e, estado, tarea, confirmar, kpis, tarjetaProducto, tarjetaNegocio };
+  function preparar() {
+    const main = document.querySelector("main");
+    if (main && !main.id) main.id = "contenido";
+    if (main && !document.querySelector(".saltar-contenido")) {
+      const salto = document.createElement("a");
+      salto.className = "saltar-contenido";
+      salto.href = "#" + main.id;
+      salto.textContent = "Saltar al contenido";
+      document.body.prepend(salto);
+    }
+    main?.setAttribute("tabindex", "-1");
+    document.querySelectorAll("svg.carrito-icono").forEach((n) => {
+      n.insertAdjacentHTML("afterend", icono("shopping-bag"));
+      n.remove();
+    });
+    for (const input of document.querySelectorAll('input[type="password"]')) {
+      const grupo = document.createElement("div");
+      grupo.className = "campo-password";
+      input.before(grupo);
+      grupo.append(input);
+      const control = document.createElement("button");
+      control.type = "button";
+      control.className = "ver-password";
+      control.setAttribute("aria-label", "Mostrar contraseña");
+      control.setAttribute("aria-pressed", "false");
+      control.setAttribute("aria-controls", input.id);
+      control.innerHTML = icono("eye");
+      control.addEventListener("click", () => {
+        const visible = input.type === "password";
+        input.type = visible ? "text" : "password";
+        control.setAttribute("aria-pressed", String(visible));
+        control.setAttribute(
+          "aria-label",
+          visible ? "Ocultar contraseña" : "Mostrar contraseña",
+        );
+      });
+      grupo.append(control);
+    }
+    document.addEventListener(
+      "invalid",
+      (event) => validarCampo(event.target),
+      true,
+    );
+    document.addEventListener("input", (event) => {
+      if (event.target.hasAttribute("aria-invalid")) validarCampo(event.target);
+    });
+    const nav = document.querySelector(
+      ".landing-nav nav, .market-menu, .gestion-nav",
+    );
+    if (nav) {
+      nav.id = "navegacionPrincipal";
+      nav.setAttribute("aria-label", "Navegación principal");
+      const boton = document.createElement("button");
+      boton.className = "boton menu-toggle";
+      boton.type = "button";
+      boton.setAttribute("aria-label", "Menú de navegación");
+      boton.setAttribute("aria-controls", nav.id);
+      boton.setAttribute("aria-expanded", "false");
+      boton.innerHTML = icono("menu") + "Menú";
+      const colocar = document.querySelector(
+        ".landing-nav, .market-nav, .dashboard-nav",
+      );
+      colocar?.append(boton);
+      function cerrar() {
+        boton.setAttribute("aria-expanded", "false");
+        nav.classList.remove("abierta");
+      }
+      boton.addEventListener("click", () => {
+        const abrir = boton.getAttribute("aria-expanded") !== "true";
+        boton.setAttribute("aria-expanded", String(abrir));
+        nav.classList.toggle("abierta", abrir);
+      });
+      nav.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          cerrar();
+          boton.focus();
+        }
+      });
+      boton.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") cerrar();
+      });
+      nav.addEventListener("click", (event) => {
+        if (event.target.closest("a")) cerrar();
+      });
+      // En móvil, cerrar sesión sigue disponible dentro de la navegación.
+      const salir = document.querySelector(
+        ".market-usuario [data-click=cerrarSesion], .dashboard-usuario [data-click=cerrarSesion]",
+      );
+      if (salir) {
+        const copia = salir.cloneNode(true);
+        copia.classList.add("salir-movil");
+        nav.querySelector(".market-menu-interior, .contenedor")?.append(copia);
+      }
+      const movil = matchMedia("(max-width: 768px)");
+      movil.addEventListener("change", cerrar);
+    }
+    decorar();
+    const observer = new MutationObserver(decorar);
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+  function validarCampo(campo) {
+    if (!campo.validity || !campo.id) return;
+    const id = campo.id + "-error";
+    let ayuda = document.getElementById(id);
+    if (!ayuda) {
+      ayuda = document.createElement("small");
+      ayuda.id = id;
+      ayuda.className = "error-campo";
+      (campo.closest(".campo-password") || campo).after(ayuda);
+      campo.setAttribute(
+        "aria-describedby",
+        [campo.getAttribute("aria-describedby"), id].filter(Boolean).join(" "),
+      );
+    }
+    campo.setAttribute("aria-invalid", String(!campo.validity.valid));
+    ayuda.textContent = campo.validity.valid ? "" : campo.validationMessage;
+  }
+  function decorar() {
+    for (const nodo of document.querySelectorAll(
+      "button, a.boton, .gestion-nav a",
+    )) {
+      if (
+        nodo.querySelector("svg") ||
+        nodo.closest("#carruselCategorias") ||
+        nodo.getAttribute("aria-busy") === "true"
+      )
+        continue;
+      const texto = nodo.textContent.trim();
+      const nombre =
+        nodo.dataset.icono ||
+        (/buscar/i.test(texto)
+          ? "search"
+          : /eliminar|quitar|vaciar/i.test(texto)
+            ? "trash-2"
+            : /editar/i.test(texto)
+              ? "pencil"
+              : /salir|cerrar sesión/i.test(texto)
+                ? "log-out"
+                : /volver/i.test(texto)
+                  ? "arrow-left"
+                  : /limpiar|filtro/i.test(texto)
+                    ? "sliders-horizontal"
+                    : /carrito/i.test(texto)
+                      ? "shopping-bag"
+                      : /sesión|cuenta|usuario/i.test(texto)
+                        ? "user-round"
+                        : /guardar|registrar|publicar/i.test(texto)
+                          ? "check"
+                          : /producto/i.test(texto)
+                            ? "package"
+                            : /comercio|negocio/i.test(texto)
+                              ? "store"
+                              : /panel/i.test(texto)
+                                ? "layout-dashboard"
+                                : "");
+      if (nombre) nodo.insertAdjacentHTML("afterbegin", icono(nombre));
+    }
+  }
+  return {
+    e,
+    estado,
+    tarea,
+    confirmar,
+    kpis,
+    tarjetaProducto,
+    tarjetaNegocio,
+    carga,
+    preparar,
+    icono,
+  };
 })();

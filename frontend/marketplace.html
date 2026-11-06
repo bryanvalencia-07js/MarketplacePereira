@@ -13,26 +13,12 @@
     <title>Marketplace | Reactiva Pereira</title>
 
     <link
-        rel="preconnect"
-        href="https://fonts.googleapis.com"
-    >
-
-    <link
-        rel="preconnect"
-        href="https://fonts.gstatic.com"
-        crossorigin
-    >
-
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
-        rel="stylesheet"
-    >
-
-    <link
         rel="stylesheet"
         href="css/estilos.css"
     >
 
+    <link rel="preload" href="assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="assets/fonts/playfair-display.woff2" as="font" type="font/woff2" crossorigin>
 </head>
 
 
@@ -204,7 +190,6 @@
 
 
     <main>
-        <div class="contenedor barra-resultados"><button class="boton boton-secundario" data-click="limpiarFiltros">Limpiar filtros</button></div>
         <p id="mensajeMarketplace" class="mensaje-formulario" role="status" aria-live="polite"></p>
 
         <!-- =========================================
@@ -222,16 +207,14 @@
                     </span>
 
                     <h1>
-                        Encuentra productos de
-                        negocios que hacen grande
-                        a Pereira.
+                        Lo nuestro tiene
+                        mucho por descubrir.
                     </h1>
 
                     <p>
-                        Descubre comercios locales,
-                        conoce sus productos y apoya
-                        directamente la recuperación
-                        económica de nuestra región.
+                        Productos con historia, comercios de tu ciudad.
+                        Encuentra tu próxima compra y apoya a quienes
+                        hacen grande a Pereira.
                     </p>
 
                     <a
@@ -308,16 +291,16 @@
                     >
                         ←
                     </button>
-                
-                
+
+
                     <div
                         class="categorias-3d-viewport"
                         id="carruselCategorias"
                         aria-label="Categorías del marketplace"
                     >
                     </div>
-                
-                
+
+
                     <button
                         type="button"
                         class="categorias-control categorias-control-siguiente"
@@ -327,24 +310,71 @@
                     >
                         →
                     </button>
-                
+
                 </div>
-                
-                
+
+
                 <div
                     class="categorias-progreso"
                     aria-hidden="true"
                 >
                     <span></span>
                 </div>
-                
-                
-                <div
-                    class="categorias-progreso"
-                    aria-hidden="true"
-                >
-                    <span></span>
+
+
+
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =========================================
+             TODOS LOS PRODUCTOS
+        ========================================== -->
+
+        <section
+            class="market-seccion"
+            id="productos"
+        >
+
+            <div class="contenedor">
+
+                <div class="market-titulo">
+
+                    <div>
+
+                        <span class="modulo-tipo">
+                            Marketplace
+                        </span>
+
+                        <h2>
+                            Productos
+                        </h2>
+
+                    </div>
+
+
+                    <span
+                        id="contadorProductos" aria-live="polite"
+                        class="contador"
+                    >
+                        0 productos
+                    </span>
+
                 </div>
+
+
+                <div class="barra-resultados"><p id="resumenFiltros" aria-live="polite">Todos los productos</p><button class="boton boton-secundario" data-click="limpiarFiltros">Limpiar filtros</button></div>
+                <div
+                    id="listaProductos"
+                    class="productos-grid"
+                >
+                </div>
+
+
+                <div id="sinProductos" class="estado-vacio estado-vacio-catalogo" hidden><h3>No encontramos coincidencias</h3><p>Prueba con otro nombre o explora todas las categorías de Pereira.</p><button class="boton boton-secundario" data-click="limpiarFiltros">Ver todos los productos</button></div>
 
             </div>
 
@@ -393,63 +423,6 @@
 
 
         <!-- =========================================
-             TODOS LOS PRODUCTOS
-        ========================================== -->
-
-        <section
-            class="market-seccion"
-            id="productos"
-        >
-
-            <div class="contenedor">
-
-                <div class="market-titulo">
-
-                    <div>
-
-                        <span class="modulo-tipo">
-                            Marketplace
-                        </span>
-
-                        <h2>
-                            Productos
-                        </h2>
-
-                    </div>
-
-
-                    <span
-                        id="contadorProductos" aria-live="polite"
-                        class="contador"
-                    >
-                        0 productos
-                    </span>
-
-                </div>
-
-
-                <div
-                    id="listaProductos"
-                    class="productos-grid"
-                >
-                </div>
-
-
-                <p
-                    id="sinProductos"
-                    class="mensaje-vacio"
-                    hidden
-                >
-                    No encontramos productos.
-                </p>
-
-            </div>
-
-        </section>
-
-
-
-        <!-- =========================================
              COMERCIOS
         ========================================== -->
 
@@ -487,7 +460,7 @@
 
         </section>
 
-    <section class="seccion-rp"><div class="contenedor"><h2>Lo más reciente</h2><div id="productosRecientes" class="productos-grid"></div></div></section></main>
+    <section class="seccion-rp"><div class="contenedor"><h2>Lo más reciente</h2><div id="productosRecientes" class="productos-grid"></div></div></section>
 
 
     <section
@@ -548,6 +521,7 @@
     </section>
 
 
+    </main>
     <footer class="footer">
 
         <div class="contenedor footer-contenido">

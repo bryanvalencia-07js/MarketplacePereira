@@ -23,6 +23,13 @@ const accionesPermitidas = new Set([
   "cancelarEdicionNegocio",
   "aplicarFiltrosNegocios",
 ]);
+UI.preparar();
+const esqueletos = [
+  ...document.querySelectorAll(
+    "#listaProductos, #productosPopulares, #productosRecientes, #listaComercios, #landingProductos, #landingComercios, #kpisAdministrador, #kpisComerciante",
+  ),
+];
+esqueletos.forEach((nodo) => UI.carga(nodo));
 for (const evento of ["click", "submit", "input", "change"])
   document.addEventListener(evento, async (e) => {
     const nodo = e.target.closest(`[data-${evento}]`);
@@ -88,5 +95,7 @@ function cargarScript(archivo) {
     reintentar.textContent = "Reintentar";
     reintentar.addEventListener("click", () => location.reload());
     document.querySelector("main")?.append(reintentar);
+  } finally {
+    esqueletos.forEach((nodo) => UI.carga(nodo, false));
   }
 })();

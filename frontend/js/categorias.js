@@ -337,7 +337,7 @@ function centrarCategoria(
 
   tarjeta.scrollIntoView({
     behavior:
-      animar
+      animar && !matchMedia("(prefers-reduced-motion: reduce)").matches
         ? "smooth"
         : "auto",
 
@@ -536,6 +536,18 @@ function iniciarCategoriasRP() {
 
 
   if (carrusel) {
+
+    carrusel.addEventListener("keydown", (event) => {
+      const tarjetas = [...carrusel.querySelectorAll(".categoria-3d")];
+      const actual = tarjetas.indexOf(event.target.closest(".categoria-3d"));
+      if (actual < 0) return;
+      const indices = { ArrowRight: actual + 1, ArrowLeft: actual - 1, Home: 0, End: tarjetas.length - 1 };
+      if (!(event.key in indices)) return;
+      event.preventDefault();
+      const siguiente = tarjetas[Math.max(0, Math.min(tarjetas.length - 1, indices[event.key]))];
+      siguiente.focus({ preventScroll: true });
+      centrarCategoria(siguiente);
+    });
 
     carrusel.addEventListener(
       "scroll",

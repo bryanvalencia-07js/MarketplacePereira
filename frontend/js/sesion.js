@@ -56,9 +56,10 @@ async function validarSesionAccion(rol) {
   await actualizarSesion();
   return protegerPorRol([rol]);
 }
-async function cerrarSesion() {
+async function cerrarSesion(event) {
   await UI.tarea(
-    document.querySelector('[data-click="cerrarSesion"]'),
+    event?.target?.closest("button") ||
+      document.querySelector('[data-click="cerrarSesion"]'),
     async () => {
       await API.post("/auth/logout");
       usuarioSesion = null;

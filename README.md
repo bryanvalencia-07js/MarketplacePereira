@@ -22,7 +22,7 @@ cp backend/.env.example backend/.env
 npm start --prefix backend
 ```
 
-Abrir [http://localhost:3000](http://localhost:3000). Express sirve el frontend y `/api`; no hay compilación frontend ni servidor estático separado. `PORT` cambia el puerto y `npm run dev --prefix backend` activa nodemon.
+Abrir [http://localhost:3000](http://localhost:3000). Express sirve el frontend y `/api`; los assets preparados están versionados y no se necesita compilar para arrancar ni un servidor estático separado. `PORT` cambia el puerto y `npm run dev --prefix backend` activa nodemon.
 
 ### Persistencia
 
@@ -54,6 +54,7 @@ La API comprueba roles y propiedad en servidor. La autenticación usa cookies Ht
 ## Comandos de calidad
 
 ```bash
+npm ci
 npm ci --prefix tests
 npx --prefix tests playwright install chromium
 npm test --prefix tests
@@ -70,6 +71,17 @@ npm run test:mysql --prefix tests
 ```
 
 Cobertura, controles, CI y límites: [SECURITY_TESTING](docs/SECURITY_TESTING.md).
+
+## Interfaz y assets locales
+
+La identidad usa rojo, amarillo y crema, Playfair Display para títulos e Inter para la interfaz. CSS fuente en seis módulos de `frontend/css/`: tokens, base, layout, components, pages y animations. `estilos.css` es el archivo compacto generado: editar los módulos y ejecutar `npm run assets`. El script también prepara fuentes WOFF2, el sprite Lucide y GSAP/ScrollTrigger desde dependencias npm fijadas; conserva sus licencias. No se sirve `node_modules` ni se usan CDN.
+
+```bash
+npm ci
+npm run assets
+```
+
+El Coverflow conserva motor nativo, scroll táctil, SVG propios, hover y selección; suma flechas de teclado, Home y End. GSAP se carga únicamente en la landing de escritorio con movimiento permitido; en móvil y con movimiento reducido, los capítulos son contenido estático legible. Formularios con errores asociados, contraseña visible opcional, botones loading, skeletons, notificaciones descartables y navegación móvil por rol. La CI verifica que los assets sean reproducibles y adjunta capturas responsive.
 
 ## Estructura y documentación
 

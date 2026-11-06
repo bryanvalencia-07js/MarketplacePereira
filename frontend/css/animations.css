@@ -1,0 +1,29 @@
+/* animations: Reactiva Pereira. */
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes storyFlecha {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(7px);
+  }
+}
+@keyframes progresoCategorias {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes skeleton {
+  to {
+    background-position: -150% 0;
+  }
+}

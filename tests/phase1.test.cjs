@@ -445,23 +445,40 @@ test("Coverflow: categorías, SVG, filtro, selección accesible y limpiar", asyn
   const tarjetas = page.locator("#carruselCategorias .categoria-3d");
   assert.equal(await tarjetas.count(), 25);
   assert.equal(await tarjetas.locator("svg use").count(), 25);
-  for (const href of await tarjetas.locator("use").evaluateAll((xs) => xs.map((x) => x.getAttribute("href")))) {
+  for (const href of await tarjetas
+    .locator("use")
+    .evaluateAll((xs) => xs.map((x) => x.getAttribute("href")))) {
     assert.match(href, /^assets\/icons\/categorias.svg#[\w-]+$/);
   }
   const ropa = page.locator('.categoria-3d[data-valor="Ropa"]');
   await ropa.focus();
   await page.keyboard.press("Enter");
-  await page.waitForFunction(() => document.querySelector('.categoria-3d[data-valor="Ropa"]').getAttribute("aria-pressed") === "true");
+  await page.waitForFunction(
+    () =>
+      document
+        .querySelector('.categoria-3d[data-valor="Ropa"]')
+        .getAttribute("aria-pressed") === "true",
+  );
   assert.equal(await page.locator("#listaProductos article").count(), 0);
   assert.equal(await tarjetas.locator(".categoria-3d-contenido").count(), 25);
   await page.evaluate(() => limpiarFiltros());
   assert.equal(await page.locator("#listaProductos article").count(), 1);
-  assert.equal(await page.locator('.categoria-3d[data-valor=""]').getAttribute("aria-pressed"), "true");
+  assert.equal(
+    await page
+      .locator('.categoria-3d[data-valor=""]')
+      .getAttribute("aria-pressed"),
+    "true",
+  );
   assert.equal(await page.locator(".categoria-3d.activa").count(), 1);
   for (const width of [360, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     assert.equal(await tarjetas.first().isVisible(), true);
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true);
+    assert.equal(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth + 1,
+      ),
+      true,
+    );
   }
 });
 
@@ -749,6 +766,12 @@ test("registro público crea cuenta por HTTP y no guarda credenciales en navegad
 });
 
 test("responsive, IDs, enlaces locales y formularios en todos los roles", async () => {
+  const fs = require("node:fs/promises");
+  const path = require("node:path");
+  const capturas =
+    process.env.UI_SCREENSHOTS && path.resolve(process.env.UI_SCREENSHOTS);
+  if (capturas) await fs.mkdir(capturas, { recursive: true });
+  await page.emulateMedia({ reducedMotion: "reduce" });
   for (const [archivo, usuario, func] of [
     ["mis-productos.html", 2, "guardarProducto"],
     ["marketplace.html", 3, "buscarMarketplace"],
@@ -798,6 +821,14 @@ test("responsive, IDs, enlaces locales y formularios en todos los roles", async 
         true,
         `${archivo} a ${width}: ${excedidos.join(",")}`,
       );
+      if (capturas)
+        await page.screenshot({
+          path: path.join(
+            capturas,
+            `${archivo.split("?")[0].replace(".html", "")}-${width}.png`,
+          ),
+          fullPage: true,
+        });
     }
     if (archivo === "marketplace.html") {
       await page.setViewportSize({ width: 360, height: 900 });
@@ -895,4 +926,315 @@ test("precios decimales: subtotal y total conservan centavos", async () => {
   assert.match(await page.locator("#resumenTotal").innerText(), /20,50/);
   assert.match(await page.locator("#resumenSubtotal").innerText(), /20,50/);
   assert.match(await page.locator(".carrito-precio").innerText(), /10,25/);
+});
+
+test("UI: tarea muestra loading, impide doble envío y restaura el botón tras error", async () => {
+  await abrir("login.html", { usuario: 0 });
+  await listo("iniciarSesion");
+  const boton = page.locator('button[type="submit"]');
+  const original = await boton.innerText();
+  await page.evaluate(() => {
+    window.finTarea = null;
+    window.pruebaTarea = UI.tarea(
+      document.querySelector('button[type="submit"]'),
+      () =>
+        new Promise((_, reject) => {
+          window.finTarea = reject;
+        }),
+      "mensaje",
+    );
+  });
+  assert.equal(await boton.isDisabled(), true);
+  assert.equal(await boton.getAttribute("aria-busy"), "true");
+  assert.match(await boton.innerText(), /Procesando/);
+  await page.evaluate(async () => {
+    window.finTarea(new Error("Intenta nuevamente"));
+    await window.pruebaTarea;
+  });
+  assert.equal(await boton.isEnabled(), true);
+  assert.equal(await boton.innerText(), original);
+  assert.match(
+    await page.locator("#mensaje").innerText(),
+    /Intenta nuevamente/,
+  );
+});
+
+test("UI: validación asociada al campo y contraseña visible sin perder valor", async () => {
+  await abrir("registro.html", { usuario: 0 });
+  await listo("registrarUsuario");
+  await page.locator('button[type="submit"]').click();
+  const campo = page.locator("input:invalid").first();
+  assert.equal(await campo.getAttribute("aria-invalid"), "true");
+  const id = await campo.getAttribute("aria-describedby");
+  assert.ok(id);
+  assert.ok((await page.locator('[id="' + id + '"]').innerText()).length > 0);
+  await page.locator("#password").fill(clave);
+  await page
+    .getByRole("button", { name: "Mostrar contraseña", exact: true })
+    .click();
+  assert.equal(await page.locator("#password").getAttribute("type"), "text");
+  assert.equal(await page.locator("#password").inputValue(), clave);
+});
+
+test("UI: menú móvil, Escape, foco y navegación vigente", async () => {
+  await page.setViewportSize({ width: 360, height: 900 });
+  await abrir("marketplace.html");
+  await listo("buscarMarketplace");
+  const menu = page.getByRole("button", {
+    name: "Menú de navegación",
+    exact: true,
+  });
+  await menu.click();
+  assert.equal(await menu.getAttribute("aria-expanded"), "true");
+  assert.equal(await page.locator("#navegacionPrincipal").isVisible(), true);
+  await page.keyboard.press("Escape");
+  assert.equal(await menu.getAttribute("aria-expanded"), "false");
+  assert.equal(await menu.evaluate((e) => e === document.activeElement), true);
+});
+
+test("UI: skeleton durante red lenta, recuperación y estado vacío accionable", async () => {
+  await abrir("marketplace.html");
+  await listo("buscarMarketplace");
+  let liberar;
+  const espera = new Promise((r) => {
+    liberar = r;
+  });
+  await page.route("**/api/productos", async (route) => {
+    await espera;
+    await route.continue();
+  });
+  await page.reload();
+  await page
+    .locator("#listaProductos[aria-busy=true] .skeleton-card")
+    .first()
+    .waitFor();
+  liberar();
+  await page.waitForFunction(() => document.body.dataset.estado === "listo");
+  assert.equal(await page.locator("#listaProductos .skeleton-card").count(), 0);
+  assert.equal(
+    await page.locator("#listaProductos").getAttribute("aria-busy"),
+    "false",
+  );
+  await page.locator("#buscarMarketplace").fill("inexistente");
+  await page.locator("#sinProductos button").click();
+  assert.equal(await page.locator("#listaProductos article").count(), 1);
+});
+
+test("UI: toast descartable, SVG locales y Coverflow con flechas", async () => {
+  await abrir("marketplace.html");
+  await listo("buscarMarketplace");
+  await page.evaluate(() => UI.estado("Cambios guardados", "exito"));
+  assert.match(
+    await page.locator("#notificaciones").innerText(),
+    /Cambios guardados/,
+  );
+  await page.getByRole("button", { name: "Descartar notificación" }).click();
+  assert.equal(await page.locator("#notificaciones .toast").count(), 0);
+  assert.ok(
+    (await page
+      .locator('svg.icono use[href^="assets/icons/lucide.svg#"]')
+      .count()) > 0,
+  );
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll("svg.icono")].some(
+      (n) => n.getBBox().width > 0,
+    ),
+  );
+  const primera = page.locator(".categoria-3d").first();
+  await primera.focus();
+  await page.keyboard.press("ArrowRight");
+  assert.equal(
+    await page
+      .locator(".categoria-3d")
+      .nth(1)
+      .evaluate((e) => e === document.activeElement),
+    true,
+  );
+});
+
+test("dashboard: indicadores principales y detalle accesible por teclado", async () => {
+  await abrir("dashboard.html", { usuario: 1 });
+  await listo("presentarResumen");
+  assert.equal(
+    await page.locator("#kpisAdministrador > .kpi-grid .kpi").count(),
+    4,
+  );
+  assert.equal(
+    await page.locator("#kpisAdministrador details .kpi").count(),
+    8,
+  );
+  const resumen = page.locator("#kpisAdministrador summary");
+  await resumen.focus();
+  await page.keyboard.press("Enter");
+  assert.equal(
+    await page.locator("#kpisAdministrador details").getAttribute("open"),
+    "",
+  );
+  assert.equal(
+    await page.locator('a[aria-current="page"]').getAttribute("href"),
+    "dashboard.html",
+  );
+});
+
+test("landing: ScrollTrigger solo en escritorio y limpieza al cambiar preferencia", async () => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await abrir("index.html", { usuario: 0 });
+  await page.waitForFunction(() => document.body.dataset.estado === "listo");
+  assert.equal(await page.evaluate(() => ScrollTrigger.getAll().length), 4);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.waitForFunction(
+    () => !document.documentElement.classList.contains("narrativa-animada"),
+  );
+  assert.equal(await page.evaluate(() => ScrollTrigger.getAll().length), 0);
+  assert.equal(
+    await page
+      .locator(".story-fragmento")
+      .first()
+      .evaluate((e) => getComputedStyle(e).opacity),
+    "1",
+  );
+});
+
+test("marketplace: error recuperable y logout móvil disponible", async () => {
+  await page.setViewportSize({ width: 360, height: 900 });
+  await abrir("marketplace.html");
+  await listo("buscarMarketplace");
+  await page.route("**/api/productos", (r) =>
+    r.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: false,
+        mensaje: "Servicio temporalmente ocupado",
+      }),
+    }),
+  );
+  await page.evaluate(() => actualizarMarketplace());
+  assert.equal(
+    await page.locator("#listaProductos").getAttribute("aria-busy"),
+    "false",
+  );
+  assert.match(
+    await page.locator("#mensajeMarketplace").innerText(),
+    /temporalmente/,
+  );
+  await page.unroute("**/api/productos");
+  await page.getByRole("button", { name: "Reintentar carga" }).click();
+  await page.waitForFunction(
+    () =>
+      !document.querySelector("#reintentarMarketplace") &&
+      document.querySelector("#mensajeMarketplace").textContent === "",
+  );
+  assert.equal(await page.locator("#listaProductos article").count(), 1);
+  await page
+    .getByRole("button", { name: "Menú de navegación", exact: true })
+    .click();
+  await page.locator(".salir-movil").click();
+  await page.waitForURL("**/login.html");
+  assert.equal(
+    (await page.evaluate(() => API.get("/auth/sesion"))).usuario,
+    null,
+  );
+});
+
+test("móvil: carrito conserva acciones y gestión ofrece logout en el menú", async () => {
+  await page.setViewportSize({ width: 360, height: 900 });
+  await abrir("carrito.html", {
+    datos: { carrito: [{ usuarioId: 3, productoId: 1, cantidad: 1 }] },
+  });
+  await listo("vaciarCarrito");
+  assert.equal(
+    await page
+      .getByRole("link", { name: "Seguir comprando", exact: true })
+      .isVisible(),
+    true,
+  );
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Cerrar sesión", exact: true })
+      .isVisible(),
+    true,
+  );
+  for (const rect of await page
+    .locator(".cantidad-controles button")
+    .evaluateAll((xs) =>
+      xs.map((x) => ({
+        width: x.getBoundingClientRect().width,
+        height: x.getBoundingClientRect().height,
+      })),
+    )) {
+    assert.ok(rect.width >= 44 && rect.height >= 44);
+  }
+  await abrir("usuarios.html", { usuario: 1 });
+  await listo("guardarUsuario");
+  await page
+    .getByRole("button", { name: "Menú de navegación", exact: true })
+    .click();
+  assert.equal(await page.locator(".salir-movil").isVisible(), true);
+});
+
+test("accesibilidad: páginas públicas y tres roles sin infracciones WCAG A/AA detectadas", async () => {
+  const { AxeBuilder } = require("@axe-core/playwright");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const resultados = [];
+  for (const [archivo, usuario] of [
+    ["index.html", 0],
+    ["marketplace.html", 3],
+    ["detalle-producto.html?id=1", 3],
+    ["carrito.html", 3],
+    ["login.html", 0],
+    ["registro.html", 0],
+    ["dashboard.html", 1],
+    ["usuarios.html", 1],
+    ["negocios.html", 1],
+    ["mi-negocio.html", 2],
+    ["mis-productos.html", 2],
+    ["productos.html", 1],
+  ]) {
+    await abrir(archivo, { usuario });
+    await page.waitForFunction(() => document.body.dataset.estado === "listo");
+    await page.evaluate(() => document.fonts.ready);
+    for (const width of [360, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      const { violations } = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+        .analyze();
+      resultados.push(
+        ...violations.map((v) => ({
+          archivo,
+          width,
+          regla: v.id,
+          impacto: v.impact,
+          nodos: v.nodes.map((n) => ({
+            target: n.target,
+            resumen: n.failureSummary,
+          })),
+        })),
+      );
+    }
+  }
+  assert.deepEqual(resultados, []);
+});
+
+test("landing: movimiento reducido evita vídeo y ScrollTrigger; acceso inmediato", async () => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await abrir("index.html", { usuario: 0 });
+  await page.waitForFunction(() => document.body.dataset.estado === "listo");
+  assert.equal(await page.locator("#introPereira").count(), 0);
+  assert.equal(
+    await page.evaluate(() => window.ScrollTrigger?.getAll().length || 0),
+    0,
+  );
+  assert.equal(
+    await page.locator("video").evaluateAll((xs) => xs.every((x) => x.paused)),
+    true,
+  );
+  assert.equal(
+    await page
+      .locator(".story-fragmento")
+      .first()
+      .evaluate((e) => getComputedStyle(e).opacity),
+    "1",
+  );
 });

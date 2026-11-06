@@ -8,6 +8,7 @@
     "test:mysql": "node --env-file-if-exists=../backend/.env --test mysql.integration.test.cjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "playwright": "1.62.1"
   }
 }
