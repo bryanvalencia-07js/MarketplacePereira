@@ -724,6 +724,7 @@
   border-color: #bbd5c4;
 }
 .mensaje-formulario:empty {
+  display: none;
   min-height: 0;
   margin: 0;
   padding: 0;

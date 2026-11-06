@@ -821,6 +821,14 @@ test("responsive, IDs, enlaces locales y formularios en todos los roles", async 
         true,
         `${archivo} a ${width}: ${excedidos.join(",")}`,
       );
+      if (archivo === "marketplace.html" && width >= 1024) {
+        const titulo = await page.locator(".market-hero h1").boundingBox();
+        const tarjeta = await page.locator(".market-hero-card").boundingBox();
+        assert.ok(
+          titulo.x < tarjeta.x,
+          "El estado vacío no debe ocupar una celda del hero",
+        );
+      }
       if (capturas)
         await page.screenshot({
           path: path.join(
@@ -1055,6 +1063,7 @@ test("UI: toast descartable, SVG locales y Coverflow con flechas", async () => {
 test("dashboard: indicadores principales y detalle accesible por teclado", async () => {
   await abrir("dashboard.html", { usuario: 1 });
   await listo("presentarResumen");
+  assert.equal(await page.getByRole("button", { name: "Cerrar sesión", exact: true }).count(), 1);
   assert.equal(
     await page.locator("#kpisAdministrador > .kpi-grid .kpi").count(),
     4,
