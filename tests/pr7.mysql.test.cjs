@@ -242,12 +242,39 @@ for (const stock of [1, 3])
   });
 test("PR7 MySQL: rollback all-or-nothing multinegocio con stock insuficiente", async () => {
   await r.producto.update(p2.id, { stock: 0 });
-  await assert.rejects(
-    pedidos().crear(buyer, {
-      items: [...body(2).items, ...body(1, p2.id).items],
-    }),
-    status(409),
+  const server = (await createApplication({ repositories: r })).app.listen(
+    0,
+    "127.0.0.1",
   );
+  await new Promise((ok) => server.once("listening", ok));
+  try {
+    const base = `http://127.0.0.1:${server.address().port}/api`;
+    const login = await fetch(base + "/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        correo: buyer.correo,
+        password: "Una-clave-de-prueba-2026",
+      }),
+    });
+    assert.equal(login.status, 200);
+    const auth = await login.json();
+    const res = await fetch(base + "/pedidos", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: login.headers.get("set-cookie").split(";")[0],
+        "X-CSRF-Token": auth.data.csrfToken,
+      },
+      body: JSON.stringify({
+        items: [...body(2).items, ...body(1, p2.id).items],
+      }),
+    });
+    assert.equal(res.status, 409);
+    assert.match((await res.json()).mensaje, /Stock insuficiente/);
+  } finally {
+    await new Promise((ok) => server.close(ok));
+  }
   assert.equal((await r.pedido.list()).length, 0);
   assert.equal((await r.detallePedido.list()).length, 0);
   assert.equal((await r.producto.find(p1.id)).stock, 5);
@@ -451,4 +478,37 @@ test("004: checksum alterado e intento incompleto bloquean runner/arranque", asy
       [key],
     );
   }
+});
+
+test("PR7 MySQL: categorías inactivas, ownership y transiciones conservan stock e historial", async () => {
+  await pool.execute("UPDATE categorias SET estado='Inactivo' WHERE id=?", [
+    p1.categoriaId,
+  ]);
+  try {
+    await assert.rejects(pedidos().crear(buyer, body()), status(404));
+  } finally {
+    await pool.execute("UPDATE categorias SET estado='Activo' WHERE id=?", [
+      p1.categoriaId,
+    ]);
+  }
+  const [p] = await pedidos().crear(buyer, body(2));
+  await assert.rejects(pedidos(otro).obtener(buyer2, p.id), status(403));
+  await assert.rejects(
+    pedidos(otro).estado(merchant2, p.id, { estado: "Confirmado" }),
+    status(403),
+  );
+  assert.equal(
+    (await pedidos(otro).gestion(merchant2, { negocioId: String(n1.id) }))
+      .length,
+    0,
+  );
+  await assert.rejects(
+    pedidos().estado(merchant, p.id, { estado: "Completado" }),
+    status(409),
+  );
+  await pedidos().estado(merchant, p.id, { estado: "Confirmado" });
+  await assert.rejects(pedidos(otro).cancelar(buyer, p.id), status(409));
+  await pedidos(otro).estado(admin, p.id, { estado: "Completado" });
+  await assert.rejects(pedidos().cancelar(admin, p.id), status(409));
+  assert.equal((await r.producto.find(p1.id)).stock, 3);
 });

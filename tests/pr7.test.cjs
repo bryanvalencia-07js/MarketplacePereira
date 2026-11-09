@@ -264,4 +264,90 @@ test("PR7 memory: producto/negocio/usuario conservan historial y producto no se 
   });
   assert.equal((await p.mios(comprador)).length, 1);
 });
-module.exports = { setup, body };
+
+test("PR7 memory: transacciones aíslan lecturas y coordinan escrituras directas de repositorios", async () => {
+  const { repos } = setup();
+  let liberar, notificar;
+  const pausa = new Promise((ok) => {
+    liberar = ok;
+  });
+  const escrito = new Promise((ok) => {
+    notificar = ok;
+  });
+  const transaccion = repos.transaccion(async () => {
+    await repos.producto.update(1, { stock: 4 });
+    notificar();
+    await pausa;
+  });
+  await escrito;
+  assert.equal((await repos.producto.find(1)).stock, 5);
+  const externa = repos.producto.update(2, { stock: 3 });
+  liberar();
+  await Promise.all([transaccion, externa]);
+  assert.equal((await repos.producto.find(1)).stock, 4);
+  assert.equal((await repos.producto.find(2)).stock, 3);
+});
+test("PR7: importe máximo y restock sobre límite fallan sin perder historial o existencias", async () => {
+  const { repos, p } = setup();
+  const [pedido] = await p.crear(comprador, body(2));
+  await repos.producto.update(1, { stock: 1000000 });
+  await assert.rejects(p.cancelar(comprador, pedido.id), status(409));
+  assert.equal((await repos.producto.find(1)).stock, 1000000);
+  assert.equal((await repos.pedido.find(pedido.id)).estado, "Pendiente");
+  await repos.producto.update(1, { stock: 999998 });
+  await p.cancelar(comprador, pedido.id);
+  assert.equal((await repos.producto.find(1)).stock, 1000000);
+  const productos = Array.from({ length: 100 }, (_, i) => ({
+    id: i + 1,
+    negocioId: 1,
+    categoriaId: 9,
+    nombre: "Máximo",
+    precio: 1e9,
+    stock: 1000,
+    estado: "Activo",
+  }));
+  const ctx = setup({ productos });
+  await assert.rejects(
+    ctx.p.crear(comprador, {
+      items: productos.map((p) => ({ productoId: p.id, cantidad: 1000 })),
+    }),
+    status(400),
+  );
+  assert.equal((await ctx.repos.pedido.list()).length, 0);
+});
+
+test("PR7 MySQL adapter: bloqueo global seguido de productos ascendentes en la misma conexión", async () => {
+  const { createMysqlRepositories } = require("../backend/repositories/mysql");
+  const eventos = [];
+  const connection = {
+    query: async () => {},
+    execute: async (sql, params) => {
+      eventos.push([sql, params]);
+      return [[{ id: 1 }]];
+    },
+    beginTransaction: async () => eventos.push(["BEGIN"]),
+    commit: async () => eventos.push(["COMMIT"]),
+    rollback: async () => {},
+    release: () => eventos.push(["RELEASE"]),
+  };
+  const repo = createMysqlRepositories({
+    getConnection: async () => connection,
+  });
+  await assert.rejects(repo.bloquearProductos([31, 15]), /transacción/);
+  await repo.transaccion(() => repo.bloquearProductos([31, 15, 31]));
+  assert.deepEqual(
+    eventos
+      .filter(([sql]) => sql.includes("FOR UPDATE"))
+      .map(([sql, params]) => [
+        sql.includes("repository_lock") ? "global" : "producto",
+        params,
+      ]),
+    [
+      ["global", undefined],
+      ["producto", [15]],
+      ["producto", [31]],
+    ],
+  );
+  assert.equal(eventos.at(-2)[0], "COMMIT");
+  assert.equal(eventos.at(-1)[0], "RELEASE");
+});

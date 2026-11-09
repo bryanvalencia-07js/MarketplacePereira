@@ -190,6 +190,14 @@ function createRepositories(inicial = createInitialData()) {
         return raw.delete(id);
       },
     };
+    // Igual que MySQL: un escritor directo participa en la cola o en el contexto actual.
+    for (const metodo of ["create", "update", "delete"]) {
+      const accion = repos[nombre][metodo];
+      repos[nombre][metodo] = (...args) =>
+        contexto.getStore()
+          ? accion(...args)
+          : repos.transaccion(() => accion(...args));
+    }
   }
   repos.bloquearProductos = async () => {
     if (!contexto.getStore())

@@ -156,7 +156,10 @@ document
             RP.mismoId(i.usuarioId, usuarioId),
           );
           if (!(await validarSesionAccion("Comprador"))) return;
-          if (!RP.mismoId(usuarioSesion.id, usuarioId))
+          if (
+            !RP.mismoId(usuarioSesion.id, usuarioId) ||
+            RP.claveCarrito() !== clave
+          )
             throw new Error(
               "La sesión cambió. Recarga el carrito antes de confirmar.",
             );
@@ -215,6 +218,10 @@ document
           UI.estado(mensaje, "exito", "mensajeCarrito");
         } catch (error) {
           carritoConError = true;
+          document.getElementById("enlaceMisPedidos").hidden = false;
+          if (!error.status)
+            error.message +=
+              " Consulta Mis pedidos antes de volver a confirmar.";
           throw error;
         }
       },

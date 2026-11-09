@@ -353,3 +353,27 @@ test("PR7 navegador: carrito e historial/gestión responsive y axe WCAG A/AA", a
   assert.equal(analisis, 6);
   if (process.env.UI_SCREENSHOTS) assert.equal(capturas, 12);
 });
+
+test("PR7 navegador: cambio de instancia no reutiliza el carrito anterior para comprar", async () => {
+  await entrar(2);
+  await llenar([{ productoId: 1, cantidad: 1 }]);
+  const anterior = await page.evaluate(() => ({
+    clave: RP.claveCarrito(),
+    items: RP.leerLista(RP.claveCarrito()),
+  }));
+  await page.route("**/api/auth/sesion", async (route) => {
+    const response = await route.fetch();
+    const json = await response.json();
+    json.data.instancia = "otra-instancia-de-prueba";
+    await route.fulfill({ response, json });
+  });
+  await page
+    .getByRole("button", { name: "Confirmar pedido", exact: true })
+    .click();
+  await texto("#mensajeCarrito", "Recarga el carrito");
+  assert.equal((await repos.pedido.list()).length, 0);
+  assert.deepEqual(
+    await page.evaluate((clave) => RP.leerLista(clave), anterior.clave),
+    anterior.items,
+  );
+});
