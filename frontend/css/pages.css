@@ -2666,3 +2666,22 @@ html:not(.narrativa-animada) .story-visibilidad-indicador {
 @media (max-width: 768px) {
   .agenda-page .market-nav:not(.detalle-nav):not(.carrito-nav) .boton.menu-toggle { position: static; }
 }
+
+/* Pedidos: reutilizan paneles y tokens, con detalles legibles sin tabla ancha. */
+.pedidos-lista { display: grid; gap: var(--espacio-4); margin-block: 1.5rem; }
+.pedido-card { min-width: 0; overflow-wrap: anywhere; }
+.pedido-card h2 { margin-block: .5rem; }
+.pedido-detalles { list-style: none; padding: 0; margin-block: 1rem; }
+.pedido-detalles li { padding-block: .75rem; border-bottom: 1px solid var(--borde); }
+.pedido-detalles h3 { font-size: 1rem; }
+.pedido-total { font-size: 1.15rem; }
+.pedido-nota { white-space: pre-wrap; }
+.pedidos-filtro { display: flex; flex-wrap: wrap; align-items: end; gap: 1rem; }
+.pedidos-filtro .campo { flex: 1 1 12rem; margin: 0; }
+#formPedido { display: grid; gap: 1rem; }
+
+#formPedido .campo label { color: inherit; }
+
+@media (max-width: 768px) {
+  .carrito-nav .menu-toggle { grid-column: 2; grid-row: 1; }
+}

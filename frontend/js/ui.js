@@ -190,7 +190,7 @@ const UI = (() => {
       boton.setAttribute("aria-expanded", "false");
       boton.innerHTML = icono("menu") + "Menú";
       const colocar = document.querySelector(
-        ".landing-nav, .market-nav, .dashboard-nav",
+        ".landing-nav, .market-nav, .dashboard-nav, .carrito-nav",
       );
       colocar?.append(boton);
       function cerrar() {

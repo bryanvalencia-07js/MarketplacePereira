@@ -1,5 +1,6 @@
 /* El catálogo y el carrito se releen antes de cada operación. */
 async function mostrarCarrito() {
+  if (operacionCarrito || pedidoRegistrado || carritoConError) return;
   try {
     const contexto = await RP.contextoCarrito(usuarioSesion.id);
     const { propios, productos, negocios } = contexto;
@@ -55,6 +56,7 @@ async function mostrarCarrito() {
       lista.appendChild(tarjeta);
     }
     document.getElementById("resumenCantidad").textContent = cantidad;
+    document.getElementById("contadorCarrito").textContent = cantidad;
     document.getElementById("resumenSubtotal").textContent = RP.dinero(
       totalCentavos / 100,
     );
@@ -75,6 +77,8 @@ async function mostrarCarrito() {
 }
 
 let operacionCarrito = false;
+let pedidoRegistrado = false;
+let carritoConError = false;
 async function modificarCarrito(operacion) {
   if (operacionCarrito) return;
   operacionCarrito = true;
@@ -84,8 +88,11 @@ async function modificarCarrito(operacion) {
     const nuevo = operacion(contexto);
     RP.guardarLista(RP.claveCarrito(), nuevo);
     RP.mensaje("Carrito actualizado.", "exito", "mensajeCarrito");
+    carritoConError = false;
+    operacionCarrito = false;
     await mostrarCarrito();
   } catch (error) {
+    operacionCarrito = false;
     await mostrarCarrito();
     RP.mensaje(error.message, "error", "mensajeCarrito");
   } finally {
@@ -131,6 +138,90 @@ async function vaciarCarrito() {
     carrito.filter((i) => !RP.mismoId(i.usuarioId, usuarioSesion.id)),
   );
 }
+
+document
+  .getElementById("formPedido")
+  .addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (operacionCarrito || pedidoRegistrado) return;
+    operacionCarrito = true;
+    await UI.tarea(
+      document.getElementById("confirmarPedido"),
+      async () => {
+        try {
+          const usuarioId = usuarioSesion.id;
+          const clave = RP.claveCarrito();
+          // Capturar intención al pulsar, sin reconciliar ni modificar cantidades.
+          const procesados = RP.leerLista(clave).filter((i) =>
+            RP.mismoId(i.usuarioId, usuarioId),
+          );
+          if (!(await validarSesionAccion("Comprador"))) return;
+          if (!RP.mismoId(usuarioSesion.id, usuarioId))
+            throw new Error(
+              "La sesión cambió. Recarga el carrito antes de confirmar.",
+            );
+          const items = procesados.map((i) => ({
+            productoId: Number(i.productoId),
+            cantidad: i.cantidad,
+          }));
+          const observaciones = document
+            .getElementById("observacionesPedido")
+            .value.trim();
+          const pedidos = await API.post("/pedidos", {
+            items,
+            ...(observaciones ? { observaciones } : {}),
+          });
+          pedidoRegistrado = true;
+          const region = document.getElementById("pedidosCreados");
+          region.innerHTML = pedidos
+            .map((p) => PedidosUI.tarjeta(p, false))
+            .join("");
+          region.hidden = false;
+          document.getElementById("enlaceMisPedidos").hidden = false;
+          document.getElementById("contenidoCarrito").hidden = true;
+          document.getElementById("carritoVacio").hidden = true;
+          let mensaje = `Pedido(s) creado(s): ${pedidos.map((p) => "#" + p.id).join(", ")}. Consulta Mis pedidos.`;
+          try {
+            const cantidades = new Map();
+            for (const i of procesados)
+              cantidades.set(
+                Number(i.productoId),
+                (cantidades.get(Number(i.productoId)) || 0) + i.cantidad,
+              );
+            const restantes = [];
+            // Releer para preservar otros compradores y lo añadido durante el POST.
+            for (const i of RP.leerLista(clave)) {
+              if (!RP.mismoId(i.usuarioId, usuarioId)) {
+                restantes.push(i);
+                continue;
+              }
+              const id = Number(i.productoId),
+                pendiente = cantidades.get(id) || 0;
+              const quitar = Math.min(i.cantidad, pendiente);
+              cantidades.set(id, pendiente - quitar);
+              if (i.cantidad > quitar)
+                restantes.push({ ...i, cantidad: i.cantidad - quitar });
+            }
+            RP.guardarLista(clave, restantes);
+            const contador = document.getElementById("contadorCarrito");
+            if (contador)
+              contador.textContent = restantes
+                .filter((i) => RP.mismoId(i.usuarioId, usuarioId))
+                .reduce((n, i) => n + i.cantidad, 0);
+          } catch {
+            mensaje +=
+              " No se pudo actualizar el carrito local. Revisa Mis pedidos antes de volver a confirmar.";
+          }
+          UI.estado(mensaje, "exito", "mensajeCarrito");
+        } catch (error) {
+          carritoConError = true;
+          throw error;
+        }
+      },
+      "mensajeCarrito",
+    );
+    operacionCarrito = false;
+  });
 
 window.addEventListener("storage", (event) => {
   if (event.key === RP.claveCarrito() || event.key === null) mostrarCarrito();

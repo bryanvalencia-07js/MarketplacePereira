@@ -46,11 +46,26 @@ async function actualizarSesion() {
       enlaces.push(
         ["mis-reservas.html", "Mis reservas"],
         ["favoritos.html", "Favoritos"],
+        ["mis-pedidos.html", "Mis pedidos"],
+        ["marketplace.html", "Marketplace"],
+        ["carrito.html", "Carrito"],
       );
     if (["Comerciante", "Administrador"].includes(usuarioSesion?.rol))
       enlaces.push(
         ["mis-servicios.html", "Servicios del comercio"],
         ["reservas.html", "Reservas recibidas"],
+        ["pedidos.html", "Pedidos recibidos"],
+        ...(usuarioSesion.rol === "Comerciante"
+          ? [
+              ["mi-negocio.html", "Mi negocio"],
+              ["mis-productos.html", "Mis productos"],
+            ]
+          : [
+              ["dashboard.html", "Mi panel"],
+              ["usuarios.html", "Usuarios"],
+              ["negocios.html", "Negocios"],
+              ["productos.html", "Productos"],
+            ]),
       );
     for (const [href, texto] of enlaces) {
       if (nav.querySelector(`a[href="${href}"]`)) continue;

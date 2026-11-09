@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pedidos recibidos | Reactiva Pereira</title>
+    <link rel="stylesheet" href="css/estilos.css" />
+    <link
+      rel="preload"
+      href="assets/fonts/inter.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="assets/fonts/playfair-display.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+  </head>
+  <body class="pagina-marketplace agenda-page pedidos-page">
+    <header class="market-header">
+      <div class="contenedor market-nav">
+        <a class="marca" href="index.html"
+          ><span class="marca-icono">RP</span
+          ><span
+            ><strong class="marca-nombre">Reactiva Pereira</strong
+            ><span class="marca-subtitulo"
+              >Comercios que siguen abiertos</span
+            ></span
+          ></a
+        >
+        <div class="market-usuario">
+          <span id="nombreUsuario">Invitado</span
+          ><button
+            type="button"
+            class="boton boton-secundario"
+            data-click="cerrarSesion"
+            hidden
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+      <nav class="market-menu">
+        <div class="contenedor market-menu-interior">
+          <a href="index.html">Inicio</a><a href="marketplace.html">Productos</a
+          ><a href="servicios.html">Servicios</a>
+        </div>
+      </nav>
+    </header>
+    <main id="contenido" class="contenedor agenda-contenido">
+      <div class="panel-titulo">
+        <div>
+          <span class="modulo-tipo">Reactiva Pereira</span>
+          <h1>Pedidos recibidos</h1>
+          <p>Gestiona los pedidos de productos de tus comercios.</p>
+        </div>
+      </div>
+      <p
+        id="estadoAplicacion"
+        class="mensaje-formulario"
+        role="status"
+        aria-live="polite"
+      ></p>
+      <form id="filtroPedidos" class="panel-admin pedidos-filtro">
+        <div class="campo">
+          <label for="estadoPedido">Filtrar por estado</label>
+          <select id="estadoPedido">
+            <option value="">Todos</option>
+            <option>Pendiente</option>
+            <option>Confirmado</option>
+            <option>Completado</option>
+            <option>Cancelado</option>
+          </select>
+        </div>
+        <button type="submit" class="boton boton-secundario">
+          Filtrar pedidos
+        </button>
+      </form>
+      <section aria-label="Pedidos de productos">
+        <div id="listaPedidos" class="pedidos-lista"></div>
+      </section>
+    </main>
+    <script src="js/estado-local.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/sesion.js"></script>
+    <script src="js/legado.js"></script>
+    <script src="js/app-init.js"></script>
+  </body>
+</html>

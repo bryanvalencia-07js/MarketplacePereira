@@ -1,287 +1,217 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
+  <head>
+    <meta charset="UTF-8" />
 
-<head>
-
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>Mi carrito | Reactiva Pereira</title>
 
+    <link rel="stylesheet" href="css/estilos.css" />
+
     <link
-        rel="stylesheet"
-        href="css/estilos.css"
-    >
+      rel="preload"
+      href="assets/fonts/inter.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="assets/fonts/playfair-display.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+  </head>
 
-    <link rel="preload" href="assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="assets/fonts/playfair-display.woff2" as="font" type="font/woff2" crossorigin>
-</head>
-
-
-<body class="pagina-marketplace">
-
+  <body class="pagina-marketplace">
     <!-- NAVBAR -->
 
     <header class="market-header">
+      <div class="contenedor carrito-nav">
+        <a href="marketplace.html" class="marca">
+          <span class="marca-icono"> RP </span>
 
-        <div class="contenedor carrito-nav">
+          <div>
+            <span class="marca-nombre"> Reactiva Pereira </span>
 
-            <a
-                href="marketplace.html"
-                class="marca"
-            >
+            <span class="marca-subtitulo"> Mi carrito </span>
+          </div>
+        </a>
 
-                <span class="marca-icono">
-                    RP
-                </span>
+        <a href="marketplace.html" class="boton boton-secundario">
+          Seguir comprando
+        </a>
 
-                <div>
+        <div class="market-usuario">
+          <div>
+            <strong id="nombreUsuario"> Comprador </strong>
 
-                    <span class="marca-nombre">
-                        Reactiva Pereira
-                    </span>
+            <span id="rolUsuario"> Comprador </span>
+          </div>
 
-                    <span class="marca-subtitulo">
-                        Mi carrito
-                    </span>
-
-                </div>
-
-            </a>
-
-
-            <a
-                href="marketplace.html"
-                class="boton boton-secundario"
-            >
-                Seguir comprando
-            </a>
-
-
-            <div class="market-usuario">
-
-                <div>
-
-                    <strong id="nombreUsuario">
-                        Comprador
-                    </strong>
-
-                    <span id="rolUsuario">
-                        Comprador
-                    </span>
-
-                </div>
-
-
-                <button
-                    class="boton boton-salir"
-                    data-click="cerrarSesion"
-                >
-                    Cerrar sesión
-                </button>
-
-            </div>
-
+          <button class="boton boton-salir" data-click="cerrarSesion">
+            Cerrar sesión
+          </button>
         </div>
+      </div>
 
+      <nav class="market-menu" aria-label="Navegación del comprador">
+        <div class="contenedor market-menu-interior">
+          <a href="marketplace.html">Marketplace</a
+          ><a href="carrito.html"
+            >Carrito
+            <span id="contadorCarrito" class="carrito-contador">0</span></a
+          >
+        </div>
+      </nav>
     </header>
-
-
 
     <!-- CONTENIDO -->
 
     <main class="carrito-main">
+      <div class="contenedor">
+        <p
+          id="mensajeCarrito"
+          class="mensaje-formulario"
+          role="status"
+          aria-live="polite"
+        ></p>
 
-        <div class="contenedor">
-            <p id="mensajeCarrito" class="mensaje-formulario" role="status" aria-live="polite"></p>
+        <section class="modulo-encabezado">
+          <span class="etiqueta"> Tu selección </span>
 
-            <section class="modulo-encabezado">
+          <h1>Mi carrito</h1>
 
-                <span class="etiqueta">
-                    Tu selección
-                </span>
+          <p>Revisa los productos seleccionados antes de continuar.</p>
+        </section>
 
-                <h1>
-                    Mi carrito
-                </h1>
+        <section
+          id="pedidosCreados"
+          class="pedidos-lista"
+          aria-label="Pedidos creados"
+          hidden
+        ></section>
+        <p id="enlaceMisPedidos" hidden>
+          <a class="boton boton-primario" href="mis-pedidos.html"
+            >Ver Mis pedidos</a
+          >
+        </p>
 
-                <p>
-                    Revisa los productos seleccionados
-                    antes de continuar.
-                </p>
+        <!-- CARRITO VACÍO -->
 
-            </section>
-
-
-            <!-- CARRITO VACÍO -->
-
-            <section
-                id="carritoVacio"
-                class="carrito-vacio"
-                hidden
+        <section id="carritoVacio" class="carrito-vacio" hidden>
+          <div class="carrito-vacio-icono">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
             >
+              <circle cx="9" cy="20" r="1"></circle>
+              <circle cx="19" cy="20" r="1"></circle>
 
-                <div class="carrito-vacio-icono">
+              <path
+                d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6"
+              ></path>
+            </svg>
+          </div>
 
-                    <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                    >
-                        <circle cx="9" cy="20" r="1"></circle>
-                        <circle cx="19" cy="20" r="1"></circle>
+          <h2>Tu carrito está vacío</h2>
 
-                        <path
-                            d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6"
-                        ></path>
-                    </svg>
+          <p>Explora los productos de los comercios locales de Pereira.</p>
 
-                </div>
+          <a href="marketplace.html" class="boton boton-primario">
+            Explorar productos
+          </a>
+        </section>
 
-                <h2>
-                    Tu carrito está vacío
-                </h2>
+        <!-- CARRITO CON PRODUCTOS -->
 
-                <p>
-                    Explora los productos de los
-                    comercios locales de Pereira.
-                </p>
+        <section id="contenidoCarrito" class="carrito-layout" hidden>
+          <!-- PRODUCTOS -->
 
+          <div>
+            <div class="carrito-superior">
+              <h2>Productos</h2>
 
-                <a
-                    href="marketplace.html"
-                    class="boton boton-primario"
+              <button
+                type="button"
+                class="boton-vaciar"
+                data-click="vaciarCarrito"
+              >
+                Vaciar carrito
+              </button>
+            </div>
+
+            <div id="listaCarrito"></div>
+          </div>
+
+          <!-- RESUMEN -->
+
+          <aside class="resumen-carrito">
+            <span class="modulo-tipo"> Resumen </span>
+
+            <h2>Lo que elegiste</h2>
+
+            <div class="resumen-linea">
+              <span> Productos </span>
+
+              <span id="resumenCantidad"> 0 </span>
+            </div>
+
+            <div class="resumen-linea">
+              <span> Subtotal </span>
+
+              <span id="resumenSubtotal"> $0 </span>
+            </div>
+
+            <div class="resumen-total">
+              <span> Total </span>
+
+              <strong id="resumenTotal"> $0 </strong>
+            </div>
+
+            <p class="resumen-aviso">
+              Tu carrito es una lista temporal. No reserva productos ni realiza
+              cobros.
+            </p>
+
+            <form id="formPedido">
+              <div class="campo">
+                <label for="observacionesPedido"
+                  >Observaciones del pedido</label
                 >
-                    Explorar productos
-                </a>
-
-            </section>
-
-
-
-            <!-- CARRITO CON PRODUCTOS -->
-
-            <section
-                id="contenidoCarrito"
-                class="carrito-layout"
-                hidden
-            >
-
-                <!-- PRODUCTOS -->
-
-                <div>
-
-                    <div class="carrito-superior">
-
-                        <h2>
-                            Productos
-                        </h2>
-
-
-                        <button
-                            type="button"
-                            class="boton-vaciar"
-                            data-click="vaciarCarrito"
-                        >
-                            Vaciar carrito
-                        </button>
-
-                    </div>
-
-
-                    <div id="listaCarrito">
-                    </div>
-
-                </div>
-
-
-
-                <!-- RESUMEN -->
-
-                <aside class="resumen-carrito">
-
-                    <span class="modulo-tipo">
-                        Resumen
-                    </span>
-
-
-                    <h2>
-                        Lo que elegiste
-                    </h2>
-
-
-                    <div class="resumen-linea">
-
-                        <span>
-                            Productos
-                        </span>
-
-                        <span id="resumenCantidad">
-                            0
-                        </span>
-
-                    </div>
-
-
-                    <div class="resumen-linea">
-
-                        <span>
-                            Subtotal
-                        </span>
-
-                        <span id="resumenSubtotal">
-                            $0
-                        </span>
-
-                    </div>
-
-
-                    <div class="resumen-total">
-
-                        <span>
-                            Total
-                        </span>
-
-                        <strong id="resumenTotal">
-                            $0
-                        </strong>
-
-                    </div>
-
-
-                    <p class="resumen-aviso">
-                        Tu carrito es una lista temporal. No reserva productos ni realiza cobros.
-                    </p>
-
-
-                    <a
-                        href="marketplace.html"
-                        class="boton boton-primario boton-resumen"
-                    >
-                        Seguir explorando
-                    </a>
-
-                </aside>
-
-            </section>
-
-        </div>
-
+                <textarea
+                  id="observacionesPedido"
+                  maxlength="2000"
+                  rows="3"
+                  placeholder="Opcional"
+                ></textarea>
+              </div>
+              <p>
+                Se creará un pedido por comercio. La confirmación descuenta
+                stock.
+              </p>
+              <button
+                type="submit"
+                id="confirmarPedido"
+                class="boton boton-primario boton-resumen"
+              >
+                Confirmar pedido
+              </button>
+            </form>
+          </aside>
+        </section>
+      </div>
     </main>
 
-
-
-<script src="js/estado-local.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/api.js"></script>
-<script src="js/sesion.js"></script>
-<script src="js/legado.js"></script>
-<script src="js/app-init.js"></script>
-</body>
-
+    <script src="js/estado-local.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/sesion.js"></script>
+    <script src="js/legado.js"></script>
+    <script src="js/app-init.js"></script>
+  </body>
 </html>
