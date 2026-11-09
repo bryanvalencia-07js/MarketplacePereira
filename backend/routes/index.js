@@ -74,6 +74,7 @@ function apiRoutes(servicios, opcionesCookie, instancia) {
       c.eliminar,
     );
   }
+  router.get("/categorias", createRecursoController(servicios.categorias).listar);
   router.get(
     "/publico/resumen",
     createPublicoController(servicios.publico).resumen,

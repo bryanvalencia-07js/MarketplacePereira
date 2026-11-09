@@ -37,6 +37,7 @@ async function createApplication({
   const usuarios = createUsuarioService(repositories, auth.revocar);
   const servicios = {
     auth,
+    categorias: require("./services/categoria.service").createCategoriaService(repositories),
     usuarios,
     negocios: createNegocioService(repositories),
     productos: createProductoService(repositories),

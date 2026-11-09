@@ -68,6 +68,8 @@ function createNegocioService(repos) {
       "categoria",
       "telefono",
       "direccion",
+      "descripcion",
+      "municipio",
       "estado",
     ]);
     return repos.transaccion(async () => {
@@ -108,6 +110,15 @@ function createNegocioService(repos) {
       ])
         if (!id || Object.hasOwn(body, campo))
           cambios[campo] = V.texto(body[campo], campo, max);
+      for (const [campo, max] of [
+        ["descripcion", 2000],
+        ["municipio", 80],
+      ])
+        if (Object.hasOwn(body, campo))
+          cambios[campo] =
+            body[campo] === null || body[campo] === ""
+              ? null
+              : V.texto(body[campo], campo, max);
       if (!id || Object.hasOwn(body, "estado"))
         cambios.estado = V.opcion(body.estado ?? "Activo", V.ESTADOS, "Estado");
       return id

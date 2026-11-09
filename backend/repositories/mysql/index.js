@@ -1,5 +1,6 @@
 const { AsyncLocalStorage } = require("node:async_hooks");
 const { prepararConexion } = require("../../db/pool");
+const { normalizarEscritura } = require("../relations");
 const { AppError } = require("../../utils/errors");
 
 // Identificadores SQL cerrados; ningún nombre de tabla/columna procede del cliente.
@@ -12,7 +13,7 @@ const modelos = {
       "correo",
       "telefono",
       "passwordHash",
-      "rol",
+      "rolId",
       "estado",
     ],
   },
@@ -21,11 +22,19 @@ const modelos = {
     campos: [
       "usuarioId",
       "nombre",
-      "categoria",
+      "categoriaId",
       "telefono",
       "direccion",
+      "descripcion",
+      "municipio",
       "estado",
     ],
+  },
+  rol: { tabla: "roles", campos: ["nombre", "descripcion"], referencia: true },
+  categoria: {
+    tabla: "categorias",
+    campos: ["nombre", "descripcion", "estado"],
+    referencia: true,
   },
   producto: {
     tabla: "productos",
@@ -33,19 +42,20 @@ const modelos = {
       "negocioId",
       "nombre",
       "descripcion",
-      "categoria",
+      "categoriaId",
       "precio",
       "stock",
       "imagen",
       "estado",
-      "popularidad",
+      "visitas",
     ],
   },
 };
 
 function errorSeguro(error) {
   const mensajes = {
-    ER_DUP_ENTRY: "El correo o el comerciante ya está registrado.",
+    ER_DUP_ENTRY:
+      "El correo, el comerciante o el nombre de referencia ya está registrado.",
     ER_NO_REFERENCED_ROW_2:
       "La relación requiere un recurso existente y un propietario comerciante.",
     ER_ROW_IS_REFERENCED_2:
@@ -64,6 +74,8 @@ function dto(fila) {
       resultado[campo] = resultado[campo].toISOString();
   if (Object.hasOwn(resultado, "precio"))
     resultado.precio = Number(resultado.precio);
+  if (Object.hasOwn(resultado, "visitas"))
+    resultado.popularidad = resultado.visitas;
   return resultado;
 }
 
@@ -98,7 +110,7 @@ function createMysqlRepositories(pool) {
       await connection.beginTransaction();
       iniciada = true;
       // Equivale a la cola memory, entre procesos: preserva reglas list/check/write
-      // como último administrador y read-modify-write de popularidad sin tocar services.
+      // como último administrador y read-modify-write de visitas sin tocar services.
       const [lock] = await connection.execute(
         "SELECT id FROM repository_lock WHERE id = 1 FOR UPDATE",
       );
@@ -133,19 +145,32 @@ function createMysqlRepositories(pool) {
     async ready() {
       const filas = await ejecutar(
         "SELECT version FROM schema_migrations WHERE version = ? AND applied = TRUE",
-        ["001_foundation.sql"],
+        ["002_normalize_roles_categories.sql"],
       );
       if (filas.length !== 1)
         throw new Error("Ejecuta las migraciones antes de iniciar MySQL.");
     },
   };
-  for (const [nombre, { tabla, campos }] of Object.entries(modelos)) {
+  for (const [nombre, { tabla, campos, referencia }] of Object.entries(
+    modelos,
+  )) {
     const columnas =
-      ["id", ...campos, "createdAt", "updatedAt"]
-        .map((k) => `\`${k}\``)
+      ["id", ...campos, ...(referencia ? [] : ["createdAt", "updatedAt"])]
+        .map((k) => `${tabla}.\`${k}\``)
         .join(", ") +
+      (nombre === "usuario" ? ", r.nombre AS rol" : "") +
       (nombre === "negocio"
-        ? ", (SELECT CONCAT(u.nombre, ' ', u.apellido) FROM usuarios u WHERE u.id = negocios.usuarioId) AS propietario"
+        ? ", c.nombre AS categoria, CONCAT(u.nombre, ' ', u.apellido) AS propietario"
+        : "") +
+      (nombre === "producto" ? ", c.nombre AS categoria" : "");
+    const desde =
+      tabla +
+      (nombre === "usuario" ? " JOIN roles r ON r.id = usuarios.rolId" : "") +
+      (nombre === "negocio"
+        ? " JOIN categorias c ON c.id = negocios.categoriaId JOIN usuarios u ON u.id = negocios.usuarioId"
+        : "") +
+      (nombre === "producto"
+        ? " JOIN categorias c ON c.id = productos.categoriaId"
         : "");
     const idValido = (id) => Number.isSafeInteger(Number(id)) && Number(id) > 0;
     const entradas = (datos) =>
@@ -153,27 +178,31 @@ function createMysqlRepositories(pool) {
     const repo = {
       async list() {
         return (
-          await ejecutar(`SELECT ${columnas} FROM ${tabla} ORDER BY id`)
+          await ejecutar(
+            `SELECT ${columnas} FROM ${desde} ORDER BY ${tabla}.id`,
+          )
         ).map(dto);
       },
       async find(id) {
         if (!idValido(id)) return null;
         return dto(
           (
-            await ejecutar(`SELECT ${columnas} FROM ${tabla} WHERE id = ?`, [
-              Number(id),
-            ])
+            await ejecutar(
+              `SELECT ${columnas} FROM ${desde} WHERE ${tabla}.id = ?`,
+              [Number(id)],
+            )
           )[0],
         );
       },
       create(datos) {
         return escribir(async () => {
-          const keys = entradas(datos);
+          const valores = await normalizarEscritura(nombre, datos, null, repos);
+          const keys = entradas(valores);
           const columnasInsert = keys.map((k) => `\`${k}\``).join(", ");
           const placeholders = keys.map(() => "?").join(", ");
           const resultado = await ejecutar(
             `INSERT INTO ${tabla} (${columnasInsert}) VALUES (${placeholders})`,
-            keys.map((k) => datos[k]),
+            keys.map((k) => valores[k]),
           );
           return repo.find(resultado.insertId);
         });
@@ -181,13 +210,20 @@ function createMysqlRepositories(pool) {
       update(id, datos) {
         if (!idValido(id)) return Promise.resolve(null);
         return escribir(async () => {
-          if (!(await repo.find(id))) return null;
-          const keys = entradas(datos);
+          const previo = await repo.find(id);
+          if (!previo) return null;
+          const valores = await normalizarEscritura(
+            nombre,
+            datos,
+            previo,
+            repos,
+          );
+          const keys = entradas(valores);
           const cambios = keys.map((k) => `\`${k}\` = ?`);
           cambios.push("updatedAt = UTC_TIMESTAMP(3)");
           await ejecutar(
             `UPDATE ${tabla} SET ${cambios.join(", ")} WHERE id = ?`,
-            [...keys.map((k) => datos[k]), Number(id)],
+            [...keys.map((k) => valores[k]), Number(id)],
           );
           return repo.find(id);
         });
@@ -201,7 +237,7 @@ function createMysqlRepositories(pool) {
         );
       },
     };
-    repos[nombre] = repo;
+    repos[nombre] = referencia ? { list: repo.list, find: repo.find } : repo;
   }
   return repos;
 }

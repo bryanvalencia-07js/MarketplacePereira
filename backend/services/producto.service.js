@@ -101,7 +101,7 @@ function createProductoService(repos) {
         cambios.imagen = V.imagen(body.imagen);
       if (!id || Object.hasOwn(body, "estado"))
         cambios.estado = V.opcion(body.estado ?? "Activo", V.ESTADOS, "Estado");
-      if (!id) cambios.popularidad = 0;
+      if (!id) cambios.visitas = 0;
       return id
         ? repos.producto.update(id, cambios)
         : repos.producto.create(cambios);
@@ -130,7 +130,7 @@ function createProductoService(repos) {
           404,
           "Producto no disponible.",
         );
-        return repos.producto.update(id, { popularidad: p.popularidad + 1 });
+        return repos.producto.update(id, { visitas: p.visitas + 1 });
       }),
   };
 }

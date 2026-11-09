@@ -10,6 +10,10 @@ function validarRepositories(repositories) {
         throw new TypeError(`Repositorio ${nombre}: falta ${metodo}.`);
     }
   }
+  for (const nombre of ["rol", "categoria"])
+    for (const metodo of ["list", "find"])
+      if (typeof repositories?.[nombre]?.[metodo] !== "function")
+        throw new TypeError(`Repositorio ${nombre}: falta ${metodo}.`);
   if (typeof repositories.transaccion !== "function")
     throw new TypeError("Los repositorios requieren transaccion(callback).");
 }

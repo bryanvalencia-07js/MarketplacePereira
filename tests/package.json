@@ -2,10 +2,10 @@
   "name": "reactiva-pereira-regression",
   "private": true,
   "scripts": {
-    "test": "node --test api.test.cjs mysql.test.cjs phase1.test.cjs structure.test.cjs",
+    "test": "node --test api.test.cjs mysql.test.cjs normalization.test.cjs phase1.test.cjs structure.test.cjs",
     "test:api": "node --test api.test.cjs",
     "test:browser": "node --test phase1.test.cjs",
-    "test:mysql": "node --env-file-if-exists=../backend/.env --test mysql.integration.test.cjs"
+    "test:mysql": "node --env-file-if-exists=../backend/.env --test --test-concurrency=1 mysql.integration.test.cjs normalization.mysql.test.cjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
