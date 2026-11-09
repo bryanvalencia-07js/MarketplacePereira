@@ -12,7 +12,7 @@ Browser → fetch → Express API → Controller → Service → Repository → 
 
 La fundación PR5 normaliza Rol, Usuario, Categoria, Negocio y Producto en MySQL, manteniendo los mismos contratos HTTP. `001_foundation.sql` se conserva intacta; `002_normalize_roles_categories.sql` migra bases existentes, preserva hashes y convierte `popularidad` en `visitas` 1:1. `GET /api/categorias` proporciona el catálogo activo a Coverflow y formularios. Descripción y municipio de negocios antiguos quedan pendientes (NULL), sin inventar información.
 
-Usuarios, negocios y productos pueden persistir en MySQL. `DATA_SOURCE=memory` sigue siendo el valor predeterminado y permite ejecutar las pruebas sin una base. Sesiones y rate limits permanecen en memoria del proceso. El carrito es temporal del navegador: no hay pedidos, pagos, reservas ni descuento de stock.
+Usuarios, negocios, productos, servicios, horarios, reservas y favoritos persisten en MySQL. PR6 añade exclusivamente `003_services_reservations_favorites.sql` sobre 001 → 002, con disponibilidad derivada, reservas Confirmadas automáticas y favoritos del Comprador. `DATA_SOURCE=memory` sigue siendo el valor predeterminado y permite ejecutar las pruebas sin una base. Sesiones y rate limits permanecen en memoria del proceso. El carrito es temporal del navegador: no hay pedidos, pagos ni descuento de stock.
 
 ## Instalar y ejecutar
 
@@ -36,7 +36,7 @@ npm run db:migrate --prefix backend
 npm start --prefix backend
 ```
 
-Para actualizar una instalación existente, detener escritores y verificar respaldo/restauración antes de aplicar 002 y desplegar el nuevo backend. No hay rollback global de DDL. Ver la transición y correspondencias DER/API en [DATABASE](docs/DATABASE.md).
+Para actualizar una instalación existente, detener escritores y verificar respaldo/restauración antes de aplicar las migraciones pendientes (001 → 002 → 003) y desplegar el nuevo backend. No hay rollback global de DDL. Ver la transición y correspondencias DER/API en [DATABASE](docs/DATABASE.md).
 
 MySQL >= 8.0.16; se recomienda 8.4 LTS. Instrucciones, permisos, modelo y recuperación de migraciones en [DATABASE](docs/DATABASE.md). El servidor falla si MySQL no está preparado; no sustituye silenciosamente la base por memoria. Las migraciones son explícitas, no se ejecutan al arrancar.
 
@@ -46,12 +46,12 @@ No se crean usuarios demo ni contraseñas predeterminadas. El registro público 
 
 ## Uso y roles
 
-| Rol | Entrada | Capacidades |
-|---|---|---|
-| Visitante | `index.html` / `marketplace.html` | Catálogo, comercios y detalle públicos |
-| Comprador | `marketplace.html` | Catálogo y carrito temporal propio |
-| Comerciante | `mi-negocio.html` | Un comercio propio, indicadores, preview y sus productos |
-| Administrador | `dashboard.html` | KPIs, alertas y gestión de usuarios, negocios y productos |
+| Rol           | Entrada                           | Capacidades                                                          |
+| ------------- | --------------------------------- | -------------------------------------------------------------------- |
+| Visitante     | `index.html` / `marketplace.html` | Catálogo, comercios y detalle públicos                               |
+| Comprador     | `marketplace.html`                | Catálogo, carrito temporal, reservas propias y favoritos             |
+| Comerciante   | `mi-negocio.html`                 | Comercio propio, productos, servicios, horarios y reservas recibidas |
+| Administrador | `dashboard.html`                  | KPIs, alertas y gestión de usuarios, negocios y productos            |
 
 La API comprueba roles y propiedad en servidor. La autenticación usa cookies HttpOnly; nunca LocalStorage. Los datos del prototipo antiguo se ofrecen como respaldo descargable sin contraseñas, sin importar identidades o permisos al servidor; los comercios/productos se deben volver a publicar. No hay importación automática de IDs ni migración automática desde memory a MySQL.
 
@@ -76,7 +76,22 @@ npm run test:mysql --prefix tests
 
 Cobertura, controles, CI y límites: [SECURITY_TESTING](docs/SECURITY_TESTING.md).
 
-PR6 queda reservado para Servicio, Horario_Servicio, Reserva y Favorito; PR7 para Pedido y Detalle_Pedido. No están implementados aquí. No se crean Inventario, Sector_Comercial, Pago ni Factura.
+## Servicios, reservas y favoritos (PR6)
+
+| Función real                                              | Pantalla                                         | API principal                                                                               |
+| --------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Catálogo público y filtros                                | `servicios.html`                                 | `GET /api/servicios`                                                                        |
+| Detalle, horarios y selección de cupo                     | `detalle-servicio.html?id=…`                     | `GET /api/servicios/:id/horarios`, `GET /api/servicios/:id/disponibilidad?fecha=YYYY-MM-DD` |
+| Servicios y horarios del comercio / administración global | `mis-servicios.html`                             | CRUD `/api/servicios` y `/api/horarios-servicio`                                            |
+| Reservas del Comprador                                    | `mis-reservas.html`                              | `GET /api/reservas/mias`, `POST /api/reservas`, `PATCH /api/reservas/:id/cancelar`          |
+| Reservas recibidas                                        | `reservas.html`                                  | `GET /api/reservas/gestion`                                                                 |
+| Favoritos del Comprador                                   | `favoritos.html`, tarjetas y detalle de producto | `GET/POST /api/favoritos`, `DELETE /api/favoritos/:id`                                      |
+
+La navegación muestra los módulos autorizados por rol; el servidor vuelve a comprobar sesión, rol y propiedad. Los precios de servicios son de referencia: 0 significa consultar/cotizar. Duración 1–1440 minutos; capacidad simultánea 1–100. Reservar confirma automáticamente solo un slot futuro con cupo, bajo una única transacción. Cancelar libera cupo y conserva el historial. America/Bogota determina horarios locales; reservas se guardan en UTC y la API devuelve ISO 8601 con `Z`.
+
+No existe tabla Disponibilidad: se deriva de horarios, duración, capacidad y reservas Confirmadas. La misma lógica funciona en memory y MySQL; la prueba real usa solicitudes en paralelo y dos pools independientes. Detalles de locking, cambios e integridad en [DATABASE](docs/DATABASE.md).
+
+El dominio implementado tiene nueve entidades. PR7 queda pendiente exclusivamente para Pedido y Detalle_Pedido. No se crean Inventario, Sector_Comercial, Pago, Factura, checkout ni carrito persistente.
 
 ## Interfaz y assets locales
 

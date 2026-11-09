@@ -2,7 +2,7 @@
 
 ## Alcance y arquitectura
 
-Leer README y los cuatro documentos de `docs/` antes de cambios estructurales. Revisar `git status` y los archivos involucrados. Trabajar en una rama de tarea; para PR5 usar exclusivamente `feat/der-foundation-normalization`, nunca `main`.
+Leer README y los cuatro documentos de `docs/` antes de cambios estructurales. Revisar `git status` y los archivos involucrados. Trabajar en una rama de tarea; para PR6 usar exclusivamente `feat/services-reservations-favorites`, nunca `main`.
 
 Conservar HTML/CSS/JavaScript nativo, Express REST y el flujo frontend → API → controllers → services → repositories → DB. La persistencia se elige por `DATA_SOURCE=memory|mysql`; `createRepositories(datos)` sigue creando memory aislado para fixtures. No introducir ORM ni frameworks frontend/CSS. Nunca conectar el navegador directamente a MySQL.
 
@@ -27,7 +27,13 @@ Una clase ausente del HTML no prueba código muerto. Buscar globalmente en scrip
 
 Conservar scrypt, sesiones HttpOnly/SameSite, CSRF, origen, CSP estricta, roles, autorización por propiedad, límites, validaciones y errores seguros. No agregar `unsafe-inline` ni `unsafe-eval`. No guardar autenticación en LocalStorage, secretos en frontend ni credenciales en Git. No crear cuentas demo en arranque. El único bootstrap es el Administrador explícito mediante entorno.
 
-Las consultas SQL usan parámetros; los nombres de tablas/columnas proceden de listas cerradas. Cambios del esquema requieren una migración nueva: no editar una migración aplicada. `001_foundation.sql` es inmutable; PR5 evoluciona mediante `002_normalize_roles_categories.sql`. Resolver roles/categorías mediante sus relaciones, sin IDs mágicos ni usuarioRol duplicado. Mantener visitas como contador y popularidad solo como alias de respuesta. La suite MySQL solo se ejecuta contra una base dedicada cuyo nombre termine en `_test`; destruye sus entidades. No ejecutar estas pruebas contra datos del usuario.
+Las consultas SQL usan parámetros; los nombres de tablas/columnas proceden de listas cerradas. Cambios del esquema requieren una migración nueva: no editar una migración aplicada. `001_foundation.sql` y `002_normalize_roles_categories.sql` son inmutables; PR6 añade únicamente `003_services_reservations_favorites.sql`. Resolver roles/categorías mediante sus relaciones, sin IDs mágicos ni usuarioRol duplicado. Mantener visitas como contador y popularidad solo como alias de respuesta. La suite MySQL solo se ejecuta contra una base dedicada cuyo nombre termine en `_test`; destruye sus entidades. No ejecutar estas pruebas contra datos del usuario.
+
+## Reglas de agenda (PR6)
+
+Servicio pertenece a Negocio y Categoria; crear/reasignar exige categoría Activa. Capacidad 1..100, duración 1..1440, precio de referencia >=0. Público exige servicio/negocio/categoría Activos. No crear tablas Disponibilidad, Inventario, Pago ni Factura. PR7 (Pedido y Detalle_Pedido) queda fuera de esta rama.
+
+Mantener validación de horarios y creación de reservas dentro de `repos.transaccion`: el bloqueo MySQL se obtiene antes de las lecturas y se conserva hasta commit/rollback. No separar comprobación de cupo e INSERT. Reutilizar el cálculo de slots/pico en `utils/agenda.js`, America/Bogota explícita y UTC en persistencia/HTTP. No almacenar fin de reserva. Mantener reservas al editar horarios/desactivar servicios; no borrar servicio/usuario con reservas. Favorito usa sesión, UNIQUE usuario/producto y CASCADE dependiente. Solo Comprador crea reservas/favoritos; Comerciante gestiona sus servicios y reservas; Admin gestiona globalmente. Conservar las pruebas reales entre dos pools, capacidad 1 y 3, y TZ diferente de Bogotá.
 
 ## Verificación
 
@@ -35,7 +41,7 @@ Usar Node 24. Instalar dependencias con `npm ci`, `npm ci --prefix backend` y `n
 
 - Suite completa independiente de MySQL: `npm test --prefix tests`.
 - Backend y adaptador simulado: `npm test --prefix backend`.
-- Navegador: `npm run test:browser --prefix tests`; instalar Chromium o indicar `CHROMIUM_PATH`. Incluye axe A/AA en las doce páginas a 360/1440; `UI_SCREENSHOTS=../test-artifacts` guarda las 48 vistas responsive. Revisar también los estados de menú, loading, error y teclado.
+- Navegador: `npm run test:browser --prefix tests`; instalar Chromium o indicar `CHROMIUM_PATH`. Incluye axe A/AA en dieciocho páginas a 360/1440; `UI_SCREENSHOTS=../test-artifacts` guarda 72 vistas responsive (48 anteriores + 24 PR6). Revisar también los estados de menú, loading, error y teclado.
 - Integración MySQL separada: `npm run test:mysql --prefix tests`, con entorno de prueba configurado.
 - Dependencias: `npm audit --omit=dev --prefix backend`.
 - Revisar sintaxis y `git diff --check` antes de entregar.

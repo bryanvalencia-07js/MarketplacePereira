@@ -26,7 +26,7 @@ npm audit --prefix tests
 
 En la validación de esta fundación se actualizaron `body-parser` 2.3.0 → 2.4.0 y `qs` 6.16.0 → 6.17.1 dentro de los rangos existentes, sin `--force` ni overrides. El audit de producción quedó sin avisos; tests también sin avisos. Se conservan el rechazo de compresión y el parser simple aunque esas dependencias ya estén corregidas.
 
-El audit completo de backend mantiene dos avisos moderados de desarrollo, en `minimatch` y su dependiente `nodemon`: [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249). La corrección que propone npm requiere forzar un cambio de la dependencia nodemon; no se aplicó automáticamente. nodemon solo participa en `npm run dev`, no en `npm start`. El audit completo retorna fallo y no se presenta como aprobado. Estos resultados son una observación de la ejecución, no una garantía permanente del registro.
+En una validación anterior, el audit completo de backend reportó dos avisos moderados de desarrollo, en `minimatch` y su dependiente `nodemon`: [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249). La corrección que propone npm requiere forzar un cambio de la dependencia nodemon; no se aplicó automáticamente. nodemon solo participa en `npm run dev`, no en `npm start`. Ese audit completo retornó fallo. PR6 vuelve a ejecutar el audit de producción solicitado; no afirma un resultado nuevo del audit de desarrollo. Estos resultados son una observación de la ejecución, no una garantía permanente del registro.
 
 ## Ejecución reproducible
 
@@ -60,22 +60,39 @@ npm run test:mysql --prefix tests
 
 Esta suite aplica/verifica migraciones y **borra las entidades de esa base antes de cada prueba**. Rechaza otro modo o un nombre sin ese sufijo. No ejecutarla contra datos reales ni simultáneamente con otras suites que usen la misma base. No omite pruebas SQL si falta el entorno: el comando separado falla con instrucciones claras.
 
-## Cobertura
+## Cobertura actual
 
-| Grupo | Casos | Comportamiento comprobado |
-|---|---:|---|
-| API real con memory | 22 | Registro/login/hash/cookies, CSRF/origen/CSP, roles/propiedad, CRUD/filtros/fechas, unicidad concurrente, validación, revocación, último admin, rate limits, errores y compresión |
-| Chromium | 49 | Tres roles y visitante; formularios/CRUD/imágenes; catálogo/detalle/carrito; red caída, XSS, legado sin credenciales, sesión entre pestañas; loading/feedback; modal/foco; Coverflow/SVG/selección por teclado/limpiar; responsive |
-| Estructura | 3 | Enlaces/anclas/recursos, labels, scripts compatibles con CSP, variables y reduced motion |
-| Adaptador MySQL simulado/config | 7 | Contrato, parámetros y DTOs; BEGIN/COMMIT/ROLLBACK/release; fallo de commit/rollback; aislamiento de contexto y errores seguros |
-| Normalización memory/API | 5 | FK/DTOs, hashes y 37→38 visitas, catálogo activo, rechazo de categorías inexistentes/inactivas, campos opcionales, privilegios y roles con IDs distintos |
-| MySQL real (separado) | 11 | Migración repetible y detección de drift/fallo parcial; CRUD/decimales/fechas; UNIQUE/FK/CHECK/rol; rollback de varias entidades; concurrencia entre pools; visitas/último admin; API/CSRF/cookie y persistencia al recrear aplicación |
+| Grupo                           | Casos | Comportamiento comprobado                                                                                                                                                       |
+| ------------------------------- | ----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| API existente con memory        |    22 | Sesiones, hashing, CSRF/origen/CSP, roles, ownership, validación, integridad, rate limits y errores                                                                             |
+| Adaptador MySQL simulado/config |     7 | Contrato, parámetros/DTO, bloqueo, BEGIN/COMMIT/ROLLBACK/release y errores seguros                                                                                              |
+| Normalización memory/API        |     5 | Catálogos/FK, roles con IDs distintos, categorías activas, atributos y contador conservados                                                                                     |
+| Chromium anterior               |    49 | Flujos de tres roles, catálogo/carrito, red, XSS, identidad/storytelling, teclado, responsive y axe                                                                             |
+| Estructura                      |     3 | Recursos/enlaces locales, labels, CSP y CSS modular                                                                                                                             |
+| Dominio PR6 memory              |    12 | Servicio/categoría/propiedad, horarios válidos/no superpuestos, slots/UTC, fechas, cupos concurrentes 1/3, cambios/cancelaciones/historial, cascadas y favoritos propios únicos |
+| API PR6                         |     4 | Catálogo/horarios/disponibilidad, CRUD/roles/CSRF, carreras HTTP de reserva, gestión aislada y favoritos                                                                        |
+| Chromium PR6                    |     7 | Reserva/cancelación reales, CRUD/horarios/recepción, favoritos API, protección de páginas, errores de red/409, responsive/axe y gestión Admin                                   |
+| MySQL real (comando separado)   |    18 | 11 anteriores + 7 PR6: 001→002→003 con datos, esquema/checksums, PK/FK/UNIQUE/CHECK, dos pools/capacidad 1 y 3, rollback, cascadas, categorías y aislamiento                    |
 
-La suite independiente de MySQL contiene 86 casos; la modernización añade regresiones de loading/restauración, validación y contraseña, menú/foco, skeletons, toast/SVG, teclado del Coverflow, indicadores desplegables, movimiento reducido y limpieza de ScrollTrigger, recuperación HTTP y acciones móviles. Axe revisa las doce páginas a 360 y 1440 px, incluido el carrito con productos, con reglas WCAG A/AA; esta comprobación automática no equivale a una certificación. La integración real agrega 11. La fase visual añade seis regresiones: duración y sesión de apertura; descarte por interacción; clic y cambio a reduced motion; preferencia reducida y almacenamiento denegado; narrativa sin JavaScript; y centrado del Coverflow sin salto vertical. Se mantienen todas las aserciones previas y se amplía el fixture de axe para incluir el resumen con productos. No se modificaron aserciones existentes para esconder regresiones. El baseline inicial tenía cuatro fallos por cuentas demo introducidas automáticamente; al retirar ese arranque inseguro, las 52 pruebas originales pasaron sin modificar sus expectativas.
+La suite independiente de MySQL contiene 109 casos; el comando backend contiene 45 y el navegador 56 (subconjuntos de la suite general, no deben sumarse como pruebas distintas). Se conservan todas las aserciones anteriores. Los fixtures SQL se limpian en orden hijo→padre, incluyendo las nuevas asociaciones, para permitir repetir la suite sobre la misma base `_test`.
 
-En la fase técnica anterior, la depuración CSS comprobó referencias en HTML, templates, scripts, clases dinámicas, selectores, estados y tests. Además de las regresiones, se compararon estilos calculados en 12 páginas × 4 anchos (360/768/1024/1440), con reduced motion: sin diferencias en las propiedades comparadas. Esta comparación puntual excluye propiedades temporales de animación y no sustituye una auditoría visual de todas las posiciones de scroll o estados hover.
+`UI_SCREENSHOTS=/ruta/absoluta npm test --prefix tests` guarda 72 capturas: 18 páginas × 360/768/1024/1440, incluidas las 24 de PR6. Axe A/AA revisa 18 páginas × 360/1440, 36 combinaciones, con datos reales de prueba; PR6 incluye un slot ocupado, reservas y favoritos. La prueba nueva comprueba también que la marca y el menú no se superpongan en móvil. Estas comprobaciones automáticas no equivalen a certificación WCAG ni pruebas en dispositivos físicos. Se revisaron visualmente las capturas nuevas y se corrigió la cabecera móvil sin modificar CSS global, fotografías ni narrativa.
 
-La CI en `.github/workflows/ci.yml` configura Node 24, regeneración y comparación de assets, suite memory/navegador y una integración separada con MySQL 8.4. `UI_SCREENSHOTS=../test-artifacts npm test --prefix tests` guarda 48 capturas (12 páginas × 360/768/1024/1440); Actions las publica como artefacto `responsive-chromium`. La ejecución local se verificó con Node 24.22.2, Playwright 1.62.1, Chrome del sistema y MySQL 8.0.46. La existencia del workflow no prueba una ejecución remota exitosa; comprobar el resultado de Actions en el PR.
+CI mantiene Node 24, generación/comparación de assets, sintaxis, audit, memory/navegador y MySQL 8.4. Los scripts de tests incluyen PR6; no se retiraron jobs ni comprobaciones. El job SQL utiliza una base exclusiva y ejecuta secuencialmente los archivos de integración. Verificar el resultado de Actions del commit revisado antes de fusionar.
+
+## Validación de PR6
+
+PR5 (#5) se confirmó fusionado antes de modificar archivos. Base `42f17d4be19bd2362514e47718e9d06c01682359`; referencias y main actualizados, migración 002 presente. Baseline local: **86/86** memory/general y **11/11** MySQL, sin fallos ni omisiones. Rama exclusiva `feat/services-reservations-favorites`.
+
+Se verificaron ciclos rojo→verde para ausencia de módulos, interfaces nuevas y una frontera temporal: el instante debe seguir siendo futuro después de consultar disponibilidad y antes de insertar. La creación comprueba cupos bajo el bloqueo, nunca mediante un SELECT liberado seguido de INSERT. Capacidad 1 con dos solicitudes simultáneas: exactamente una Confirmada y un 409; capacidad 3 con cuatro: tres Confirmadas y un 409. La prueba SQL alterna dos pools independientes; se cuentan las filas persistidas. Las ventanas cambiadas conservan ocupación de las reservas anteriores mediante intersección/pico de intervalos, sin crear Disponibilidad.
+
+Validación local con Node 24.22.2, Chrome del sistema y MySQL 8.0.46 aislado: suite general **109/109**, backend **45/45**, MySQL **18/18**, navegador **56** incluido en la suite general, sin omisiones. Sintaxis **76/76** archivos JS/CJS; assets regenerados reproduciblemente; `git diff --check` correcto; audit `--omit=dev --prefix backend`: **0 vulnerabilidades**. Arranque CLI y cierre SIGTERM correctos en memory y mysql, con ocho rutas HTTP 200 y favorito protegido 401 por modo. No hay dependencias nuevas del proyecto.
+
+Las ejecuciones de agenda/API/MySQL con `TZ=Asia/Tokyo` y de la suite general con `TZ=Pacific/Honolulu` conservan instantes UTC y horarios de America/Bogota. 001 y 002 permanecen intactas; solo 003 crea las cuatro tablas. La prueba de actualización compara todas las filas y columnas de PR5 y valida las tres versiones/checksums. Drift de 003 o intento incompleto bloquea migración/arranque según corresponda.
+
+Las protecciones existentes de sesiones HttpOnly/SameSite, scrypt, origen/CSRF, CSP, límites, ownership, bloqueo de escrituras y SQL parametrizado se conservan. Solo Comprador crea reserva/favorito y usuarioId se toma de sesión; Comerciante no consulta/cancela reservas ni modifica servicios/horarios ajenos. El frontend protege navegación y el servidor aplica permisos. Favoritos de productos desactivados conservan asociación con producto null; el borrado físico de dependientes usa CASCADE documentado. Reserva y servicio con historial se protegen mediante RESTRICT y conflictos de dominio.
+
+Deuda: sesiones/rate limits siguen por proceso; el bloqueo global serializa escrituras y los listados de agenda todavía no tienen paginación/consultas SQL específicas. No se protege a escritores SQL externos que ignoren el bloqueo. Memory no ofrece rollback de callbacks arbitrarios ni persistencia entre reinicios. Ventanas de horario son intradía, sin horario nocturno que cruce medianoche. Safari/Firefox, dispositivos físicos y revisión humana quedan pendientes. Pedido y Detalle_Pedido son exclusivamente PR7; no hay pagos, facturas, inventario, checkout ni carrito persistente.
 
 ## Validación de PR5
 
@@ -99,13 +116,13 @@ La revisión visual usa los mismos fixtures ficticios (no son datos de producci�
 
 Node 24.22.2 y Chrome del sistema: 78/78 pruebas completas; backend/adaptador simulado 29/29; MySQL 8.0.46 en base aislada nueva 7/7. Axe A/AA no detectó infracciones en las 24 combinaciones de vista/ancho verificadas; responsive generó 48 capturas sin overflow. Sintaxis válida en 53 archivos, regeneración reproducible de 10 assets y audit de producción con 0 vulnerabilidades detectadas.
 
-| Landing / mediana de 3 ejecuciones | Antes | Después |
-|---|---:|---:|
-| LCP, 360 px | 1236 ms | 476 ms |
-| LCP, 1440 px | 556 ms | 484 ms |
-| CLS, 360 px | 0 | 0 |
-| CLS, 1440 px | 0.000334 | 0.000334 |
-| Transferencia de recursos, 360 px | 1 348 906 B | 1 085 324 B |
+| Landing / mediana de 3 ejecuciones |       Antes |     Después |
+| ---------------------------------- | ----------: | ----------: |
+| LCP, 360 px                        |     1236 ms |      476 ms |
+| LCP, 1440 px                       |      556 ms |      484 ms |
+| CLS, 360 px                        |           0 |           0 |
+| CLS, 1440 px                       |    0.000334 |    0.000334 |
+| Transferencia de recursos, 360 px  | 1 348 906 B | 1 085 324 B |
 | Transferencia de recursos, 1440 px | 1 467 546 B | 1 203 964 B |
 
 Medición de laboratorio en Chrome local: caché fría, CPU 4×, red 10 Mbit/s, latencia 40 ms y ventana de observación de 5,5 s; movimiento permitido y apertura incluida. La transferencia cuenta recursos observados en esa ventana, no el peso total del sitio. El arranque mantiene 0 triggers en móvil y 4 en escritorio. Datos completos y tamaños del bundle en [visual](visual/); [galería offline](visual/index.html), con 48 pares antes/después. Las PNG originales se entregan como evidencia externa; el repositorio conserva WebP de las mismas capturas para reducir su tamaño.
