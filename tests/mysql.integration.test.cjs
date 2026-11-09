@@ -60,6 +60,8 @@ beforeEach(async () => {
   await repos.transaccion(async () => {
     // Esta base _test puede conservar fixtures de PR6 de una ejecución anterior.
     // Limpiar asociaciones/historial de prueba antes de sus padres, sin omitir casos.
+    for (const t of ["detalles_pedido", "pedidos"])
+      await pool.query(`DELETE FROM ${t}`);
     for (const repo of [
       repos.favorito,
       repos.reserva,

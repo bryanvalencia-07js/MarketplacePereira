@@ -19,6 +19,8 @@ async function preparar001() {
   try {
     await prepararConexion(c);
     for (const tabla of [
+      "detalles_pedido",
+      "pedidos",
       "favoritos",
       "reservas",
       "horarios_servicio",
@@ -112,8 +114,10 @@ test("002 sobre 001 con datos: preserva todos los atributos, relaciones y visita
   const [versiones] = await pool.query(
     "SELECT * FROM schema_migrations ORDER BY version",
   );
-  assert.equal(versiones.length, 3);
-  assert.ok(versiones.some(v => v.version === "002_normalize_roles_categories.sql"));
+  assert.equal(versiones.length, 4);
+  assert.ok(
+    versiones.some((v) => v.version === "002_normalize_roles_categories.sql"),
+  );
   for (const v of versiones) {
     assert.equal(v.applied, 1);
     assert.equal(

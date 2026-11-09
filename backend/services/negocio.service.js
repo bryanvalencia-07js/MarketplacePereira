@@ -137,6 +137,11 @@ function createNegocioService(repos) {
         exigir(negocio, 404, "Comercio no encontrado.");
         propietario(actor, negocio);
         exigir(
+          !(await repos.pedido.list()).some((p) => p.negocioId === id),
+          409,
+          "El comercio tiene pedidos históricos. Desactívalo para conservar el historial.",
+        );
+        exigir(
           !(await repos.producto.list()).some((p) => p.negocioId === id),
           400,
           "Elimina primero los productos del comercio.",

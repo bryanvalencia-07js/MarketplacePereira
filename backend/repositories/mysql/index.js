@@ -5,6 +5,14 @@ const { AppError } = require("../../utils/errors");
 
 // Identificadores SQL cerrados; ningún nombre de tabla/columna procede del cliente.
 const modelos = {
+  pedido: {
+    tabla: "pedidos",
+    campos: ["usuarioId", "negocioId", "estado", "observaciones"],
+  },
+  detallePedido: {
+    tabla: "detalles_pedido",
+    campos: ["pedidoId", "productoId", "cantidad", "precioUnitario"],
+  },
   servicio: {
     tabla: "servicios",
     campos: [
@@ -96,6 +104,8 @@ function dto(fila) {
       resultado[campo] = resultado[campo].toISOString();
   if (Object.hasOwn(resultado, "precio"))
     resultado.precio = Number(resultado.precio);
+  if (Object.hasOwn(resultado, "precioUnitario"))
+    resultado.precioUnitario = Number(resultado.precioUnitario);
   if (Object.hasOwn(resultado, "precioReferencia"))
     resultado.precioReferencia = Number(resultado.precioReferencia);
   for (const campo of ["horaInicio", "horaFin"])
@@ -168,12 +178,24 @@ function createMysqlRepositories(pool) {
   const repos = {
     transaccion,
     close: () => pool.end(),
+    async bloquearProductos(ids) {
+      if (!contexto.getStore())
+        throw new Error("El bloqueo requiere una transacción.");
+      // Global primero, luego filas en orden ascendente. Lectura actual, sin liberar conexión.
+      for (const id of [...new Set(ids)].sort((a, b) => a - b))
+        await ejecutar("SELECT id FROM productos WHERE id = ? FOR UPDATE", [
+          id,
+        ]);
+    },
     async ready() {
       const filas = await ejecutar(
-        "SELECT version FROM schema_migrations WHERE version = ? AND applied = TRUE",
-        ["003_services_reservations_favorites.sql"],
+        "SELECT version FROM schema_migrations WHERE version IN (?, ?) AND applied = TRUE",
+        [
+          "003_services_reservations_favorites.sql",
+          "004_orders_and_details.sql",
+        ],
       );
-      if (filas.length !== 1)
+      if (filas.length !== 2)
         throw new Error("Ejecuta las migraciones antes de iniciar MySQL.");
     },
   };

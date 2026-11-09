@@ -71,6 +71,12 @@ function createProductoService(repos) {
         body.negocioId === undefined
           ? previo?.negocioId
           : V.entero(body.negocioId, "Comercio");
+      if (previo && previo.negocioId !== negocioId)
+        exigir(
+          !(await repos.detallePedido.list()).some((d) => d.productoId === id),
+          409,
+          "El producto tiene pedidos históricos y no puede trasladarse de comercio.",
+        );
       const negocio = await repos.negocio.find(negocioId);
       exigir(negocio, 400, "Selecciona un comercio existente.");
       propietario(actor, negocio);
@@ -119,6 +125,11 @@ function createProductoService(repos) {
         const n = await repos.negocio.find(p.negocioId);
         exigir(n, 400, "Comercio no encontrado.");
         propietario(actor, n);
+        exigir(
+          !(await repos.detallePedido.list()).some((d) => d.productoId === id),
+          409,
+          "El producto tiene pedidos históricos. Desactívalo para conservar el historial.",
+        );
         await repos.producto.delete(id);
         return { id };
       }),

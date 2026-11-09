@@ -2,7 +2,7 @@
    list() -> Array, find(id) -> Object|null, create(dto) -> Object,
    update(id,dto) -> Object|null, delete(id) -> boolean.
    transaccion(callback) serializa escrituras; MySQL confirma o revierte el callback.
-   memory solo serializa por proceso, sin rollback de callbacks arbitrarios. */
+   memory usa copias privadas por transacción con commit/rollback por proceso. */
 function validarRepositories(repositories) {
   for (const nombre of [
     "usuario",
@@ -12,6 +12,8 @@ function validarRepositories(repositories) {
     "horario",
     "reserva",
     "favorito",
+    "pedido",
+    "detallePedido",
   ]) {
     for (const metodo of ["list", "find", "create", "update", "delete"]) {
       if (typeof repositories?.[nombre]?.[metodo] !== "function")
@@ -22,6 +24,8 @@ function validarRepositories(repositories) {
     for (const metodo of ["list", "find"])
       if (typeof repositories?.[nombre]?.[metodo] !== "function")
         throw new TypeError(`Repositorio ${nombre}: falta ${metodo}.`);
+  if (typeof repositories.bloquearProductos !== "function")
+    throw new TypeError("Falta bloquearProductos(ids).");
   if (typeof repositories.transaccion !== "function")
     throw new TypeError("Los repositorios requieren transaccion(callback).");
 }

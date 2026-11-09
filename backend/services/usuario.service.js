@@ -103,6 +103,11 @@ function createUsuarioService(repos, revocar = () => {}) {
     eliminar: (actor, id) =>
       repos.transaccion(async () => {
         await obtener(id);
+        exigir(
+          !(await repos.pedido.list()).some((p) => p.usuarioId === id),
+          409,
+          "El usuario tiene pedidos históricos. Desactívalo para conservar el historial.",
+        );
         exigir(actor.id !== id, 400, "No puedes eliminar tu propia cuenta.");
         exigir(
           !(await repos.negocio.list()).some((n) => n.usuarioId === id),

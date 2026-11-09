@@ -37,14 +37,27 @@ async function createApplication({
   const usuarios = createUsuarioService(repositories, auth.revocar);
   const servicios = {
     auth,
-    categorias: require("./services/categoria.service").createCategoriaService(repositories),
+    categorias: require("./services/categoria.service").createCategoriaService(
+      repositories,
+    ),
     usuarios,
     negocios: createNegocioService(repositories),
     productos: createProductoService(repositories),
-    servicios: require("./services/servicio.service").createServicioService(repositories),
-    horarios: require("./services/horario.service").createHorarioService(repositories),
-    reservas: require("./services/reserva.service").createReservaService(repositories),
-    favoritos: require("./services/favorito.service").createFavoritoService(repositories),
+    servicios: require("./services/servicio.service").createServicioService(
+      repositories,
+    ),
+    horarios: require("./services/horario.service").createHorarioService(
+      repositories,
+    ),
+    reservas: require("./services/reserva.service").createReservaService(
+      repositories,
+    ),
+    pedidos: require("./services/pedido.service").createPedidoService(
+      repositories,
+    ),
+    favoritos: require("./services/favorito.service").createFavoritoService(
+      repositories,
+    ),
   };
   servicios.publico = createPublicoService(servicios);
   if (
@@ -158,7 +171,10 @@ if (require.main === module) {
     process.once("SIGTERM", cerrar);
     process.once("SIGINT", cerrar);
   })().catch((error) => {
-    console.error("No se pudo preparar el servidor:", error.code || error.message);
+    console.error(
+      "No se pudo preparar el servidor:",
+      error.code || error.message,
+    );
     process.exitCode = 1;
   });
 }

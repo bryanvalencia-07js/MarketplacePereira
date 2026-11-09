@@ -1,3 +1,4 @@
+const { AsyncLocalStorage } = require("node:async_hooks");
 const { createMemoryRepository } = require("./memory.repository");
 const { createInitialData } = require("../data/initial");
 const {
@@ -9,6 +10,7 @@ const {
 const { normalizarEscritura } = require("./relations");
 function createRepositories(inicial = createInitialData()) {
   let cola = Promise.resolve();
+  const contexto = new AsyncLocalStorage();
   const roles =
     inicial.roles ??
     ROLES.map((nombre, i) => ({ id: i + 1, nombre, descripcion: null }));
@@ -44,11 +46,24 @@ function createRepositories(inicial = createInitialData()) {
     }
   }
   const repos = {
-    rol: lectura(createMemoryRepository(roles)),
-    categoria: lectura(createMemoryRepository(categorias)),
-    // Exclusión por proceso; memory no ofrece rollback de callbacks arbitrarios.
+    rol: lectura(createMemoryRepository(roles, contexto)),
+    categoria: lectura(createMemoryRepository(categorias, contexto)),
+    // Exclusión por proceso y copias privadas hasta commit: ningún lector ve escrituras parciales.
     transaccion(accion) {
-      const actual = cola.then(accion);
+      if (contexto.getStore())
+        return Promise.reject(
+          new Error("No se permiten transacciones anidadas."),
+        );
+      const actual = cola.then(async () => {
+        const estado = { activa: true, cambios: new Map() };
+        try {
+          const resultado = await contexto.run(estado, accion);
+          for (const cambio of estado.cambios.values()) cambio.commit();
+          return resultado;
+        } finally {
+          estado.activa = false;
+        }
+      });
       cola = actual.catch(() => {});
       return actual;
     },
@@ -64,6 +79,8 @@ function createRepositories(inicial = createInitialData()) {
     ["horario", inicial.horarios],
     ["reserva", inicial.reservas],
     ["favorito", inicial.favoritos],
+    ["pedido", inicial.pedidos],
+    ["detallePedido", inicial.detallesPedido],
   ]) {
     const normalizadas = (filas ?? []).map((f) => {
       const n = { ...f };
@@ -88,7 +105,7 @@ function createRepositories(inicial = createInitialData()) {
         delete n[k];
       return n;
     });
-    const raw = createMemoryRepository(normalizadas);
+    const raw = createMemoryRepository(normalizadas, contexto);
     async function proyectar(f) {
       if (!f) return null;
       if (nombre === "usuario") f.rol = (await repos.rol.find(f.rolId))?.nombre;
@@ -125,6 +142,25 @@ function createRepositories(inicial = createInitialData()) {
       async delete(id) {
         id = Number(id);
         const { exigir } = require("../utils/errors");
+        if (["usuario", "negocio", "producto", "pedido"].includes(nombre)) {
+          const referencias =
+            nombre === "producto"
+              ? await repos.detallePedido.list()
+              : nombre === "pedido"
+                ? await repos.detallePedido.list()
+                : await repos.pedido.list();
+          const fk = {
+            usuario: "usuarioId",
+            negocio: "negocioId",
+            producto: "productoId",
+            pedido: "pedidoId",
+          }[nombre];
+          exigir(
+            !referencias.some((r) => r[fk] === id),
+            409,
+            "El recurso tiene pedidos históricos. Desactívalo y conserva su historial.",
+          );
+        }
         if (nombre === "servicio") {
           exigir(
             !(await repos.reserva.list()).some((r) => r.servicioId === id),
@@ -155,6 +191,10 @@ function createRepositories(inicial = createInitialData()) {
       },
     };
   }
+  repos.bloquearProductos = async () => {
+    if (!contexto.getStore())
+      throw new Error("El bloqueo requiere una transacción.");
+  };
   return repos;
 }
 function repositoriesFromConfig({ dataSource = "memory", db } = {}) {

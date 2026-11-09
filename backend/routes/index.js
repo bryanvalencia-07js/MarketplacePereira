@@ -43,6 +43,7 @@ function apiRoutes(servicios, opcionesCookie, instancia) {
     usuarioRoutes(createUsuarioController(servicios.usuarios)),
   );
   router.use(require("./agenda.routes").agendaRoutes(servicios));
+  router.use(require("./pedido.routes").pedidoRoutes(servicios.pedidos));
   for (const [ruta, servicio] of [
     ["negocios", servicios.negocios],
     ["productos", servicios.productos],
@@ -76,7 +77,10 @@ function apiRoutes(servicios, opcionesCookie, instancia) {
       c.eliminar,
     );
   }
-  router.get("/categorias", createRecursoController(servicios.categorias).listar);
+  router.get(
+    "/categorias",
+    createRecursoController(servicios.categorias).listar,
+  );
   router.get(
     "/publico/resumen",
     createPublicoController(servicios.publico).resumen,

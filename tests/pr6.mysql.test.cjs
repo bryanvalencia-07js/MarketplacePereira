@@ -22,6 +22,8 @@ let pool, r, otro, merchant, buyer, service;
 const fecha = "2099-01-05",
   inicio = `${fecha}T14:00:00.000Z`;
 const tablas = [
+  "detalles_pedido",
+  "pedidos",
   "favoritos",
   "reservas",
   "horarios_servicio",
@@ -51,7 +53,8 @@ after(async () => {
   await pool?.end();
 });
 beforeEach(async () => {
-  for (const t of tablas.slice(0, 7)) await pool.query(`DELETE FROM ${t}`);
+  for (const t of tablas.slice(0, tablas.indexOf("categorias")))
+    await pool.query(`DELETE FROM ${t}`);
   const u = await r.usuario.create({
     nombre: "Ana",
     apellido: "Test",
@@ -175,7 +178,7 @@ test("003: aplica sobre 001→002 con datos y conserva esquema, filas y checksum
     const [versions] = await pool.query(
       "SELECT * FROM schema_migrations ORDER BY version",
     );
-    assert.equal(versions.length, 3);
+    assert.equal(versions.length, 4);
     for (const v of versions) {
       assert.equal(v.applied, 1);
       assert.equal(
