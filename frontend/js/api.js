@@ -53,6 +53,7 @@ const API = (() => {
   return {
     get: (ruta) => request(ruta),
     post: (ruta, body) => request(ruta, { method: "POST", body }),
+    patch: (ruta, body) => request(ruta, { method: "PATCH", body }),
     put: (ruta, body) => request(ruta, { method: "PUT", body }),
     delete: (ruta) => request(ruta, { method: "DELETE" }),
     get instancia() {

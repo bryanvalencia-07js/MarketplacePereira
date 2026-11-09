@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestionar servicios | Reactiva Pereira</title>
+    <link rel="stylesheet" href="css/estilos.css" />
+    <link
+      rel="preload"
+      href="assets/fonts/inter.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="assets/fonts/playfair-display.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+  </head>
+  <body class="pagina-marketplace agenda-page">
+    <header class="market-header">
+      <div class="contenedor market-nav">
+        <a class="marca" href="index.html"
+          ><span class="marca-icono">RP</span
+          ><span
+            ><strong class="marca-nombre">Reactiva Pereira</strong
+            ><span class="marca-subtitulo"
+              >Comercios que siguen abiertos</span
+            ></span
+          ></a
+        >
+        <div class="market-usuario">
+          <span id="nombreUsuario">Invitado</span
+          ><button
+            type="button"
+            class="boton boton-secundario"
+            data-click="cerrarSesion"
+            hidden
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+      <nav class="market-menu">
+        <div class="contenedor market-menu-interior">
+          <a href="index.html">Inicio</a><a href="marketplace.html">Productos</a
+          ><a href="servicios.html">Servicios</a>
+        </div>
+      </nav>
+    </header>
+    <main id="contenido" class="contenedor agenda-contenido">
+      <div class="panel-titulo">
+        <div>
+          <span class="modulo-tipo">Reactiva Pereira</span>
+          <h1>Gestionar servicios</h1>
+          <p>Publica tus servicios, organiza los horarios y recibe reservas.</p>
+        </div>
+      </div>
+      <p
+        id="estadoAplicacion"
+        class="mensaje-formulario"
+        role="status"
+        aria-live="polite"
+      ></p>
+      <section class="panel-admin">
+        <h2 id="tituloFormServicio">Crear servicio</h2>
+        <p id="sinNegocioServicio" hidden>
+          Necesitas registrar tu comercio antes de publicar servicios.
+          <a href="mi-negocio.html">Mi comercio</a>
+        </p>
+        <form id="formServicio" class="formulario">
+          <div class="form-grid">
+            <div class="campo">
+              <label for="negocioServicio">Comercio del servicio</label
+              ><select id="negocioServicio" required></select>
+            </div>
+            <div class="campo">
+              <label for="nombreServicioForm">Nombre del servicio</label
+              ><input
+                id="nombreServicioForm"
+                type="text"
+                required
+                maxlength="120"
+              />
+            </div>
+            <div class="campo">
+              <label for="categoriaServicio">Categoría del servicio</label
+              ><select id="categoriaServicio" required>
+                <option value="">Selecciona una categoría</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label for="precioServicioForm">Precio de referencia</label
+              ><input
+                id="precioServicioForm"
+                type="number"
+                required
+                min="0"
+                max="1000000000"
+                step="0.01"
+                value="0"
+              />
+            </div>
+            <div class="campo">
+              <label for="duracionServicioForm">Duración en minutos</label
+              ><input
+                id="duracionServicioForm"
+                type="number"
+                required
+                min="1"
+                max="1440"
+                step="1"
+                value="60"
+              />
+            </div>
+            <div class="campo">
+              <label for="capacidadServicioForm">Capacidad simultánea</label
+              ><input
+                id="capacidadServicioForm"
+                type="number"
+                required
+                min="1"
+                max="100"
+                step="1"
+                value="1"
+              />
+            </div>
+            <div class="campo">
+              <label for="estadoServicio">Estado del servicio</label
+              ><select id="estadoServicio">
+                <option value="Activo">Activo</option>
+                <option value="Inactivo">Inactivo</option>
+              </select>
+            </div>
+            <div class="campo campo-completo">
+              <label for="descripcionServicioForm">Descripción</label
+              ><textarea
+                id="descripcionServicioForm"
+                required
+                maxlength="2000"
+              ></textarea>
+            </div>
+          </div>
+          <p>
+            Precio 0: consultar o cotizar. Capacidad máxima: 100 personas
+            simultáneas.
+          </p>
+          <div class="acciones-formulario">
+            <button class="boton boton-primario" type="submit">
+              Guardar servicio</button
+            ><button
+              class="boton boton-secundario"
+              type="button"
+              id="nuevoServicio"
+            >
+              Nuevo servicio
+            </button>
+          </div>
+        </form>
+      </section>
+      <section aria-label="Servicios del comercio">
+        <div id="listaServicios" class="agenda-grid"></div>
+      </section>
+      <section id="gestionHorarios" class="panel-admin" hidden>
+        <h2 id="tituloHorarios">Horarios del servicio</h2>
+        <form id="formHorario" class="formulario">
+          <div class="form-grid">
+            <div class="campo">
+              <label for="diaHorario">Día de la semana</label
+              ><select id="diaHorario">
+                <option value="1">Lunes</option>
+                <option value="2">Martes</option>
+                <option value="3">Miércoles</option>
+                <option value="4">Jueves</option>
+                <option value="5">Viernes</option>
+                <option value="6">Sábado</option>
+                <option value="7">Domingo</option>
+              </select>
+            </div>
+            <div class="campo">
+              <label for="inicioHorario">Hora de inicio</label
+              ><input id="inicioHorario" type="time" required step="60" />
+            </div>
+            <div class="campo">
+              <label for="finHorario">Hora de fin</label
+              ><input id="finHorario" type="time" required step="60" />
+            </div>
+          </div>
+          <div class="acciones-formulario">
+            <button class="boton boton-primario" type="submit">
+              Guardar horario</button
+            ><button
+              class="boton boton-secundario"
+              type="button"
+              id="nuevoHorario"
+            >
+              Nuevo horario
+            </button>
+          </div>
+        </form>
+        <p
+          id="mensajeHorario"
+          class="mensaje-formulario"
+          role="status"
+          aria-live="polite"
+        ></p>
+        <div id="listaHorarios"></div>
+      </section>
+    </main>
+    <script src="js/estado-local.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/sesion.js"></script>
+    <script src="js/legado.js"></script>
+    <script src="js/app-init.js"></script>
+  </body>
+</html>

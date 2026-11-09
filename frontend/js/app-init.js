@@ -66,6 +66,18 @@ function cargarScript(archivo) {
     "registro.html": { script: "registro" },
     "marketplace.html": { script: "marketplace" },
     "detalle-producto.html": { script: "detalle-producto" },
+    "servicios.html": { script: "servicios" },
+    "detalle-servicio.html": { script: "detalle-servicio" },
+    "mis-servicios.html": {
+      script: "mis-servicios",
+      roles: ["Comerciante", "Administrador"],
+    },
+    "mis-reservas.html": { script: "reservas", roles: ["Comprador"] },
+    "reservas.html": {
+      script: "reservas",
+      roles: ["Comerciante", "Administrador"],
+    },
+    "favoritos.html": { script: "favoritos", roles: ["Comprador"] },
     "carrito.html": { script: "carrito", roles: ["Comprador"] },
     "mi-negocio.html": { script: "mi-negocio", roles: ["Comerciante"] },
     "mis-productos.html": { script: "mis-productos", roles: ["Comerciante"] },
@@ -79,6 +91,7 @@ function cargarScript(archivo) {
   try {
     UI.estado("Cargando…", "carga");
     await sesionLista;
+    await cargarScript("js/favorito-acciones.js");
     if (config.roles && !protegerPorRol(config.roles)) return;
     if (typeof iniciarCategoriasRP === "function") await iniciarCategoriasRP();
     if (config.script === "mis-productos") await cargarScript("js/imagenes.js");

@@ -14,6 +14,16 @@ async function mostrarDetalle(contarVisita = false) {
       Boolean(detalleActual);
     if (detalleActual) {
       const { producto: p, negocio: n } = detalleActual;
+      document.getElementById("btnFavoritoProducto")?.remove();
+      if (usuarioSesion?.rol === "Comprador") {
+        const favorito = document.createElement("button");
+        favorito.id = "btnFavoritoProducto";
+        favorito.type = "button";
+        favorito.className = "boton boton-secundario";
+        favorito.dataset.favoritoProducto = String(p.id);
+        favorito.textContent = "Guardar en favoritos";
+        document.getElementById("btnAgregarCarrito").after(favorito);
+      }
       for (const [id, valor] of Object.entries({
         detalleCategoria: p.categoria,
         detalleNombre: p.nombre,

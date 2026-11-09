@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Detalle del servicio | Reactiva Pereira</title>
+    <link rel="stylesheet" href="css/estilos.css" />
+    <link
+      rel="preload"
+      href="assets/fonts/inter.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="assets/fonts/playfair-display.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+  </head>
+  <body class="pagina-marketplace agenda-page">
+    <header class="market-header">
+      <div class="contenedor market-nav">
+        <a class="marca" href="index.html"
+          ><span class="marca-icono">RP</span
+          ><span
+            ><strong class="marca-nombre">Reactiva Pereira</strong
+            ><span class="marca-subtitulo"
+              >Comercios que siguen abiertos</span
+            ></span
+          ></a
+        >
+        <div class="market-usuario">
+          <span id="nombreUsuario">Invitado</span
+          ><button
+            type="button"
+            class="boton boton-secundario"
+            data-click="cerrarSesion"
+            hidden
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+      <nav class="market-menu">
+        <div class="contenedor market-menu-interior">
+          <a href="index.html">Inicio</a><a href="marketplace.html">Productos</a
+          ><a href="servicios.html">Servicios</a>
+        </div>
+      </nav>
+    </header>
+    <main id="contenido" class="contenedor agenda-contenido">
+      <div class="panel-titulo">
+        <div>
+          <span class="modulo-tipo">Reactiva Pereira</span>
+          <h1>Detalle del servicio</h1>
+          <p>Agenda tu próxima visita a un comercio local.</p>
+        </div>
+      </div>
+      <p
+        id="estadoAplicacion"
+        class="mensaje-formulario"
+        role="status"
+        aria-live="polite"
+      ></p>
+      <section id="detalleServicio" class="panel-admin">
+        <h2 id="nombreServicio">Cargando servicio…</h2>
+        <p id="categoriaServicioDetalle"></p>
+        <p id="descripcionServicio"></p>
+        <p id="precioServicio"></p>
+        <p id="duracionServicio"></p>
+        <h3>Comercio</h3>
+        <p id="comercioServicio"></p>
+        <h3>Horarios de atención</h3>
+        <ul id="horariosServicio"></ul>
+      </section>
+      <section class="panel-admin" aria-labelledby="tituloDisponibilidad">
+        <h2 id="tituloDisponibilidad">Elige tu horario</h2>
+        <p>
+          Horarios en Pereira (America/Bogota). El precio de referencia es
+          informativo.
+        </p>
+        <form id="formDisponibilidad" class="formulario">
+          <div class="form-grid">
+            <div class="campo">
+              <label for="fechaReserva">Fecha de la reserva</label
+              ><input id="fechaReserva" type="date" required />
+            </div>
+          </div>
+          <button class="boton boton-primario" type="submit">
+            Consultar disponibilidad
+          </button>
+        </form>
+        <p id="accesoReserva"></p>
+        <p
+          id="mensajeReserva"
+          class="mensaje-formulario"
+          role="status"
+          aria-live="polite"
+        ></p>
+        <div id="slotsServicio" class="agenda-slots"></div>
+        <a
+          class="enlace-acento"
+          href="mis-reservas.html"
+          id="enlaceMisReservas"
+          hidden
+          >Consultar Mis reservas →</a
+        >
+      </section>
+    </main>
+    <script src="js/estado-local.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/sesion.js"></script>
+    <script src="js/legado.js"></script>
+    <script src="js/app-init.js"></script>
+  </body>
+</html>

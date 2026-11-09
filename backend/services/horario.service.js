@@ -19,8 +19,12 @@ function createHorarioService(repos) {
           body.diaSemana === undefined && previo
             ? previo.diaSemana
             : V.entero(body.diaSemana, "Día ISO", 1, 7),
-        horaInicio: body.horaInicio ?? previo?.horaInicio,
-        horaFin: body.horaFin ?? previo?.horaFin,
+        horaInicio: Object.hasOwn(body, "horaInicio")
+          ? body.horaInicio
+          : previo?.horaInicio,
+        horaFin: Object.hasOwn(body, "horaFin")
+          ? body.horaFin
+          : previo?.horaFin,
       };
       const a = minutos(h.horaInicio),
         b = minutos(h.horaFin);

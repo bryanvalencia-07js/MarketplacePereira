@@ -123,6 +123,7 @@ const UI = (() => {
         <div class="producto-oferta"><strong class="producto-precio">${RP.dinero(producto.precio)}</strong><span class="producto-moneda">COP</span></div>
         <p class="producto-stock ${disponible ? "disponible" : "agotado"}">${disponible ? `${RP.stock(producto)} disponibles` : "Agotado"}</p>
         <a class="boton boton-secundario" href="detalle-producto.html?id=${Number(producto.id)}">Ver producto <span aria-hidden="true">↗</span></a>
+        ${typeof usuarioSesion !== "undefined" && usuarioSesion?.rol === "Comprador" ? `<button type="button" class="boton boton-secundario" data-favorito-producto="${Number(producto.id)}" aria-label="Guardar ${e(producto.nombre)} en favoritos">Guardar favorito</button>` : ""}
       </div>
     </article>`;
   }

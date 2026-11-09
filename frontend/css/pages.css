@@ -2642,3 +2642,27 @@ html:not(.narrativa-animada) .story-visibilidad-indicador {
 @media (max-width: 650px) {
   .dashboard-bienvenida h1, .modulo-encabezado h1 { font-size: 2.5rem; }
 }
+
+/* PR6: reutiliza paneles, tipografía, formularios y botones del sistema visual. */
+.agenda-contenido { padding-block: 2rem 4rem; }
+.agenda-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 1.5rem; }
+.agenda-grid > .panel-admin { margin: 0; min-width: 0; }
+.agenda-page .panel-admin { overflow-wrap: anywhere; }
+.agenda-page .panel-admin h2, .agenda-page .panel-admin h3 { margin-bottom: .75rem; }
+.agenda-page .panel-admin p { margin-block: .65rem; }
+.agenda-page .panel-admin .boton { margin-top: .5rem; }
+.agenda-page select, .agenda-page input, .agenda-page textarea { max-width: 100%; min-width: 0; }
+.agenda-slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 1rem; margin-block: 1rem; }
+.agenda-slot, .agenda-horario { padding: 1rem; border: 1px solid var(--borde); border-radius: 12px; }
+.agenda-horario { margin-top: 1rem; }
+.agenda-page .acciones-formulario { flex-wrap: wrap; }
+.agenda-page .market-nav { grid-template-columns: minmax(0, 1fr) auto; }
+.agenda-page .marca > span:last-child { display: flex; flex-direction: column; }
+@media (max-width: 768px) {
+  .agenda-page .market-usuario { display: none; }
+  .agenda-page .market-nav .menu-toggle { grid-column: 2; grid-row: 1; }
+  .agenda-page .marca { min-width: 0; }
+}
+@media (max-width: 768px) {
+  .agenda-page .market-nav:not(.detalle-nav):not(.carrito-nav) .boton.menu-toggle { position: static; }
+}
