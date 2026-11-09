@@ -42,9 +42,11 @@ function apiRoutes(servicios, opcionesCookie, instancia) {
     "/usuarios",
     usuarioRoutes(createUsuarioController(servicios.usuarios)),
   );
+  router.use(require("./agenda.routes").agendaRoutes(servicios));
   for (const [ruta, servicio] of [
     ["negocios", servicios.negocios],
     ["productos", servicios.productos],
+    ["servicios", servicios.servicios],
   ]) {
     const c = createRecursoController(servicio);
     router.get("/" + ruta, c.listar);

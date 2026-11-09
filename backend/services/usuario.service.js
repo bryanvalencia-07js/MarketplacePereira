@@ -123,6 +123,11 @@ function createUsuarioService(repos, revocar = () => {}) {
           400,
           "Debe permanecer al menos un administrador activo.",
         );
+        exigir(
+          !(await repos.reserva.list()).some((r) => r.usuarioId === id),
+          409,
+          "El usuario tiene reservas. Conserva su historial.",
+        );
         await repos.usuario.delete(id);
         revocar(id);
         return { id };

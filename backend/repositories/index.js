@@ -25,6 +25,7 @@ function createRepositories(inicial = createInitialData()) {
   for (const fila of [
     ...(inicial.negocios ?? []),
     ...(inicial.productos ?? []),
+    ...(inicial.servicios ?? []),
   ]) {
     if (
       fila.categoria &&
@@ -59,12 +60,16 @@ function createRepositories(inicial = createInitialData()) {
     ["usuario", inicial.usuarios],
     ["negocio", inicial.negocios],
     ["producto", inicial.productos],
+    ["servicio", inicial.servicios],
+    ["horario", inicial.horarios],
+    ["reserva", inicial.reservas],
+    ["favorito", inicial.favoritos],
   ]) {
     const normalizadas = (filas ?? []).map((f) => {
       const n = { ...f };
       if (nombre === "usuario")
         n.rolId ??= roles.find((r) => r.nombre === f.rol)?.id;
-      else
+      else if (["negocio", "producto", "servicio"].includes(nombre))
         n.categoriaId ??= categorias.find(
           (c) => claveNombre(c.nombre) === claveNombre(f.categoria),
         )?.id;
@@ -87,7 +92,8 @@ function createRepositories(inicial = createInitialData()) {
     async function proyectar(f) {
       if (!f) return null;
       if (nombre === "usuario") f.rol = (await repos.rol.find(f.rolId))?.nombre;
-      else f.categoria = (await repos.categoria.find(f.categoriaId))?.nombre;
+      else if (["negocio", "producto", "servicio"].includes(nombre))
+        f.categoria = (await repos.categoria.find(f.categoriaId))?.nombre;
       if (nombre === "producto") f.popularidad = f.visitas; // alias de API transitorio
       if (nombre === "negocio") {
         const u = await repos.usuario.find(f.usuarioId);
@@ -116,7 +122,37 @@ function createRepositories(inicial = createInitialData()) {
           ),
         );
       },
-      delete: raw.delete,
+      async delete(id) {
+        id = Number(id);
+        const { exigir } = require("../utils/errors");
+        if (nombre === "servicio") {
+          exigir(
+            !(await repos.reserva.list()).some((r) => r.servicioId === id),
+            409,
+            "El servicio tiene reservas. Desactívalo para conservar el historial.",
+          );
+          for (const h of await repos.horario.list())
+            if (h.servicioId === id) await repos.horario.delete(h.id);
+        }
+        if (nombre === "usuario")
+          exigir(
+            !(await repos.reserva.list()).some((r) => r.usuarioId === id),
+            409,
+            "El usuario tiene reservas. Conserva su historial.",
+          );
+        if (nombre === "negocio")
+          exigir(
+            !(await repos.servicio.list()).some((s) => s.negocioId === id),
+            409,
+            "Resuelve primero los servicios del comercio.",
+          );
+        if (["usuario", "producto"].includes(nombre)) {
+          for (const f of await repos.favorito.list())
+            if ((nombre === "usuario" ? f.usuarioId : f.productoId) === id)
+              await repos.favorito.delete(f.id);
+        }
+        return raw.delete(id);
+      },
     };
   }
   return repos;

@@ -4,7 +4,15 @@
    transaccion(callback) serializa escrituras; MySQL confirma o revierte el callback.
    memory solo serializa por proceso, sin rollback de callbacks arbitrarios. */
 function validarRepositories(repositories) {
-  for (const nombre of ["usuario", "negocio", "producto"]) {
+  for (const nombre of [
+    "usuario",
+    "negocio",
+    "producto",
+    "servicio",
+    "horario",
+    "reserva",
+    "favorito",
+  ]) {
     for (const metodo of ["list", "find", "create", "update", "delete"]) {
       if (typeof repositories?.[nombre]?.[metodo] !== "function")
         throw new TypeError(`Repositorio ${nombre}: falta ${metodo}.`);

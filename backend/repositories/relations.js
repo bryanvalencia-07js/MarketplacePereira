@@ -40,7 +40,7 @@ async function normalizarEscritura(nombre, datos, previo, repos) {
     cambios.rolId = rol.id;
   }
   if (
-    ["negocio", "producto"].includes(nombre) &&
+    ["negocio", "producto", "servicio"].includes(nombre) &&
     (Object.hasOwn(datos, "categoria") || Object.hasOwn(datos, "categoriaId"))
   ) {
     const categoria = await resolverReferencia(
@@ -71,6 +71,15 @@ async function normalizarEscritura(nombre, datos, previo, repos) {
       "Este comerciante ya tiene un comercio.",
     );
   }
+  if (
+    ["producto", "servicio"].includes(nombre) &&
+    Object.hasOwn(datos, "negocioId")
+  )
+    exigir(
+      await repos.negocio.find(datos.negocioId),
+      400,
+      "Selecciona un comercio existente.",
+    );
   if (nombre === "producto") {
     if (
       Object.hasOwn(datos, "visitas") ||

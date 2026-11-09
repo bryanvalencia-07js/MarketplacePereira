@@ -41,6 +41,10 @@ async function createApplication({
     usuarios,
     negocios: createNegocioService(repositories),
     productos: createProductoService(repositories),
+    servicios: require("./services/servicio.service").createServicioService(repositories),
+    horarios: require("./services/horario.service").createHorarioService(repositories),
+    reservas: require("./services/reserva.service").createReservaService(repositories),
+    favoritos: require("./services/favorito.service").createFavoritoService(repositories),
   };
   servicios.publico = createPublicoService(servicios);
   if (

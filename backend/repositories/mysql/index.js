@@ -5,6 +5,28 @@ const { AppError } = require("../../utils/errors");
 
 // Identificadores SQL cerrados; ningún nombre de tabla/columna procede del cliente.
 const modelos = {
+  servicio: {
+    tabla: "servicios",
+    campos: [
+      "negocioId",
+      "categoriaId",
+      "nombre",
+      "descripcion",
+      "precioReferencia",
+      "estado",
+      "duracionMinutos",
+      "capacidadSimultanea",
+    ],
+  },
+  horario: {
+    tabla: "horarios_servicio",
+    campos: ["servicioId", "diaSemana", "horaInicio", "horaFin"],
+  },
+  reserva: {
+    tabla: "reservas",
+    campos: ["usuarioId", "servicioId", "fechaHoraInicio", "estado"],
+  },
+  favorito: { tabla: "favoritos", campos: ["usuarioId", "productoId"] },
   usuario: {
     tabla: "usuarios",
     campos: [
@@ -69,11 +91,15 @@ function errorSeguro(error) {
 function dto(fila) {
   if (!fila) return null;
   const resultado = { ...fila };
-  for (const campo of ["createdAt", "updatedAt"])
+  for (const campo of ["createdAt", "updatedAt", "fechaHoraInicio"])
     if (resultado[campo] instanceof Date)
       resultado[campo] = resultado[campo].toISOString();
   if (Object.hasOwn(resultado, "precio"))
     resultado.precio = Number(resultado.precio);
+  if (Object.hasOwn(resultado, "precioReferencia"))
+    resultado.precioReferencia = Number(resultado.precioReferencia);
+  for (const campo of ["horaInicio", "horaFin"])
+    if (resultado[campo]) resultado[campo] = resultado[campo].slice(0, 5);
   if (Object.hasOwn(resultado, "visitas"))
     resultado.popularidad = resultado.visitas;
   return resultado;
@@ -145,7 +171,7 @@ function createMysqlRepositories(pool) {
     async ready() {
       const filas = await ejecutar(
         "SELECT version FROM schema_migrations WHERE version = ? AND applied = TRUE",
-        ["002_normalize_roles_categories.sql"],
+        ["003_services_reservations_favorites.sql"],
       );
       if (filas.length !== 1)
         throw new Error("Ejecuta las migraciones antes de iniciar MySQL.");
@@ -162,15 +188,17 @@ function createMysqlRepositories(pool) {
       (nombre === "negocio"
         ? ", c.nombre AS categoria, CONCAT(u.nombre, ' ', u.apellido) AS propietario"
         : "") +
-      (nombre === "producto" ? ", c.nombre AS categoria" : "");
+      (["producto", "servicio"].includes(nombre)
+        ? ", c.nombre AS categoria"
+        : "");
     const desde =
       tabla +
       (nombre === "usuario" ? " JOIN roles r ON r.id = usuarios.rolId" : "") +
       (nombre === "negocio"
         ? " JOIN categorias c ON c.id = negocios.categoriaId JOIN usuarios u ON u.id = negocios.usuarioId"
         : "") +
-      (nombre === "producto"
-        ? " JOIN categorias c ON c.id = productos.categoriaId"
+      (["producto", "servicio"].includes(nombre)
+        ? ` JOIN categorias c ON c.id = ${tabla}.categoriaId`
         : "");
     const idValido = (id) => Number.isSafeInteger(Number(id)) && Number(id) > 0;
     const entradas = (datos) =>
@@ -202,7 +230,9 @@ function createMysqlRepositories(pool) {
           const placeholders = keys.map(() => "?").join(", ");
           const resultado = await ejecutar(
             `INSERT INTO ${tabla} (${columnasInsert}) VALUES (${placeholders})`,
-            keys.map((k) => valores[k]),
+            keys.map((k) =>
+              k === "fechaHoraInicio" ? new Date(valores[k]) : valores[k],
+            ),
           );
           return repo.find(resultado.insertId);
         });
@@ -223,7 +253,12 @@ function createMysqlRepositories(pool) {
           cambios.push("updatedAt = UTC_TIMESTAMP(3)");
           await ejecutar(
             `UPDATE ${tabla} SET ${cambios.join(", ")} WHERE id = ?`,
-            [...keys.map((k) => valores[k]), Number(id)],
+            [
+              ...keys.map((k) =>
+                k === "fechaHoraInicio" ? new Date(valores[k]) : valores[k],
+              ),
+              Number(id),
+            ],
           );
           return repo.find(id);
         });

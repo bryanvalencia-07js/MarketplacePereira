@@ -141,6 +141,11 @@ function createNegocioService(repos) {
           400,
           "Elimina primero los productos del comercio.",
         );
+        exigir(
+          !(await repos.servicio.list()).some((s) => s.negocioId === id),
+          409,
+          "Resuelve primero los servicios del comercio.",
+        );
         await repos.negocio.delete(id);
         return { id };
       }),
