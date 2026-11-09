@@ -96,6 +96,7 @@ function createReservaService(repos) {
         const d = await disponibilidad(a, id, A.fechaLocal(ms)),
           slot = d.slots.find((x) => Date.parse(x.fechaHoraInicio) === ms);
         exigir(slot, 400, "Selecciona un slot válido del horario.");
+        exigir(ms > Date.now(), 400, "La reserva debe estar en el futuro.");
         exigir(
           slot.cuposDisponibles > 0,
           409,

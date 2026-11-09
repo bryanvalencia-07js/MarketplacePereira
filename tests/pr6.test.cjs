@@ -273,3 +273,56 @@ test("PR6 horarios concurrentes no se superponen y baja de capacidad usa pico re
   });
   await c.s.actualizar(vendedor, s.id, { capacidadSimultanea: 1 });
 });
+test("PR6 historial y dependencias: eliminar servicios sin reservas, horarios y favoritos de usuario", async () => {
+  const c = fixture(),
+    s = await agenda(c);
+  await c.s.eliminar(vendedor, s.id);
+  assert.equal((await c.repos.horario.list()).length, 0);
+  assert.equal(await c.repos.servicio.find(s.id), null);
+  await c.f.crear(comprador, { productoId: 1 });
+  await c.repos.usuario.delete(comprador.id);
+  assert.equal((await c.repos.favorito.list()).length, 0);
+});
+test("PR6 horarios inválidos no se aceptan como cambios vacíos y capacidad libera cancelaciones", async () => {
+  const c = fixture(),
+    s = await agenda(c, 2),
+    [h] = await c.h.listar(vendedor, s.id);
+  await assert.rejects(
+    c.h.actualizar(vendedor, h.id, { horaInicio: null }),
+    (e) => e.status === 400,
+  );
+  const a = await c.r.crear(comprador, {
+    servicioId: s.id,
+    fechaHoraInicio: inicio,
+  });
+  await c.r.crear(comprador, { servicioId: s.id, fechaHoraInicio: inicio });
+  await assert.rejects(
+    c.s.actualizar(vendedor, s.id, { capacidadSimultanea: 1 }),
+    (e) => e.status === 409,
+  );
+  await c.r.cancelar(comprador, a.id);
+  await c.s.actualizar(vendedor, s.id, { capacidadSimultanea: 1 });
+});
+test("PR6 reserva: revalida el futuro después de consultar disponibilidad bajo bloqueo", async () => {
+  const c = fixture(),
+    s = await agenda(c),
+    real = Date.now,
+    ms = Date.parse(inicio),
+    list = c.repos.horario.list;
+  let ahora = ms - 1;
+  c.repos.horario.list = async () => {
+    const h = await list();
+    ahora = ms + 1;
+    return h;
+  };
+  Date.now = () => ahora;
+  try {
+    await assert.rejects(
+      c.r.crear(comprador, { servicioId: s.id, fechaHoraInicio: inicio }),
+      (e) => e.status === 400,
+    );
+    assert.equal((await c.repos.reserva.list()).length, 0);
+  } finally {
+    Date.now = real;
+  }
+});

@@ -324,3 +324,108 @@ test("MySQL real: horarios transaccionales, rollback y conflictos de duración/c
   );
   assert.equal((await r.reserva.find(b.id)).estado, "Cancelada");
 });
+test("003: checksums/versionado detectan drift e intento incompleto sin tocar historial", async () => {
+  const version = "003_services_reservations_favorites.sql";
+  const [rows] = await pool.execute(
+    "SELECT checksum FROM schema_migrations WHERE version=?",
+    [version],
+  );
+  const checksum = rows[0].checksum;
+  try {
+    await pool.execute(
+      "UPDATE schema_migrations SET checksum=REPEAT('0',64) WHERE version=?",
+      [version],
+    );
+    await assert.rejects(migrate(pool), /alterada/);
+  } finally {
+    await pool.execute(
+      "UPDATE schema_migrations SET checksum=? WHERE version=?",
+      [checksum, version],
+    );
+  }
+  try {
+    await pool.execute(
+      "UPDATE schema_migrations SET applied=FALSE WHERE version=?",
+      [version],
+    );
+    await assert.rejects(migrate(pool), /incompleta/);
+    await assert.rejects(r.ready(), /migraciones/);
+  } finally {
+    await pool.execute(
+      "UPDATE schema_migrations SET applied=TRUE WHERE version=?",
+      [version],
+    );
+  }
+  for (const [file, expected] of [
+    [
+      "001_foundation.sql",
+      "d527db03c8dfa21e30d042cd0061da30191aafb7134de071a31ace4bd1ca21ca",
+    ],
+    [
+      "002_normalize_roles_categories.sql",
+      "8a22693280d0b780c6453733520c9bc4efc60e69ad498af63c1692617ffe7a74",
+    ],
+  ])
+    assert.equal(
+      createHash("sha256")
+        .update(
+          await fs.readFile(
+            path.join(__dirname, "../backend/db/migrations", file),
+          ),
+        )
+        .digest("hex"),
+      expected,
+    );
+});
+test("003: cascadas de horario y favorito por usuario, categoría activa y aislamiento MySQL", async () => {
+  const s = ctx(r);
+  await assert.rejects(
+    s.s.actualizar({ ...merchant, id: merchant.id + 999 }, service.id, {
+      nombre: "Ajeno",
+    }),
+    (e) => e.status === 403,
+  );
+  assert.equal(
+    (
+      await s.s.listar(
+        { ...merchant, id: merchant.id + 999 },
+        { gestion: "true" },
+      )
+    ).length,
+    0,
+  );
+  await pool.execute("UPDATE categorias SET estado='Inactivo' WHERE id=?", [
+    service.categoriaId,
+  ]);
+  try {
+    assert.equal((await s.s.listar(null)).length, 0);
+    await assert.rejects(
+      s.r.crear(buyer, { servicioId: service.id, fechaHoraInicio: inicio }),
+      (e) => e.status === 404,
+    );
+    await assert.rejects(
+      s.s.actualizar(merchant, service.id, { categoria: "Alimentos" }),
+      (e) => e.status === 400,
+    );
+    await s.s.actualizar(merchant, service.id, { nombre: "Conservado" });
+  } finally {
+    await pool.execute("UPDATE categorias SET estado='Activo' WHERE id=?", [
+      service.categoriaId,
+    ]);
+  }
+  const p = await r.producto.create({
+    negocioId: service.negocioId,
+    categoria: "Alimentos",
+    nombre: "Producto",
+    descripcion: "Local",
+    precio: 1,
+    stock: 1,
+    imagen: "fixture",
+    estado: "Activo",
+  });
+  const f = await s.f.crear(buyer, { productoId: p.id });
+  await r.usuario.delete(buyer.id);
+  assert.equal(await r.favorito.find(f.id), null);
+  await s.s.eliminar(merchant, service.id);
+  assert.equal((await r.horario.list()).length, 0);
+});

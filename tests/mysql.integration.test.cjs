@@ -58,6 +58,15 @@ before(async () => {
 });
 beforeEach(async () => {
   await repos.transaccion(async () => {
+    // Esta base _test puede conservar fixtures de PR6 de una ejecución anterior.
+    // Limpiar asociaciones/historial de prueba antes de sus padres, sin omitir casos.
+    for (const repo of [
+      repos.favorito,
+      repos.reserva,
+      repos.horario,
+      repos.servicio,
+    ])
+      for (const fila of await repo.list()) await repo.delete(fila.id);
     for (const p of await repos.producto.list())
       await repos.producto.delete(p.id);
     for (const n of await repos.negocio.list())
@@ -115,7 +124,10 @@ test("MySQL real: CRUD compatible, fechas ISO, decimales, límites e IDs no reut
   assert.equal(n.propietario, "Ana Pereira");
   await repos.usuario.update(u.id, { nombre: "Laura" });
   assert.equal((await repos.negocio.find(n.id)).propietario, "Laura Pereira");
-  assert.equal((await repos.negocio.update(n.id, { nombre: "Café local" })).propietario, "Laura Pereira");
+  assert.equal(
+    (await repos.negocio.update(n.id, { nombre: "Café local" })).propietario,
+    "Laura Pereira",
+  );
   const p = await repos.producto.create(producto(n.id));
   assert.equal(typeof p.id, "number");
   assert.equal(p.precio, 10.25);
