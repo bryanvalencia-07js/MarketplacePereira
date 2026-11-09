@@ -94,7 +94,7 @@ function limpiarFiltros() {
 function mostrarPopulares() {
   const lista = productos
     .filter((p) => RP.visible(p, negocios))
-    .sort((a, b) => (Number(b.popularidad) || 0) - (Number(a.popularidad) || 0))
+    .sort((a, b) => (Number(b.visitas) || 0) - (Number(a.visitas) || 0))
     .slice(0, 4);
   document.getElementById("productosPopulares").innerHTML =
     lista.map((p) => UI.tarjetaProducto(p, negocios)).join("") ||

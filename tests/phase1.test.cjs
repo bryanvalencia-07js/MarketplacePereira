@@ -1384,3 +1384,55 @@ test("Coverflow: centrar categorías conserva la posición vertical de la págin
   });
   assert.equal(await page.evaluate(() => scrollY), 0, "Centrar el carrusel no desplaza el documento");
 });
+
+test("PR5: Coverflow y filtros usan categorías reales adicionales del backend", async () => {
+  await abrir("marketplace.html", {
+    usuario: null,
+    datos: { productos: [{ ...productos[0], categoria: "Diseño local" }] },
+  });
+  await listo("filtrarCategoria");
+  const categoria = page.locator('.categoria-3d[data-valor="Diseño local"]');
+  assert.equal(await categoria.count(), 1);
+  assert.equal(
+    await categoria.locator("use").getAttribute("href"),
+    "assets/icons/categorias.svg#otro",
+  );
+  await categoria.click();
+  assert.equal(await categoria.getAttribute("aria-pressed"), "true");
+  await texto("#contadorProductos", "1");
+});
+
+test("PR5: comerciante completa municipio y descripción sin datos inventados", async () => {
+  await abrir("mi-negocio.html", { usuario: 2 });
+  await listo("guardarMiNegocio");
+  assert.equal(await page.locator("#municipio").inputValue(), "");
+  assert.equal(await page.locator("#descripcionNegocio").inputValue(), "");
+  await page.locator("#municipio").fill("Dosquebradas");
+  await page.locator("#descripcionNegocio").fill("Tostamos café local.");
+  await page.locator('#formMiNegocio button[type="submit"]').click();
+  await texto("#mensajeMiNegocio", "correctamente");
+  assert.equal((await leer("negocios"))[0].municipio, "Dosquebradas");
+  await page.reload();
+  await listo("guardarMiNegocio");
+  assert.equal(
+    await page.locator("#descripcionNegocio").inputValue(),
+    "Tostamos café local.",
+  );
+});
+
+test("PR5: fallo del catálogo permite reintentar y no publica una lista ficticia", async () => {
+  await page.route("**/api/categorias", (r) =>
+    r.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: false, mensaje: "Catálogo no disponible" }),
+    }),
+  );
+  await abrir("marketplace.html", { usuario: null });
+  await texto("#estadoAplicacion", "Catálogo no disponible");
+  assert.equal(await page.locator(".categoria-3d").count(), 0);
+  await page.unroute("**/api/categorias");
+  await page.getByRole("button", { name: "Reintentar", exact: true }).click();
+  await listo("filtrarCategoria");
+  assert.equal(await page.locator(".categoria-3d").count(), 25);
+});

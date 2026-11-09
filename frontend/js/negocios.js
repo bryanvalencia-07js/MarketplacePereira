@@ -61,6 +61,8 @@ async function guardarNegocio(event) {
         categoria: document.getElementById("categoria").value,
         telefono: document.getElementById("telefono").value,
         direccion: document.getElementById("direccion").value,
+        municipio: document.getElementById("municipio").value,
+        descripcion: document.getElementById("descripcionNegocio").value,
       };
       if (id) await API.put(`/negocios/${id}`, body);
       else await API.post("/negocios", body);
@@ -81,6 +83,8 @@ async function editarNegocio(id) {
       categoria: n.categoria,
       telefono: n.telefono,
       direccion: n.direccion,
+      municipio: n.municipio ?? "",
+      descripcionNegocio: n.descripcion ?? "",
     }))
       document.getElementById(k).value = v;
     document.getElementById("tituloNegocio").textContent = "Editar negocio";

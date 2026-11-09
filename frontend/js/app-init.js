@@ -80,6 +80,7 @@ function cargarScript(archivo) {
     UI.estado("Cargando…", "carga");
     await sesionLista;
     if (config.roles && !protegerPorRol(config.roles)) return;
+    if (typeof iniciarCategoriasRP === "function") await iniciarCategoriasRP();
     if (config.script === "mis-productos") await cargarScript("js/imagenes.js");
     await cargarScript(`js/${config.script}.js`);
     if (window.moduloListo) await window.moduloListo;

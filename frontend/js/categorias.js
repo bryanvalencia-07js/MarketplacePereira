@@ -2,7 +2,8 @@
    REACTIVA PEREIRA · CATEGORÍAS COMPARTIDAS
 ========================================================= */
 
-const CATEGORIAS_RP = Object.freeze([
+// Mapa de presentación de los SVG existentes. El catálogo proviene de API.
+const ICONOS_CATEGORIAS = Object.freeze([
   { nombre: "Alimentos", icono: "alimentos" },
   { nombre: "Bebidas", icono: "bebidas" },
   { nombre: "Restaurantes", icono: "restaurantes" },
@@ -28,6 +29,8 @@ const CATEGORIAS_RP = Object.freeze([
   { nombre: "Regalos", icono: "regalos" },
   { nombre: "Otro", icono: "otro" },
 ]);
+
+let CATEGORIAS_RP = [];
 
 /* =========================================================
    MARKETPLACE
@@ -493,7 +496,12 @@ function llenarSelectCategorias(
    INICIALIZACIÓN
 ========================================================= */
 
-function iniciarCategoriasRP() {
+async function iniciarCategoriasRP() {
+  CATEGORIAS_RP = (await API.get('/categorias')).map(categoria => ({
+    ...categoria,
+    icono: ICONOS_CATEGORIAS.find(c => c.nombre === categoria.nombre)?.icono || 'otro',
+  }));
+
 
   renderizarCategoriasMarketplace();
 
@@ -516,11 +524,11 @@ function iniciarCategoriasRP() {
   );
 
 
+  llenarSelectCategorias('filtroCategoria', 'Todas las categorías');
   const carrusel =
     document.getElementById(
       "carruselCategorias"
     );
-
 
   if (carrusel) {
 
@@ -555,18 +563,4 @@ function iniciarCategoriasRP() {
 }
 
 
-if (
-  document.readyState ===
-  "loading"
-) {
-
-  document.addEventListener(
-    "DOMContentLoaded",
-    iniciarCategoriasRP
-  );
-
-} else {
-
-  iniciarCategoriasRP();
-
-}
+// app-init espera el catálogo antes de cargar los formularios o el marketplace.

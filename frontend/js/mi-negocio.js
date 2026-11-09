@@ -12,13 +12,13 @@ async function cargarMiNegocio() {
     ["Inactivos", productos.filter((p) => p.estado !== "Activo").length],
     ["Agotados", productos.filter((p) => p.stock === 0).length],
     ["Stock bajo", productos.filter((p) => p.stock > 0 && p.stock <= 5).length],
-    ["Visitas", productos.reduce((a, p) => a + p.popularidad, 0)],
+    ["Visitas", productos.reduce((a, p) => a + p.visitas, 0)],
   ]);
   document.getElementById("estadoSinComercio").hidden = Boolean(miNegocio);
   document.getElementById("seccionMiComercio").hidden = !miNegocio;
   document.getElementById("btnProductos").hidden = !miNegocio;
   document.getElementById("completitudComercio").textContent = miNegocio
-    ? `Perfil completo: ${Math.round((["nombre", "categoria", "telefono", "direccion"].filter((k) => miNegocio[k]).length / 4) * 100)}%`
+    ? `Perfil completo: ${Math.round((["nombre", "categoria", "telefono", "direccion", "municipio", "descripcion"].filter((k) => miNegocio[k]).length / 6) * 100)}%`
     : "Completa tu comercio para comenzar.";
   document.getElementById("previewComercio").href = miNegocio
     ? `marketplace.html?negocioId=${miNegocio.id}`
@@ -31,8 +31,10 @@ async function cargarMiNegocio() {
     categoria: "categoria",
     telefono: "telefono",
     direccion: "direccion",
+    municipio: "municipio",
+    descripcionNegocio: "descripcion",
   }))
-    document.getElementById(campo).value = miNegocio[key];
+    document.getElementById(campo).value = miNegocio[key] ?? "";
   for (const [campo, valor] of Object.entries({
     inicialComercio: miNegocio.nombre.charAt(0).toUpperCase(),
     vistaNombreNegocio: miNegocio.nombre,
@@ -56,6 +58,8 @@ async function guardarMiNegocio(event) {
         categoria: document.getElementById("categoria").value,
         telefono: document.getElementById("telefono").value,
         direccion: document.getElementById("direccion").value,
+        municipio: document.getElementById("municipio").value,
+        descripcion: document.getElementById("descripcionNegocio").value,
       };
       if (miNegocio) await API.put(`/negocios/${miNegocio.id}`, body);
       else await API.post("/negocios", body);
