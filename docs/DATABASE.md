@@ -58,13 +58,13 @@ IDs INT UNSIGNED, fechas DATETIME(3) UTC, precio DECIMAL(12,2) convertido a Numb
 
 Asignar explícitamente una categoría inexistente/inactiva produce 400. Un recurso histórico con categoría desactivada puede conservar su relación al editar otros atributos omitiendo `categoria`; una nueva asignación debe ser activa. El endpoint público y los selects solo ofrecen categorías activas. No se añade administración visual de categorías.
 
-### Alcance futuro del DER
+### DER final implementado
 
-El DER aprobado tiene once entidades. Nueve están implementadas: Rol, Usuario, Categoria, Negocio, Producto, Servicio, Horario_Servicio, Reserva y Favorito. PR7 añadirá únicamente Pedido y Detalle_Pedido. No hay Inventario (stock pertenece a Producto), Sector_Comercial (se utiliza Categoria), Pago, Factura ni Disponibilidad persistida.
+El DER aprobado está implementado con exactamente once entidades: Rol, Usuario, Categoria, Negocio, Producto, Servicio, Horario_Servicio, Reserva, Favorito, Pedido y Detalle_Pedido. No hay Inventario (stock pertenece a Producto), Sector_Comercial (se utiliza Categoria), Pago, Factura ni Disponibilidad persistida.
 
 ## Servicios, horarios, reservas y favoritos (003)
 
-`003_services_reservations_favorites.sql` se aplica después de 001 → 002. No altera tablas ni datos de PR5. Las tres migraciones se registran con checksum SHA-256 y estado de aplicación; un intento incompleto o checksum distinto bloquea el runner. 001 conserva `d527db03c8dfa21e30d042cd0061da30191aafb7134de071a31ace4bd1ca21ca`; 002 conserva `8a22693280d0b780c6453733520c9bc4efc60e69ad498af63c1692617ffe7a74`. El arranque MySQL exige 003 aplicada.
+`003_services_reservations_favorites.sql` se aplica después de 001 → 002. No altera tablas ni datos de PR5. Las tres migraciones se registran con checksum SHA-256 y estado de aplicación; un intento incompleto o checksum distinto bloquea el runner. 001 conserva `d527db03c8dfa21e30d042cd0061da30191aafb7134de071a31ace4bd1ca21ca`; 002 conserva `8a22693280d0b780c6453733520c9bc4efc60e69ad498af63c1692617ffe7a74`. El arranque MySQL exige 003 y 004 aplicadas.
 
 | DER / tabla                            | PK, FK y atributos físicos                                                                                                                    | Cardinalidades / integridad                                                                                                                                                          |
 | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -83,7 +83,7 @@ Los índices cubren servicio/negocio, estado/categoría, horario/servicio/día/i
 
 Las reservas Confirmadas ocupan intervalos semiabiertos [inicio, inicio+duración). Para cada slot se calcula el pico de reservas simultáneas dentro del intervalo, ordenando finales antes que inicios coincidentes; esto también respeta reservas que quedaron desalineadas al cambiar un horario. `cuposOcupados` es ese pico; `cuposDisponibles=max(0,capacidad-pico)`; `disponible` exige además un inicio futuro. Una Cancelada no ocupa cupos. No se persisten slots ni contadores derivados ni se crea tabla Disponibilidad.
 
-Crear reserva ejecuta lectura de servicio/negocio/categoría, validación de slot futuro, comprobación de cupos e INSERT Confirmada dentro del mismo callback de `transaccion`. MySQL obtiene primero `SELECT id FROM repository_lock WHERE id=1 FOR UPDATE`, antes de cualquier lectura de negocio, y mantiene conexión/bloqueo hasta COMMIT o ROLLBACK. El siguiente proceso espera antes de leer, observa la reserva confirmada y rechaza con 409 si no hay cupo. Se reutiliza el bloqueo global existente: es correcto entre procesos que usan este adaptador, aunque serializa todas las escrituras. Memory usa una cola por instancia con las mismas reglas de servicio; no ofrece rollback de callbacks arbitrarios.
+Crear reserva ejecuta lectura de servicio/negocio/categoría, validación de slot futuro, comprobación de cupos e INSERT Confirmada dentro del mismo callback de `transaccion`. MySQL obtiene primero `SELECT id FROM repository_lock WHERE id=1 FOR UPDATE`, antes de cualquier lectura de negocio, y mantiene conexión/bloqueo hasta COMMIT o ROLLBACK. El siguiente proceso espera antes de leer, observa la reserva confirmada y rechaza con 409 si no hay cupo. Se reutiliza el bloqueo global existente: es correcto entre procesos que usan este adaptador, aunque serializa todas las escrituras. Memory usa una cola por instancia con las mismas reglas de servicio y copias privadas con rollback.
 
 El GET de disponibilidad es una consulta informativa y puede quedar desactualizado por otra reserva; POST siempre recalcula bajo bloqueo. No se acepta usuarioId desde el cliente. Las pruebas ejecutan simultáneamente dos intentos para capacidad 1 (un éxito y un 409) y cuatro para capacidad 3 (tres éxitos y un 409), alternando dos pools independientes, además de pruebas equivalentes memory/HTTP.
 
@@ -147,7 +147,7 @@ Antes de cambios de esquema o despliegues: respaldo con la herramienta de operac
 | `delete(id)`            | Booleano                          |
 | `transaccion(callback)` | Resultado del callback o error    |
 
-`createRepositories(datos)` conserva memory. `repositoriesFromConfig(config)` selecciona el adaptador; `createApplication` permite inyectarlo para pruebas. Los métodos MySQL de escritura abren transacción si se invocan fuera de una; dentro usan la conexión del contexto. `propietario`, IDs/fechas y campos ajenos al modelo no se escriben desde el DTO de entrada. `rol` y `categoria` se resuelven contra catálogos antes de escribir sus FK; los SELECT usan JOIN. `ready()` exige 003 aplicada.
+`createRepositories(datos)` conserva memory. `repositoriesFromConfig(config)` selecciona el adaptador; `createApplication` permite inyectarlo para pruebas. Los métodos MySQL de escritura abren transacción si se invocan fuera de una; dentro usan la conexión del contexto. `propietario`, IDs/fechas y campos ajenos al modelo no se escriben desde el DTO de entrada. `rol` y `categoria` se resuelven contra catálogos antes de escribir sus FK; los SELECT usan JOIN. `ready()` exige 003 y 004 aplicadas.
 
 ```text
 getConnection → configurar sesión → BEGIN
@@ -160,8 +160,67 @@ finally → release (destroy si no se puede revertir)
 
 El bloqueo global es deliberado: reproduce la exclusión de memory entre todos los procesos que usan este adaptador y preserva comprobaciones `list → validar → escribir` sin reescribir services. Evita carreras del último administrador y pérdida de incrementos de visitas. Se libera por commit/rollback. Es una decisión simple para este marketplace académico; limita el rendimiento de escritura y requiere revisar bloqueos más granulares al crecer. Escritores SQL externos no respetan esa fila: UNIQUE/FK/CHECK siguen protegiendo integridad, pero deben respetar también las reglas de aplicación.
 
-No hay transacciones anidadas: se rechazan explícitamente. El callback debe esperar todo su trabajo asincrónico; no lanzar tareas sueltas que continúen después del commit. No se hacen reintentos automáticos de callbacks con posibles efectos externos. Errores de integridad se convierten a errores seguros 400; otros errores llegan al middleware genérico sin revelar SQL. Memory serializa por proceso, pero **no** tiene rollback de callbacks arbitrarios.
+No hay transacciones anidadas: se rechazan explícitamente. El callback debe esperar todo su trabajo asincrónico; no lanzar tareas sueltas que continúen después del commit. No se hacen reintentos automáticos de callbacks con posibles efectos externos. Errores de integridad se convierten a errores seguros 400; otros errores llegan al middleware genérico sin revelar SQL. Memory serializa por proceso con copias privadas y commit/rollback; no persiste tras reiniciar.
 
 ## Pruebas
 
-La suite normal no necesita MySQL. `npm run test:mysql --prefix tests` exige `DATA_SOURCE=mysql` y `DB_NAME` terminada en `_test`, ejecuta secuencialmente la integración existente y las regresiones de 001 → 002 → 003, integridad y concurrencia de reservas. Esta última reconstruye únicamente la base dedicada y comprueba todos los atributos históricos, checksums y fallo parcial. Nunca usar datos del usuario. La CI usa MySQL 8.4; validación local realizada también con MySQL 8.0.46. Detalle en [SECURITY_TESTING](SECURITY_TESTING.md).
+La suite normal no necesita MySQL. `npm run test:mysql --prefix tests` exige `DATA_SOURCE=mysql` y `DB_NAME` terminada en `_test`, ejecuta secuencialmente la integración existente y las regresiones de 001 → 002 → 003 → 004, integridad y concurrencia de reservas/pedidos. Esta última reconstruye únicamente la base dedicada y comprueba todos los atributos históricos, checksums y fallo parcial. Nunca usar datos del usuario. La CI usa MySQL 8.4; validación local realizada también con MySQL 8.0.46. Detalle en [SECURITY_TESTING](SECURITY_TESTING.md).
+
+## Pedido y Detalle_Pedido (004)
+
+`004_orders_and_details.sql` crea dos tablas InnoDB/utf8mb4, sin alterar tablas, datos ni checksums de 001–003. La prueba de actualización conserva todas las columnas y filas de las nueve entidades de PR6, incluyendo horarios, reservas y favoritos. El runner registra cuatro versiones SHA-256; drift o un intento incompleto bloquean la migración. `ready()` comprueba 003 y 004 antes de servir MySQL. DDL requiere la ventana y respaldo descritos arriba.
+
+| Entidad / tabla                    | PK / FK / atributos                                                                                           | Restricciones e índices                                                                                                                   |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Pedido / `pedidos`                 | id PK; usuarioId → usuarios.id; negocioId → negocios.id; estado, observaciones nullable, createdAt, updatedAt | CHECK Pendiente/Confirmado/Completado/Cancelado; índices (usuarioId,createdAt), (negocioId,estado,createdAt)                              |
+| Detalle_Pedido / `detalles_pedido` | id PK; pedidoId → pedidos.id; productoId → productos.id; cantidad, precioUnitario; timestamps técnicos        | UNIQUE(pedidoId,productoId); CHECK cantidad 1..1000 y precioUnitario >0 hasta 1e9; índice por producto. UNIQUE cubre búsquedas por pedido |
+
+Las **cuatro FK usan ON DELETE RESTRICT y ON UPDATE RESTRICT**, incluida Detalle → Pedido: impiden que un borrado accidental retire historial completo. Los services devuelven 409 con una recomendación de desactivación para Producto/Negocio/Usuario referenciados antes de depender del error SQL. No hay endpoint DELETE de Pedido. Un producto con detalles no puede trasladarse a otro negocio mediante su service; se preserva la relación original del pedido. Cambiar nombre o precio, o desactivar, sí conserva el registro histórico. El nombre se resuelve desde el Producto vigente; no hay columna nombre_producto en Detalle.
+
+```text
+Usuario  1 ── N Pedido
+Negocio  1 ── N Pedido
+Pedido   1 ── N Detalle_Pedido
+Producto 1 ── N Detalle_Pedido
+```
+
+Un pedido tiene exactamente un negocio y al menos un detalle. El service valida que cada producto del detalle pertenezca a ese negocio. La relación Pedido N:M Producto se resuelve mediante Detalle_Pedido; no se añade una entidad de agrupación del carrito.
+
+### Mapeo DER y normalización
+
+| DER                                | Implementación                                                          |
+| ---------------------------------- | ----------------------------------------------------------------------- |
+| id_pedido                          | pedidos.id / DTO id                                                     |
+| id_usuario, id_negocio             | pedidos.usuarioId, negocioId                                            |
+| fecha_pedido                       | pedidos.createdAt UTC; DTO createdAt y alias fecha, sin segunda columna |
+| estado, observaciones              | pedidos.estado, observaciones                                           |
+| id_detalle, id_pedido, id_producto | detalles_pedido.id, pedidoId, productoId                                |
+| cantidad, precio_unitario          | detalles_pedido.cantidad, precioUnitario DECIMAL(12,2)                  |
+
+`precioUnitario` es un hecho histórico de la venta, obtenido exclusivamente de Producto.precio al crear el pedido; un cambio posterior a 40.000 no cambia un detalle de 30.000. `subtotal = cantidad × precioUnitario` y `total = SUM(subtotal)` son derivados de ese hecho y no se persisten. Los cálculos usan enteros en centavos y el DTO entrega COP. El total del carrito debe caber en Number.MAX_SAFE_INTEGER centavos (se rechaza 400 si lo supera). Cada producto acepta 1..1000 unidades **después** de consolidar repetidos; se admiten 1..100 líneas de entrada, IDs numéricos enteros positivos y observaciones de hasta 2000 caracteres. No se admiten cantidades decimales/strings/NaN ni importes arbitrarios del navegador.
+
+`stock` permanece en Producto, sin Inventario. Carrito es intención temporal del navegador, sin tabla Carrito/Carrito_Item. `Pedido.negocioId` identifica al único negocio de cada pedido. No hay duplicación de fecha, nombre, subtotal ni total por copiar literalmente el DER.
+
+### Atomicidad, locks y concurrencia
+
+El service ejecuta todo el POST dentro de **una** `repos.transaccion`: bloqueo → leer/validar → agrupar → insertar todos los pedidos/detalles → descontar stock → construir DTO → COMMIT. Si falla cualquier producto o cualquier escritura, ROLLBACK retira todos los pedidos/detalles y descuentos, incluso si otro negocio ya había sido insertado. La respuesta 201 solo llega después del commit.
+
+MySQL conserva el bloqueo global `repository_lock ... FOR UPDATE` de PR5/PR6, adquirido antes de leer reglas y compartido por las escrituras de los demás módulos. Después, `bloquearProductos(ids)` bloquea cada fila de Producto con `SELECT ... FOR UPDATE` en **productoId ascendente, sin duplicados**, antes de consultar precio y existencias. Creación y cancelación utilizan el mismo orden: global → productos ascendentes → escrituras; todos los locks permanecen en la misma conexión AsyncLocalStorage hasta commit/rollback. No hay SELECT liberado seguido de UPDATE. El bloqueo global simplifica coordinación pero serializa las escrituras; no se eliminó la protección de agenda ni último administrador. Escritores SQL externos deben respetar también estas reglas de aplicación.
+
+Las pruebas MySQL abren dos pools independientes y dos aplicaciones HTTP: con stock 1 y dos POST simultáneos se obtiene un fulfilled, un rejected 409, stock 0 y un único Pedido/Detalle; con stock 3 y cuatro POST hay tres éxitos y un 409. No son llamadas secuenciales. También hay rollback multinegocio vía POST y fallo provocado después del primer INSERT/descuento, más cancelaciones simultáneas entre pools.
+
+Memory utiliza la misma cola por instancia y AsyncLocalStorage con copias privadas del estado de cada repositorio. Un error descarta todas las copias; el commit publica cambios de forma síncrona. Lectores externos observan el último estado confirmado. Las escrituras de repositorios se encolan si no están ya dentro de una transacción. No hay persistencia ni coordinación entre procesos memory.
+
+### Estados y restitución
+
+| Actor                   | Permisos                                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Comprador               | Crear Pendiente y consultar sus pedidos; cancelar solo su Pendiente                                                       |
+| Comerciante propietario | Consultar/gestionar solo pedidos de su negocio; confirmar Pendiente, completar Confirmado y cancelar Pendiente/Confirmado |
+| Administrador           | Las mismas transiciones globalmente; no crea mediante el flujo de compra                                                  |
+
+Completado y Cancelado son terminales. Pendiente → Completado se rechaza 409. Cancelar bloquea antes de leer estado, autoriza propiedad, suma las cantidades históricas y actualiza a Cancelado en la misma transacción. Repetir `/cancelar` devuelve el Cancelado sin sumar otra vez; repetir una transición terminal vía `/estado` produce 409. Cancelar Completado siempre produce 409. Stock insuficiente al crear produce 409 indicando el ID seguro del producto.
+
+Se conserva el límite previo de Producto.stock 0..1.000.000. Si una reposición manual deja existencias tan altas que la restitución superaría ese límite, cancelar produce 409 y revierte todo; se debe revisar la existencia del producto antes de volver a cancelar. No se elimina el CHECK ni se pierde stock silenciosamente.
+
+Las once tablas de negocio finales son `roles`, `usuarios`, `categorias`, `negocios`, `productos`, `servicios`, `horarios_servicio`, `reservas`, `favoritos`, `pedidos`, `detalles_pedido`. Solo `schema_migrations` y `repository_lock` son infraestructura. No se crean Pago, Factura, Método_Pago, Transaccion financiera, Disponibilidad, Inventario, Sector_Comercial o estados como tablas independientes.

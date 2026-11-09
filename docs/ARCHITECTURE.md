@@ -31,9 +31,9 @@ Acción del usuario
 | `middleware`   | Sesión, políticas HTTP, origen, CSRF, rate limits y errores                      |
 | `utils`        | Validación, errores de dominio y hashing                                         |
 
-Los servicios acceden a `usuario`, `negocio`, `producto`, `servicio`, `horario`, `reserva` y `favorito` mediante `list/find/create/update/delete`. Los repositorios devuelven copias, generan IDs monotónicos y preservan `createdAt`; `updatedAt` cambia al actualizar. No exponen la colección interna. `transaccion(callback)` serializa escrituras y comprobaciones de unicidad; memory lo hace en este proceso y MySQL entre procesos con una fila bloqueada en InnoDB. MySQL usa AsyncLocalStorage para que el callback comparta conexión sin cambiar services. IDs y fechas se normalizan en DTOs; el propietario se deriva del usuario vigente, sin columna duplicada en MySQL.
+Los servicios acceden a `usuario`, `negocio`, `producto`, `servicio`, `horario`, `reserva`, `favorito`, `pedido` y `detallePedido` mediante `list/find/create/update/delete`. Los repositorios devuelven copias, generan IDs monotónicos y preservan `createdAt`; `updatedAt` cambia al actualizar. No exponen la colección interna. `transaccion(callback)` serializa escrituras y comprobaciones de unicidad; memory lo hace en este proceso y MySQL entre procesos con una fila bloqueada en InnoDB. MySQL usa AsyncLocalStorage para que el callback comparta conexión sin cambiar services. IDs y fechas se normalizan en DTOs; el propietario se deriva del usuario vigente, sin columna duplicada en MySQL.
 
-El adaptador de memoria no es almacenamiento duradero ni una implementación distribuida. Un error no transforma automáticamente un callback arbitrario en un rollback; las mutaciones validan antes de escribir y las asociaciones dependientes se eliminan explícitamente en memory. El adaptador MySQL proporciona BEGIN/COMMIT/ROLLBACK reales y libera o descarta la conexión en finally; ver [DATABASE](DATABASE.md).
+El adaptador de memoria no es almacenamiento duradero ni una implementación distribuida. Las transacciones usan copias privadas con commit/rollback y las asociaciones dependientes se eliminan explícitamente en memory. El adaptador MySQL proporciona BEGIN/COMMIT/ROLLBACK reales y libera o descarta la conexión en finally; ver [DATABASE](DATABASE.md).
 
 ## Frontend
 
@@ -56,11 +56,11 @@ Los catálogos internos `rol` y `categoria` ofrecen `list/find`, sin CRUD HTTP d
 
 `001` describe el modelo textual anterior y permanece intacta. `002` incorpora catálogos y backfill, retira `usuarioRol` y textos duplicados, preservando datos existentes. Descripción y municipio de negocios históricos quedan nullable; ambos formularios permiten completarlos. El mapeo de nombres académicos, la ventana de migración y las restricciones están en [DATABASE](DATABASE.md). No se crean Inventario (stock pertenece a Producto) ni Sector_Comercial (se utiliza Categoria).
 
-PR6 incorpora Servicio, Horario_Servicio, Reserva y Favorito mediante 003. Negocio/Categoria 1:N Servicio; Servicio 1:N Horario_Servicio y Reserva; Usuario 1:N Reserva; Favorito resuelve Usuario N:M Producto. Pedido y Detalle_Pedido quedan exclusivamente para PR7.
+PR6 incorpora Servicio, Horario_Servicio, Reserva y Favorito mediante 003. Negocio/Categoria 1:N Servicio; Servicio 1:N Horario_Servicio y Reserva; Usuario 1:N Reserva; Favorito resuelve Usuario N:M Producto. PR7 completa el modelo con Pedido y Detalle_Pedido mediante 004.
 
 `servicio.service.js`, `horario.service.js`, `reserva.service.js` y `favorito.service.js` concentran validación y propiedad; `agenda.controller.js` traduce HTTP y `agenda.routes.js` exige rol/CSRF. SQL permanece en el repository MySQL. `utils/agenda.js` calcula slots y pico de ocupación, común a ambos adaptadores. No hay tabla Disponibilidad ni fechaHoraFin persistida.
 
-La operación reserva revalida servicio/negocio/categoría Activos, fecha futura, slot exacto y cupo dentro de `transaccion`, después de obtener el bloqueo global MySQL. Mantiene conexión hasta COMMIT/ROLLBACK. Esto impide sobreventa entre procesos/pools que usen el adaptador. Memory serializa por instancia. GET puede quedar desactualizado; POST vuelve a comprobar. La duración no cambia con reservas Confirmadas futuras/en curso; capacidad no baja del pico reservado. Horarios pueden cambiar sin eliminar reservas, incluidas las que quedan fuera de la nueva cuadrícula. Cancelar libera cupo; Inactivo impide nuevas reservas sin borrar historial. Borrado de servicio/usuario con reservas se rechaza; favorito dependiente y horario sin historial usan CASCADE documentado en DATABASE.
+La operación reserva revalida servicio/negocio/categoría Activos, fecha futura, slot exacto y cupo dentro de `transaccion`, después de obtener el bloqueo global MySQL. Mantiene conexión hasta COMMIT/ROLLBACK. Esto impide sobreventa entre procesos/pools que usen el adaptador. Memory serializa por instancia y publica las copias solo al confirmar. GET puede quedar desactualizado; POST vuelve a comprobar. La duración no cambia con reservas Confirmadas futuras/en curso; capacidad no baja del pico reservado. Horarios pueden cambiar sin eliminar reservas, incluidas las que quedan fuera de la nueva cuadrícula. Cancelar libera cupo; Inactivo impide nuevas reservas sin borrar historial. Borrado de servicio/usuario con reservas se rechaza; favorito dependiente y horario sin historial usan CASCADE documentado en DATABASE.
 
 Horarios representan America/Bogota y la conversión IANA no depende de TZ del host. Reserva almacena UTC DATETIME(3), mysql2 usa timezone Z y las respuestas ISO incluyen Z. Frontend formatea explícitamente en Pereira. Precio de referencia 0 significa consultar; capacidad se limita a 100. No se incorpora pago.
 
@@ -87,7 +87,7 @@ Sesiones absolutas de ocho horas en memoria; cookie opaca HttpOnly. El token se 
 
 El carrito conserva referencias `{ usuarioId, productoId, cantidad }`. Su clave incluye un identificador aleatorio de instancia del backend: un reinicio no vuelve a asociar IDs nuevos con carritos antiguos. Antes de operar se verifica la sesión y se consulta el catálogo público. Solo se ajustan entradas del comprador actual; otros compradores se preservan.
 
-Se eliminan referencias no disponibles y cantidades inválidas, se combinan duplicados y se limita al stock. Los importes se suman en centavos y se formatean como COP con decimales cuando corresponda. Un fallo de red no se interpreta como catálogo vacío ni borra el carrito. No hay reserva de stock, checkout ni pedidos.
+Se eliminan referencias no disponibles y cantidades inválidas, se combinan duplicados y se limita al stock. Los importes se suman en centavos y se formatean como COP con decimales cuando corresponda. Un fallo de red no se interpreta como catálogo vacío ni borra el carrito. El carrito no reserva stock; confirmar mediante `/api/pedidos` crea historial y descuenta stock en servidor.
 
 ## Roles y permisos
 
@@ -126,7 +126,7 @@ Un comerciante no puede asignar su comercio a otro usuario, modificar un product
 
 - Administrador → `dashboard.html`, `usuarios.html`, `negocios.html`, `productos.html`, `mis-servicios.html`, `reservas.html`.
 - Comerciante → `mi-negocio.html`, `mis-productos.html`, `mis-servicios.html`, `reservas.html`, preview público de su comercio.
-- Comprador → `marketplace.html`, detalles, `carrito.html`, `mis-reservas.html`, `favoritos.html`. Catálogo de servicios en `servicios.html`.
+- Comprador → `marketplace.html`, detalles, `carrito.html`, `mis-reservas.html`, `favoritos.html`, `mis-pedidos.html`. Catálogo de servicios en `servicios.html`.
 - Invitado → landing, marketplace y detalle; el botón de compra conduce al login.
 
 Un rol incorrecto vuelve a su inicio, evitando el antiguo bucle hacia dashboard. El preview no convierte al comerciante en comprador ni habilita carrito. La protección del cliente no sustituye al servidor.
@@ -203,4 +203,45 @@ Se comprobaron 360/768/1024/1440 px en las páginas de los tres roles y las púb
 
 ## Límites y siguientes decisiones
 
-Con MySQL persisten las nueve entidades implementadas; sesiones y rate limits siguen siendo de un proceso. El carrito se invalida por instancia al reiniciar, incluso con IDs duraderos, conservando la experiencia actual. Para varias instancias se requieren sesiones/límites compartidos; imágenes grandes deben evolucionar a almacenamiento de objetos y upload validado. No se implementan pagos, pedidos ni facturas. Las consultas actuales conservan listados y filtros en services: paginación y consultas específicas se pueden añadir después con pruebas y sin mezclar SQL en esa capa.
+Con MySQL persisten las once entidades implementadas; sesiones y rate limits siguen siendo de un proceso. El carrito se invalida por instancia al reiniciar, incluso con IDs duraderos, conservando la experiencia actual. Para varias instancias se requieren sesiones/límites compartidos; imágenes grandes deben evolucionar a almacenamiento de objetos y upload validado. No se implementan pagos ni facturas. Las consultas actuales conservan listados y filtros en services: paginación y consultas específicas se pueden añadir después con pruebas y sin mezclar SQL en esa capa.
+
+## Cierre del dominio: pedidos
+
+```text
+carrito.html + carrito.js → API.post /pedidos
+→ pedido.routes.js (sesión, Comprador, CSRF)
+→ pedido.controller.js (HTTP / JSON)
+→ pedido.service.js (campos, rol/propiedad, consolidación, validación y agrupación)
+→ repos.transaccion + bloquearProductos
+→ repos.pedido / repos.detallePedido / repos.producto
+→ pedidos / detalles_pedido / productos
+→ COMMIT → JSON 201 → confirmar en UI y limpiar los ítems procesados
+```
+
+No hay SQL en controllers/services ni acceso MySQL desde frontend. Se amplía la abstracción existente porque su transacción ya coordina todos los módulos; `bloquearProductos` añade locks de filas deterministas sin sustituir el bloqueo global ni forzar lógica SQL en una capa HTTP. Memory conserva el contrato y añade copias privadas/rollback; MySQL conserva AsyncLocalStorage, parámetros, BEGIN/COMMIT/ROLLBACK/release y bloqueo de PR6.
+
+`pedido.service.js` consulta de nuevo precio, stock, negocio y categoría; nunca acepta usuarioId/negocioId/precio/estado inicial del cliente. Crea un Pedido por negocio y todos sus detalles en una sola transacción. `precioUnitario` es histórico; total/subtotal son propiedades derivadas. Estados, límites, FK y decisiones de normalización se documentan en [DATABASE](DATABASE.md).
+
+`pedido-vista.js` comparte únicamente presentación segura: cards, detalles, cantidades, precios, subtotales, total, fecha America/Bogota, nota escapada y botones autorizados por la vista. `pedidos.js` consulta `/mios` o `/gestion`; usa PATCH reales para estados/cancelación y filtro por estado en gestión. No guarda historial en LocalStorage. Si falla un refresco después de PATCH, informa que el cambio se registró y permite recargar sin fingir una escritura fallida.
+
+El carrito captura `{productoId,cantidad}` al pulsar Confirmar pedido, revalida que no cambien usuario ni instancia, evita doble envío en la página y mantiene nota/cantidades si falla el POST. Solo después de recibir 201 muestra los pedidos de API y resta las cantidades procesadas de la lista más reciente, conservando otros compradores e incrementos durante el envío. Actualiza indicador y enlaza Mis pedidos. Si falla almacenamiento local tras el commit, conserva la confirmación e indica revisar el historial. No hay retry automático ni garantía de idempotencia de POST ante pérdida de respuesta; consultar Mis pedidos antes de repetir. No se añade entidad ni atributo fuera del DER para resolver esa futura mejora.
+
+Se reutilizan paneles, cards, botones, tipografía, tokens y menú accesible; CSS nuevo se limita a estas vistas/formulario. Sin imágenes, historias, dependencias o frameworks nuevos. Comprador navega a Marketplace, Servicios, Favoritos, Mis reservas, Mis pedidos y Carrito; Comerciante a Mi negocio, Mis productos, Mis servicios, Reservas recibidas y Pedidos recibidos; Admin mantiene su gestión y recibe pedidos globales. El servidor vuelve a verificar siempre propiedad.
+
+### Trazabilidad de las once entidades
+
+| Entidad          | Pantalla / ruta real                                       | Service      | Repository / tabla              |
+| ---------------- | ---------------------------------------------------------- | ------------ | ------------------------------- |
+| Rol              | registro/usuarios, autenticación                           | usuario/auth | rol / roles                     |
+| Usuario          | login, registro, usuarios; /api/usuarios                   | usuario/auth | usuario / usuarios              |
+| Categoria        | catálogo y selects; /api/categorias                        | categoria    | categoria / categorias          |
+| Negocio          | mi-negocio, negocios; /api/negocios                        | negocio      | negocio / negocios              |
+| Producto         | marketplace, detalle, mis-productos; /api/productos        | producto     | producto / productos            |
+| Servicio         | servicios, detalle-servicio, mis-servicios; /api/servicios | servicio     | servicio / servicios            |
+| Horario_Servicio | horarios en mis-servicios/detalle; /api/horarios-servicio  | horario      | horario / horarios_servicio     |
+| Reserva          | mis-reservas, reservas; /api/reservas                      | reserva      | reserva / reservas              |
+| Favorito         | favoritos y tarjetas; /api/favoritos                       | favorito     | favorito / favoritos            |
+| Pedido           | carrito, mis-pedidos, pedidos; /api/pedidos                | pedido       | pedido / pedidos                |
+| Detalle_Pedido   | detalle dentro de cards de Pedido y DTO /api/pedidos/:id   | pedido       | detallePedido / detalles_pedido |
+
+El contrato conserva list/find/create/update/delete como infraestructura interna; no expone CRUD genérico de Pedido/Detalle. La persistencia de historial y restauración exacta pasan por el service, no por botones ocultos. Las once entidades aprobadas tienen una funcionalidad real; el trabajo se detiene en PR7.

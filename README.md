@@ -12,7 +12,7 @@ Browser → fetch → Express API → Controller → Service → Repository → 
 
 La fundación PR5 normaliza Rol, Usuario, Categoria, Negocio y Producto en MySQL, manteniendo los mismos contratos HTTP. `001_foundation.sql` se conserva intacta; `002_normalize_roles_categories.sql` migra bases existentes, preserva hashes y convierte `popularidad` en `visitas` 1:1. `GET /api/categorias` proporciona el catálogo activo a Coverflow y formularios. Descripción y municipio de negocios antiguos quedan pendientes (NULL), sin inventar información.
 
-Usuarios, negocios, productos, servicios, horarios, reservas y favoritos persisten en MySQL. PR6 añade exclusivamente `003_services_reservations_favorites.sql` sobre 001 → 002, con disponibilidad derivada, reservas Confirmadas automáticas y favoritos del Comprador. `DATA_SOURCE=memory` sigue siendo el valor predeterminado y permite ejecutar las pruebas sin una base. Sesiones y rate limits permanecen en memoria del proceso. El carrito es temporal del navegador: no hay pedidos, pagos ni descuento de stock.
+Usuarios, negocios, productos, servicios, horarios, reservas, favoritos, pedidos y detalles persisten en MySQL. PR6 añade exclusivamente `003_services_reservations_favorites.sql` sobre 001 → 002, con disponibilidad derivada, reservas Confirmadas automáticas y favoritos del Comprador. `DATA_SOURCE=memory` sigue siendo el valor predeterminado y permite ejecutar las pruebas sin una base. Sesiones y rate limits permanecen en memoria del proceso. El carrito sigue siendo temporal del navegador. PR7 añade 004: confirmar crea pedidos agrupados por negocio, guarda precios históricos y descuenta stock dentro de una sola transacción. No hay pagos.
 
 ## Instalar y ejecutar
 
@@ -36,7 +36,7 @@ npm run db:migrate --prefix backend
 npm start --prefix backend
 ```
 
-Para actualizar una instalación existente, detener escritores y verificar respaldo/restauración antes de aplicar las migraciones pendientes (001 → 002 → 003) y desplegar el nuevo backend. No hay rollback global de DDL. Ver la transición y correspondencias DER/API en [DATABASE](docs/DATABASE.md).
+Para actualizar una instalación existente, detener escritores y verificar respaldo/restauración antes de aplicar las migraciones pendientes (001 → 002 → 003 → 004) y desplegar el nuevo backend. No hay rollback global de DDL. Ver la transición y correspondencias DER/API en [DATABASE](docs/DATABASE.md).
 
 MySQL >= 8.0.16; se recomienda 8.4 LTS. Instrucciones, permisos, modelo y recuperación de migraciones en [DATABASE](docs/DATABASE.md). El servidor falla si MySQL no está preparado; no sustituye silenciosamente la base por memoria. Las migraciones son explícitas, no se ejecutan al arrancar.
 
@@ -46,12 +46,12 @@ No se crean usuarios demo ni contraseñas predeterminadas. El registro público 
 
 ## Uso y roles
 
-| Rol           | Entrada                           | Capacidades                                                          |
-| ------------- | --------------------------------- | -------------------------------------------------------------------- |
-| Visitante     | `index.html` / `marketplace.html` | Catálogo, comercios y detalle públicos                               |
-| Comprador     | `marketplace.html`                | Catálogo, carrito temporal, reservas propias y favoritos             |
-| Comerciante   | `mi-negocio.html`                 | Comercio propio, productos, servicios, horarios y reservas recibidas |
-| Administrador | `dashboard.html`                  | KPIs, alertas y gestión de usuarios, negocios y productos            |
+| Rol           | Entrada                           | Capacidades                                                                   |
+| ------------- | --------------------------------- | ----------------------------------------------------------------------------- |
+| Visitante     | `index.html` / `marketplace.html` | Catálogo, comercios y detalle públicos                                        |
+| Comprador     | `marketplace.html`                | Catálogo, carrito temporal, pedidos propios, reservas y favoritos             |
+| Comerciante   | `mi-negocio.html`                 | Comercio propio, productos, servicios, horarios, reservas y pedidos recibidos |
+| Administrador | `dashboard.html`                  | KPIs, usuarios, negocios, productos, servicios, reservas y pedidos globales   |
 
 La API comprueba roles y propiedad en servidor. La autenticación usa cookies HttpOnly; nunca LocalStorage. Los datos del prototipo antiguo se ofrecen como respaldo descargable sin contraseñas, sin importar identidades o permisos al servidor; los comercios/productos se deben volver a publicar. No hay importación automática de IDs ni migración automática desde memory a MySQL.
 
@@ -91,7 +91,7 @@ La navegación muestra los módulos autorizados por rol; el servidor vuelve a co
 
 No existe tabla Disponibilidad: se deriva de horarios, duración, capacidad y reservas Confirmadas. La misma lógica funciona en memory y MySQL; la prueba real usa solicitudes en paralelo y dos pools independientes. Detalles de locking, cambios e integridad en [DATABASE](docs/DATABASE.md).
 
-El dominio implementado tiene nueve entidades. PR7 queda pendiente exclusivamente para Pedido y Detalle_Pedido. No se crean Inventario, Sector_Comercial, Pago, Factura, checkout ni carrito persistente.
+El dominio implementado queda completo con exactamente once entidades: Rol, Usuario, Categoria, Negocio, Producto, Servicio, Horario_Servicio, Reserva, Favorito, Pedido y Detalle_Pedido. No se crean Inventario, Sector_Comercial, Pago, Factura, checkout ni carrito persistente.
 
 ## Interfaz y assets locales
 
@@ -127,3 +127,13 @@ tests/                   # API, navegador, estructura y persistencia
 - [SECURITY_TESTING](docs/SECURITY_TESTING.md): seguridad, pruebas y limitaciones.
 
 Para exposición externa: HTTPS, `NODE_ENV=production`, `APP_ORIGIN` con el origen exacto sin ruta y revisión de los límites documentados. No se presenta como sistema de pagos ni despliegue multiinstancia preparado para producción.
+
+## Pedidos y stock (PR7)
+
+El Comprador confirma su selección en `carrito.html`, con observaciones opcionales, y consulta precios históricos, cantidades, totales y estados en `mis-pedidos.html`. Comerciante y Administrador usan `pedidos.html` para confirmar, completar o cancelar. Los enlaces se muestran según rol, también en móvil. Servicio conserva el flujo Reserva; solo Producto utiliza Pedido.
+
+`POST /api/pedidos` recibe únicamente `items: [{productoId,cantidad}]` y observaciones opcionales. El servidor toma el usuario de sesión, consolida repetidos, consulta productos/negocios/categorías Activos, precio y stock actuales, agrupa por negocio y confirma **todos** los pedidos/detalles/descuentos o revierte **todos**. El carrito se limpia solo después de recibir el éxito completo; errores conservan cantidades y notas. No hay reintentos automáticos. Si se pierde la respuesta después del commit, consultar Mis pedidos antes de repetir.
+
+Un pedido nace Pendiente. Comerciante propietario/Admin: Pendiente → Confirmado → Completado; Pendiente o Confirmado → Cancelado. Comprador: cancelar solo su Pendiente. Cancelar restaura stock exactamente una vez; los terminales no se reabren. No existe DELETE de pedidos. Productos, negocios y usuarios con historial se conservan mediante desactivación y FK RESTRICT.
+
+La migración **004_orders_and_details.sql** crea solo `pedidos` y `detalles_pedido`; 001–003 permanecen intactas. `createdAt` representa `fecha_pedido`. `precioUnitario` pertenece al detalle como dato histórico; subtotal y total se derivan en centavos y nunca se almacenan. Stock permanece en Producto; Carrito sigue en el navegador. Reglas, límites y locking en [DATABASE](docs/DATABASE.md), endpoints en [API](docs/API.md) y evidencia en [SECURITY_TESTING](docs/SECURITY_TESTING.md).

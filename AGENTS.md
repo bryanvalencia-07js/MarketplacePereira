@@ -2,11 +2,11 @@
 
 ## Alcance y arquitectura
 
-Leer README y los cuatro documentos de `docs/` antes de cambios estructurales. Revisar `git status` y los archivos involucrados. Trabajar en una rama de tarea; para PR6 usar exclusivamente `feat/services-reservations-favorites`, nunca `main`.
+Leer README y los cuatro documentos de `docs/` antes de cambios estructurales. Revisar `git status` y los archivos involucrados. Trabajar en una rama de tarea; para PR7 usar exclusivamente `feat/orders-and-domain-completion`, nunca `main`.
 
 Conservar HTML/CSS/JavaScript nativo, Express REST y el flujo frontend → API → controllers → services → repositories → DB. La persistencia se elige por `DATA_SOURCE=memory|mysql`; `createRepositories(datos)` sigue creando memory aislado para fixtures. No introducir ORM ni frameworks frontend/CSS. Nunca conectar el navegador directamente a MySQL.
 
-Mantener `list/find/create/update/delete` async y `repos.transaccion(callback)`. SQL y detalles del pool viven en `backend/db/` y `backend/repositories/mysql/`; controllers/services conservan validación, permisos y reglas. No asumir rollback de callbacks arbitrarios en memory; MySQL sí debe tener commit/rollback y liberar conexiones.
+Mantener `list/find/create/update/delete` async y `repos.transaccion(callback)`. SQL y detalles del pool viven en `backend/db/` y `backend/repositories/mysql/`; controllers/services conservan validación, permisos y reglas. Memory mantiene copias privadas con commit/rollback; las escrituras fuera de contexto también deben encolarse. MySQL debe conservar commit/rollback y liberar conexiones.
 
 ## Ciclo XP obligatorio
 
@@ -27,11 +27,11 @@ Una clase ausente del HTML no prueba código muerto. Buscar globalmente en scrip
 
 Conservar scrypt, sesiones HttpOnly/SameSite, CSRF, origen, CSP estricta, roles, autorización por propiedad, límites, validaciones y errores seguros. No agregar `unsafe-inline` ni `unsafe-eval`. No guardar autenticación en LocalStorage, secretos en frontend ni credenciales en Git. No crear cuentas demo en arranque. El único bootstrap es el Administrador explícito mediante entorno.
 
-Las consultas SQL usan parámetros; los nombres de tablas/columnas proceden de listas cerradas. Cambios del esquema requieren una migración nueva: no editar una migración aplicada. `001_foundation.sql` y `002_normalize_roles_categories.sql` son inmutables; PR6 añade únicamente `003_services_reservations_favorites.sql`. Resolver roles/categorías mediante sus relaciones, sin IDs mágicos ni usuarioRol duplicado. Mantener visitas como contador y popularidad solo como alias de respuesta. La suite MySQL solo se ejecuta contra una base dedicada cuyo nombre termine en `_test`; destruye sus entidades. No ejecutar estas pruebas contra datos del usuario.
+Las consultas SQL usan parámetros; los nombres de tablas/columnas proceden de listas cerradas. Cambios del esquema requieren una migración nueva: no editar una migración aplicada. `001_foundation.sql`, `002_normalize_roles_categories.sql` y `003_services_reservations_favorites.sql` son inmutables; PR7 añade únicamente `004_orders_and_details.sql`. Resolver roles/categorías mediante sus relaciones, sin IDs mágicos ni usuarioRol duplicado. Mantener visitas como contador y popularidad solo como alias de respuesta. La suite MySQL solo se ejecuta contra una base dedicada cuyo nombre termine en `_test`; destruye sus entidades. No ejecutar estas pruebas contra datos del usuario.
 
 ## Reglas de agenda (PR6)
 
-Servicio pertenece a Negocio y Categoria; crear/reasignar exige categoría Activa. Capacidad 1..100, duración 1..1440, precio de referencia >=0. Público exige servicio/negocio/categoría Activos. No crear tablas Disponibilidad, Inventario, Pago ni Factura. PR7 (Pedido y Detalle_Pedido) queda fuera de esta rama.
+Servicio pertenece a Negocio y Categoria; crear/reasignar exige categoría Activa. Capacidad 1..100, duración 1..1440, precio de referencia >=0. Público exige servicio/negocio/categoría Activos. No crear tablas Disponibilidad, Inventario, Pago ni Factura. PR7 completa únicamente Pedido y Detalle_Pedido; no añadir más módulos o entidades.
 
 Mantener validación de horarios y creación de reservas dentro de `repos.transaccion`: el bloqueo MySQL se obtiene antes de las lecturas y se conserva hasta commit/rollback. No separar comprobación de cupo e INSERT. Reutilizar el cálculo de slots/pico en `utils/agenda.js`, America/Bogota explícita y UTC en persistencia/HTTP. No almacenar fin de reserva. Mantener reservas al editar horarios/desactivar servicios; no borrar servicio/usuario con reservas. Favorito usa sesión, UNIQUE usuario/producto y CASCADE dependiente. Solo Comprador crea reservas/favoritos; Comerciante gestiona sus servicios y reservas; Admin gestiona globalmente. Conservar las pruebas reales entre dos pools, capacidad 1 y 3, y TZ diferente de Bogotá.
 
@@ -41,7 +41,7 @@ Usar Node 24. Instalar dependencias con `npm ci`, `npm ci --prefix backend` y `n
 
 - Suite completa independiente de MySQL: `npm test --prefix tests`.
 - Backend y adaptador simulado: `npm test --prefix backend`.
-- Navegador: `npm run test:browser --prefix tests`; instalar Chromium o indicar `CHROMIUM_PATH`. Incluye axe A/AA en dieciocho páginas a 360/1440; `UI_SCREENSHOTS=../test-artifacts` guarda 72 vistas responsive (48 anteriores + 24 PR6). Revisar también los estados de menú, loading, error y teclado.
+- Navegador: `npm run test:browser --prefix tests`; instalar Chromium o indicar `CHROMIUM_PATH`. Incluye axe A/AA en veinte páginas a 360/1440 y una revisión adicional del carrito PR7; `UI_SCREENSHOTS=../test-artifacts` guarda 84 capturas (72 anteriores + 12 PR7). Revisar también los estados de menú, loading, error y teclado.
 - Integración MySQL separada: `npm run test:mysql --prefix tests`, con entorno de prueba configurado.
 - Dependencias: `npm audit --omit=dev --prefix backend`.
 - Revisar sintaxis y `git diff --check` antes de entregar.
@@ -51,3 +51,11 @@ No afirmar pruebas no ejecutadas. Informar archivos creados/modificados/eliminad
 ## Git
 
 No ejecutar `git reset --hard`, modificar historial, hacer merge ni trabajar directamente sobre main. No hacer commit ni push salvo solicitud explícita del usuario. Explicar eliminaciones antes de realizarlas y dejar el diff revisable. Las instrucciones explícitas del usuario prevalecen sobre este archivo.
+
+## Reglas de pedidos (PR7)
+
+Conservar las once entidades exactas del DER. No persistir Carrito, total/subtotal ni nombre histórico adicional. createdAt representa fecha_pedido; precioUnitario del detalle se copia del Producto dentro de la transacción, nunca del cliente. Cada pedido corresponde a un negocio; un único POST multinegocio se confirma o revierte entero. Consolidar cantidades y bloquear Producto en ID ascendente, después del bloqueo global existente y antes de leer precio/stock; misma conexión hasta commit/rollback. Mantener pruebas HTTP reales con dos pools MySQL (stock 1 y 3), rollback después de escrituras y cancelación concurrente.
+
+Solo Comprador crea Pendiente desde sesión. Comerciante propietario/Admin confirman, completan o cancelan respetando transiciones; Comprador solo cancela Pendiente propio. Terminales no se reabren; cancelar restaura stock exactamente una vez. No añadir DELETE de Pedido, ni borrar Producto/Negocio/Usuario referenciados: ofrecer Inactivo. No trasladar un producto con detalles a otro negocio. Límites: 100 líneas, 1000 unidades consolidadas por producto, observaciones 2000, total en centavos entero seguro. Conservar límite previo de stock 1e6 y error 409 si restock lo superaría.
+
+Carrito limpia únicamente después de 201 y preserva cantidades/notas en error. No hay historial en LocalStorage ni reintentos de POST automáticos; ante respuesta perdida consultar Mis pedidos. Reutilizar `pedido-vista.js`, tokens y navegación existentes. No modificar fotografías/storytelling ni generar CSS global ajeno a las nuevas vistas. No hacer merge automático ni iniciar otro módulo.

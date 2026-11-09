@@ -176,17 +176,49 @@ El resumen no expone la lista de cuentas.
 
 ## Errores y límites
 
-| Status    | Uso                                                          |
-| --------- | ------------------------------------------------------------ |
-| 200 / 201 | Operación correcta / creación                                |
-| 400       | Validación, integridad, campos no permitidos o JSON inválido |
-| 401       | Falta sesión o credenciales incorrectas                      |
-| 403       | Rol/propiedad, origen o CSRF no permitido                    |
-| 404       | Recurso/ruta inexistente o recurso no visible                |
-| 413       | Solicitud JSON superior a 2 MiB                              |
-| 415       | Cuerpo comprimido rechazado antes de parsear                 |
-| 429       | Límite de solicitudes/intentos                               |
-| 500       | Error interno, sin stack ni detalles de persistencia         |
-| 503       | Capacidad temporal de sesiones agotada                       |
+| Status    | Uso                                                           |
+| --------- | ------------------------------------------------------------- |
+| 200 / 201 | Operación correcta / creación                                 |
+| 400       | Validación, integridad, campos no permitidos o JSON inválido  |
+| 401       | Falta sesión o credenciales incorrectas                       |
+| 403       | Rol/propiedad, origen o CSRF no permitido                     |
+| 404       | Recurso/ruta inexistente o recurso no visible                 |
+| 409       | Stock insuficiente, transición inválida o historial protegido |
+| 413       | Solicitud JSON superior a 2 MiB                               |
+| 415       | Cuerpo comprimido rechazado antes de parsear                  |
+| 429       | Límite de solicitudes/intentos                                |
+| 500       | Error interno, sin stack ni detalles de persistencia          |
+| 503       | Capacidad temporal de sesiones agotada                        |
 
-No hay endpoints de Pedido o Detalle_Pedido (pendientes de PR7), carrito persistente o pagos. MySQL es persistencia interna y no expone endpoints SQL. El carrito es del cliente y se valida contra `/productos`, `/negocios` y la sesión actual antes de operar.
+No hay endpoints de carrito persistente o pagos. Pedido/Detalle_Pedido se exponen mediante las operaciones documentadas abajo. MySQL es persistencia interna y no expone endpoints SQL. El carrito es del cliente y se valida contra `/productos`, `/negocios` y la sesión actual antes de operar.
+
+## Pedidos
+
+| Método | Ruta                    | Entrada / respuesta                                                                             | Permiso                                                                           |
+| ------ | ----------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| POST   | `/pedidos`              | `{items:[{productoId,cantidad}],observaciones?}` → array de pedidos con detalles y totales; 201 | Solo Comprador, sesión + CSRF                                                     |
+| GET    | `/pedidos/mios`         | Pedidos del comprador de sesión, recientes primero                                              | Comprador                                                                         |
+| GET    | `/pedidos/gestion`      | Pedidos recibidos, recientes primero; filtros `estado` y `negocioId`                            | Comerciante propio / Admin global                                                 |
+| GET    | `/pedidos/:id`          | Pedido autorizado con detalles y total                                                          | Comprador propio / Comerciante propietario / Admin                                |
+| PATCH  | `/pedidos/:id/cancelar` | Sin body o `{}` → Pedido Cancelado; 200 idempotente                                             | Comprador propio Pendiente / Comerciante propietario o Admin Pendiente/Confirmado |
+| PATCH  | `/pedidos/:id/estado`   | `{estado:"Confirmado"}` o Completado/Cancelado → Pedido; 200                                    | Comerciante propietario / Admin                                                   |
+
+```json
+{
+  "items": [
+    { "productoId": 15, "cantidad": 2 },
+    { "productoId": 31, "cantidad": 1 }
+  ],
+  "observaciones": "En horario comercial"
+}
+```
+
+Solo se permiten esas claves. `usuarioId`, `idUsuario`, `id_usuario`, negocioId, precioUnitario, total, subtotal o estado inicial en el body producen 400, también los campos extra dentro de items. Usuario proviene de sesión; negocio/precio/stock/categoría provienen de registros actuales. IDs y cantidades son números enteros, cantidades 1..1000 después de consolidar repetidos, 1..100 líneas y observaciones opcionales hasta 2000 caracteres (vacío se normaliza a null). Servicios no tienen entrada en este flujo: se compran únicamente IDs de Producto; Servicio utiliza Reserva.
+
+Cada negocio genera su Pedido Pendiente con la misma observación general. **Un solo POST es all-or-nothing**: si falta stock o falla un producto/escritura, ningún negocio queda confirmado ni conserva descuentos parciales. Requiere Producto/Negocio/Categoria Activos, precio válido y stock suficiente. Producto inexistente/no disponible: 404; precio inválido/stock insuficiente: 409. El mensaje de stock indica un ID de producto, sin SQL ni datos privados.
+
+DTO por Pedido: `id, usuarioId, negocioId, estado, observaciones, createdAt, updatedAt, fecha, negocio:{id,nombre}, detalles:[], total`. `fecha` es alias de `createdAt` (DER fecha_pedido). Detalle: `id, pedidoId, productoId, cantidad, precioUnitario, createdAt, updatedAt, nombre, subtotal`. Nombre resuelto desde Producto actual (puede cambiar); precioUnitario y cantidad son históricos. El DTO no expone datos de la cuenta del comprador salvo su ID. Los totales usan solo cantidad × precio histórico; se suman en centavos con límite entero seguro, nunca se persisten.
+
+Transiciones: Pendiente → Confirmado; Confirmado → Completado; Pendiente/Confirmado → Cancelado. Completado/Cancelado son terminales. Salto Pendiente → Completado y cancelación de Completado: 409. Comprador no usa `/estado` y solo cancela su Pendiente; cancelar Confirmado produce 409. Comerciante nunca accede a otro negocio (403 por ID, lista vacía si filtra uno ajeno). Admin gestiona globalmente y no crea por el flujo Comprador. Repetir `/cancelar` devuelve el Cancelado sin restitución adicional; una transición repetida vía `/estado` se rechaza 409.
+
+Cancelar restaura cantidades dentro de la misma transacción que cambia estado. Si la restitución superaría el límite existente de stock 1.000.000, produce 409 sin modificar nada y solicita revisar existencias. Producto/Negocio/Usuario con pedidos históricos no se eliminan; sus endpoints DELETE devuelven 409 recomendando desactivar. Un Producto referenciado no puede trasladarse a otro comercio. No existen DELETE de pedidos/detalles, endpoints financieros ni pagos.

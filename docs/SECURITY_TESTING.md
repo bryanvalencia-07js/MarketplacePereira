@@ -62,23 +62,26 @@ Esta suite aplica/verifica migraciones y **borra las entidades de esa base antes
 
 ## Cobertura actual
 
-| Grupo                           | Casos | Comportamiento comprobado                                                                                                                                                       |
-| ------------------------------- | ----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| API existente con memory        |    22 | Sesiones, hashing, CSRF/origen/CSP, roles, ownership, validación, integridad, rate limits y errores                                                                             |
-| Adaptador MySQL simulado/config |     7 | Contrato, parámetros/DTO, bloqueo, BEGIN/COMMIT/ROLLBACK/release y errores seguros                                                                                              |
-| Normalización memory/API        |     5 | Catálogos/FK, roles con IDs distintos, categorías activas, atributos y contador conservados                                                                                     |
-| Chromium anterior               |    49 | Flujos de tres roles, catálogo/carrito, red, XSS, identidad/storytelling, teclado, responsive y axe                                                                             |
-| Estructura                      |     3 | Recursos/enlaces locales, labels, CSP y CSS modular                                                                                                                             |
-| Dominio PR6 memory              |    12 | Servicio/categoría/propiedad, horarios válidos/no superpuestos, slots/UTC, fechas, cupos concurrentes 1/3, cambios/cancelaciones/historial, cascadas y favoritos propios únicos |
-| API PR6                         |     4 | Catálogo/horarios/disponibilidad, CRUD/roles/CSRF, carreras HTTP de reserva, gestión aislada y favoritos                                                                        |
-| Chromium PR6                    |     7 | Reserva/cancelación reales, CRUD/horarios/recepción, favoritos API, protección de páginas, errores de red/409, responsive/axe y gestión Admin                                   |
-| MySQL real (comando separado)   |    18 | 11 anteriores + 7 PR6: 001→002→003 con datos, esquema/checksums, PK/FK/UNIQUE/CHECK, dos pools/capacidad 1 y 3, rollback, cascadas, categorías y aislamiento                    |
+| Grupo                           | Casos | Comportamiento comprobado                                                                                                                                                                      |
+| ------------------------------- | ----: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| API existente con memory        |    22 | Sesiones, hashing, CSRF/origen/CSP, roles, ownership, validación, integridad, rate limits y errores                                                                                            |
+| Adaptador MySQL simulado/config |     7 | Contrato, parámetros/DTO, bloqueo, BEGIN/COMMIT/ROLLBACK/release y errores seguros                                                                                                             |
+| Normalización memory/API        |     5 | Catálogos/FK, roles con IDs distintos, categorías activas, atributos y contador conservados                                                                                                    |
+| Chromium anterior               |    49 | Flujos de tres roles, catálogo/carrito, red, XSS, identidad/storytelling, teclado, responsive y axe                                                                                            |
+| Estructura                      |     3 | Recursos/enlaces locales, labels, CSP y CSS modular                                                                                                                                            |
+| Dominio PR6 memory              |    12 | Servicio/categoría/propiedad, horarios válidos/no superpuestos, slots/UTC, fechas, cupos concurrentes 1/3, cambios/cancelaciones/historial, cascadas y favoritos propios únicos                |
+| API PR6                         |     4 | Catálogo/horarios/disponibilidad, CRUD/roles/CSRF, carreras HTTP de reserva, gestión aislada y favoritos                                                                                       |
+| Chromium PR6                    |     7 | Reserva/cancelación reales, CRUD/horarios/recepción, favoritos API, protección de páginas, errores de red/409, responsive/axe y gestión Admin                                                  |
+| Dominio PR7 memory y adaptador  |    11 | Pedidos multinegocio, histórico, cantidades, límites de dinero/stock, rollback/aislamiento, locks ordenados, estados, permisos, historial y cancelaciones concurrentes                         |
+| API PR7                         |     3 | Sesión/CSRF/campos protegidos, ownership, estados, concurrencia HTTP, 409 seguro y cancelación idempotente                                                                                     |
+| Chromium PR7                    |     7 | Confirmar carrito real, precios históricos, fallos red/409 conservan selección, doble envío, otras pestañas/instancia, gestión por rol, responsive y axe                                       |
+| MySQL real (comando separado)   |    28 | 18 anteriores + 10 PR7: 001→002→003→004 con datos/checksums, PK/FK/UNIQUE/CHECK/índices, dos pools HTTP/stock 1 y 3, rollback multinegocio, histórico, restock concurrente, permisos y estados |
 
-La suite independiente de MySQL contiene 109 casos; el comando backend contiene 45 y el navegador 56 (subconjuntos de la suite general, no deben sumarse como pruebas distintas). Se conservan todas las aserciones anteriores. Los fixtures SQL se limpian en orden hijo→padre, incluyendo las nuevas asociaciones, para permitir repetir la suite sobre la misma base `_test`.
+La suite independiente de MySQL contiene 130 casos; el comando backend contiene 59 y el navegador 63 (subconjuntos de la suite general, no deben sumarse como pruebas distintas). Se conservan todas las aserciones anteriores. Los fixtures SQL se limpian en orden hijo→padre, incluyendo las nuevas asociaciones, para permitir repetir la suite sobre la misma base `_test`.
 
-`UI_SCREENSHOTS=/ruta/absoluta npm test --prefix tests` guarda 72 capturas: 18 páginas × 360/768/1024/1440, incluidas las 24 de PR6. Axe A/AA revisa 18 páginas × 360/1440, 36 combinaciones, con datos reales de prueba; PR6 incluye un slot ocupado, reservas y favoritos. La prueba nueva comprueba también que la marca y el menú no se superpongan en móvil. Estas comprobaciones automáticas no equivalen a certificación WCAG ni pruebas en dispositivos físicos. Se revisaron visualmente las capturas nuevas y se corrigió la cabecera móvil sin modificar CSS global, fotografías ni narrativa.
+`UI_SCREENSHOTS=/ruta/absoluta npm test --prefix tests` guarda 84 capturas: 72 anteriores y 12 PR7 (carrito, Mis pedidos y gestión) a 360/768/1024/1440. Son 20 páginas únicas y una segunda revisión del carrito. Axe A/AA revisa 42 combinaciones en total (36 anteriores + 6 PR7 a 360/1440), con datos reales de prueba; PR6 incluye un slot ocupado, reservas y favoritos. La prueba nueva comprueba también que la marca y el menú no se superpongan en móvil. Estas comprobaciones automáticas no equivalen a certificación WCAG ni pruebas en dispositivos físicos. Se revisaron visualmente las capturas nuevas y se corrigió la cabecera móvil sin modificar CSS global, fotografías ni narrativa.
 
-CI mantiene Node 24, generación/comparación de assets, sintaxis, audit, memory/navegador y MySQL 8.4. Los scripts de tests incluyen PR6; no se retiraron jobs ni comprobaciones. El job SQL utiliza una base exclusiva y ejecuta secuencialmente los archivos de integración. Verificar el resultado de Actions del commit revisado antes de fusionar.
+CI mantiene Node 24, generación/comparación de assets, sintaxis, audit, memory/navegador y MySQL 8.4. Los scripts de tests incluyen PR6 y PR7; no se retiraron jobs ni comprobaciones. El job SQL utiliza una base exclusiva y ejecuta secuencialmente los archivos de integración. Verificar el resultado de Actions del commit revisado antes de fusionar.
 
 ## Validación de PR6
 
@@ -92,7 +95,7 @@ Las ejecuciones de agenda/API/MySQL con `TZ=Asia/Tokyo` y de la suite general co
 
 Las protecciones existentes de sesiones HttpOnly/SameSite, scrypt, origen/CSRF, CSP, límites, ownership, bloqueo de escrituras y SQL parametrizado se conservan. Solo Comprador crea reserva/favorito y usuarioId se toma de sesión; Comerciante no consulta/cancela reservas ni modifica servicios/horarios ajenos. El frontend protege navegación y el servidor aplica permisos. Favoritos de productos desactivados conservan asociación con producto null; el borrado físico de dependientes usa CASCADE documentado. Reserva y servicio con historial se protegen mediante RESTRICT y conflictos de dominio.
 
-Deuda: sesiones/rate limits siguen por proceso; el bloqueo global serializa escrituras y los listados de agenda todavía no tienen paginación/consultas SQL específicas. No se protege a escritores SQL externos que ignoren el bloqueo. Memory no ofrece rollback de callbacks arbitrarios ni persistencia entre reinicios. Ventanas de horario son intradía, sin horario nocturno que cruce medianoche. Safari/Firefox, dispositivos físicos y revisión humana quedan pendientes. Pedido y Detalle_Pedido son exclusivamente PR7; no hay pagos, facturas, inventario, checkout ni carrito persistente.
+Deuda: sesiones/rate limits siguen por proceso; el bloqueo global serializa escrituras y los listados de agenda todavía no tienen paginación/consultas SQL específicas. No se protege a escritores SQL externos que ignoren el bloqueo. En el cierre de PR6, Memory no ofrecía rollback de callbacks arbitrarios; PR7 añade copias privadas y commit/rollback. Sigue sin persistencia entre reinicios. Ventanas de horario son intradía, sin horario nocturno que cruce medianoche. Safari/Firefox, dispositivos físicos y revisión humana quedan pendientes. Pedido y Detalle_Pedido, pendientes al cerrar PR6, quedan implementados en PR7; no hay pagos, facturas, inventario, checkout ni carrito persistente.
 
 ## Validación de PR5
 
@@ -139,8 +142,39 @@ Cambios posteriores deben conservar estos controles y contratos. No generar docu
 
 - Con memory, reiniciar borra entidades. Con MySQL persisten entidades, pero sesiones y rate limits continúan por proceso. Reiniciar invalida sesiones y separa carritos por instancia. No hay almacén compartido ni revocación distribuida para múltiples instancias.
 - La fila de bloqueo MySQL serializa escrituras para conservar reglas existentes; limita throughput. No coordina escritores que ignoren el adaptador.
-- Carrito manipulable por el usuario y temporal: no es pedido, reserva, pago ni autorización de cobro. Checkout futuro deberá revalidar precios/stock transaccionalmente en servidor.
+- Carrito manipulable por el usuario y temporal: no reserva stock ni autoriza cobros. POST de pedidos revalida precio/stock en servidor y realiza el descuento dentro de la transacción. No hay pagos.
 - Imágenes verificadas por tipo/firma/tamaño, sin análisis externo ni uploads multipart. Se conserva Data URL en el DTO y MEDIUMTEXT en MySQL para no romper el flujo actual; revisar almacenamiento de objetos al escalar.
 - DDL no tiene rollback global ni down destructivo automático. Preparar respaldos y restauración de operación antes de usar datos únicos. No hay importación automática de memory/LocalStorage ni recuperación de desastre certificada.
 - Exposición externa: HTTPS, `NODE_ENV=production`, `APP_ORIGIN` exacto, secretos fuera de Git, usuario DB con privilegios mínimos y revisión de proxy/IP. El pool actual está destinado a DB local o red privada de confianza; TLS hacia una DB remota requiere configuración adicional antes del despliegue.
-- Las pruebas no constituyen pentest, certificación WCAG, validación Safari/Firefox, prueba de alta disponibilidad ni certificación de producción. No se añaden pagos ni pedidos.
+- Las pruebas no constituyen pentest, certificación WCAG, validación Safari/Firefox, prueba de alta disponibilidad ni certificación de producción. No se añaden pagos; pedidos se implementa exclusivamente mediante PR7.
+
+## Validación de PR7
+
+PR6 (#6) se confirmó fusionado antes de modificar archivos. Ambas referencias remotas (main y feat/orders-and-domain-completion) tenían la base `e9018c572039c71283bed4d7eeab34bbc27aaaf6`. Baseline sin modificaciones: **109/109** pruebas generales y **18/18** MySQL real, sin fallos ni omisiones. No se reimplementan PR5/PR6.
+
+Node **24.22.2**, Chrome del sistema y MySQL **8.0.46** en instancia/base nueva dedicada `_test`, sin datos del usuario:
+
+| Comprobación                                  | Resultado local                                                                                                              |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Suite completa independiente de MySQL         | **130/130**, sin fallos ni omisiones                                                                                         |
+| Backend/adaptador (subconjunto)               | **59/59**                                                                                                                    |
+| Chromium (incluido en la suite general)       | **63/63**                                                                                                                    |
+| MySQL real, con TZ=Asia/Tokyo                 | **28/28**, sin omisiones                                                                                                     |
+| Carreras HTTP, dos pools                      | Stock 1: un éxito/un 409; stock 3: tres éxitos/un 409; stock final 0 y filas exactas                                         |
+| Rollback multinegocio                         | POST con segundo producto sin stock y fallo provocado después del primer INSERT/descuento, sin filas ni descuentos parciales |
+| Cancelación simultánea / rollback de restock  | Stock 5 → compra 2 → 3 → cancelar dos veces → 5; fallo durante restitución revierte estado y stock                           |
+| Responsive                                    | **84 capturas** a 360/768/1024/1440 (12 nuevas PR7); revisión visual de las nuevas vistas móvil/escritorio                   |
+| Axe A/AA                                      | **42 combinaciones**, sin infracciones detectadas                                                                            |
+| Sintaxis JS/CJS                               | **85/85** archivos                                                                                                           |
+| Assets / diff                                 | Regeneración reproducible; `git diff --check` correcto                                                                       |
+| Audit producción backend                      | **0 vulnerabilidades** (`npm audit --omit=dev --prefix backend`)                                                             |
+| Arranque CLI / cierre SIGTERM                 | memory y mysql: 11 rutas HTTP 200 y 4 rutas protegidas 401 por modo                                                          |
+| Dependencias, migraciones y assets históricos | Ninguna dependencia nueva; 001/002/003, fotografías, vendor y fuentes intactos                                               |
+
+Los subconjuntos backend/navegador no se suman al total general. Los scripts de CI conservan memory, Chromium, MySQL 8.4, sintaxis, assets, audit y diff; incorporan los cuatro archivos nuevos de tests sin retirar los anteriores. Los fixtures SQL se limpian hijo→padre y las expectativas de versiones/tablas reflejan 004. La validación local 8.0.46 no sustituye la ejecución remota 8.4 del commit revisado.
+
+Las regresiones se comprobaron en rojo antes de sus cambios: ausencia del módulo Pedido, ausencia del formulario de confirmación, escritura directa de memory perdida durante una transacción y cambio de instancia durante la compra. Pasan tras implementar cada comportamiento. Las suites completas intermedias fueron 120/120 para backend integrado y 126/126 al incorporar interfaz; el resultado final incluye aislamiento, límites y protección ante cambio de instancia. Se corrigió contraste del label del carrito sin omitir reglas de axe y se verificó menú móvil/teclado.
+
+Se preservan scrypt, cookies HttpOnly/SameSite, CSRF/origen, CSP sin excepciones, rate limits, roles/propiedad y SQL parametrizado. Campos controlados por servidor se rechazan; precios históricos y totales usan registros persistidos. Las cuatro FK de 004 son RESTRICT y los services ofrecen errores de historial antes de depender del driver. Solo hay once entidades de negocio; no hay pagos, envíos, ORM ni carrito persistente.
+
+Límites vigentes: sesiones/rate limits por proceso; bloqueo global serializa escrituras; listados de pedidos con consultas por relación y sin paginación; escritores SQL externos deben respetar reglas de aplicación. Memory no es duradero ni distribuido. POST no tiene idempotencia ante pérdida de respuesta y no se reintenta automáticamente: se ofrece Mis pedidos antes de volver a confirmar. La restitución que supera el límite previo de stock produce 409 sin cambios. Safari/Firefox y dispositivos físicos no se verificaron; axe no certifica WCAG. El PR queda para revisión humana, sin merge automático.
