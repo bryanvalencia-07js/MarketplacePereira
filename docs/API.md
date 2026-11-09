@@ -34,7 +34,7 @@ Ejemplo de registro:
 }
 ```
 
-El ejemplo no es una cuenta distribuida ni una credencial real. Contraseñas: entre 12 y 128 caracteres; hashing scrypt en servidor. Correo normalizado a minúsculas y único. Estado inicial de registro: Activo. El autorregistro no admite `estado`, `id`, `passwordHash` ni rol Administrador.
+El ejemplo no es una cuenta distribuida ni una credencial real. Contraseñas: entre 12 y 128 caracteres; hashing scrypt en servidor. Correo normalizado a minúsculas y único. Estado inicial de registro: Activo. El autorregistro no admite `estado`, `id`, `passwordHash` ni `rolId`, `idRol`, `id_rol` o rol Administrador.
 
 Login establece `rp_session`, cookie opaca HttpOnly, SameSite Strict, duración máxima de ocho horas; Secure en producción. `csrfToken` se conserva solo en memoria de la página. Se obtiene de login o del bootstrap de sesión y se envía en `X-CSRF-Token` para CRUD y logout. No se utiliza bearer token en LocalStorage.
 
@@ -50,9 +50,15 @@ Todos estos endpoints requieren Administrador. Escrituras además requieren CSRF
 | PUT | `/usuarios/:id` | Campos editables parciales | Usuario actualizado |
 | DELETE | `/usuarios/:id` | — | `{ id }` |
 
-Usuario público: `id, nombre, apellido, correo, telefono?, rol, estado, createdAt, updatedAt`.
+Usuario público: `id, nombre, apellido, correo, telefono?, rolId, rol, estado, createdAt, updatedAt`.
 
 Roles admitidos en gestión: Administrador, Comerciante, Comprador. Estados: Activo, Inactivo. Los cambios de contraseña, rol o estado revocan sesiones. Se rechazan correo duplicado, eliminación propia, pérdida del último administrador activo y eliminación/cambio de rol de un usuario con comercio pendiente de resolver.
+
+## Categorías
+
+`GET /api/categorias` es público y devuelve `data: [{ id, nombre, descripcion, estado }]` con solo categorías Activas y `Cache-Control: no-store`. No devuelve `Todas`: ese nombre es un filtro del cliente. No hay endpoints de escritura de categorías ni CRUD de roles.
+
+El backend resuelve los nombres de categorías al guardar negocio/producto; acepta variaciones de mayúsculas, acentos y espacios triviales y devuelve el nombre del catálogo. Una asignación inexistente o inactiva responde 400. La relación histórica se conserva si un PUT omite `categoria`. `categoriaId` se devuelve para identificar la relación, pero no se acepta como entrada HTTP en PR5.
 
 ## Negocios
 
@@ -64,9 +70,11 @@ Roles admitidos en gestión: Administrador, Comerciante, Comprador. Estados: Act
 | PUT | `/negocios/:id` | Datos parciales → Negocio | Dueño/Administrador + CSRF |
 | DELETE | `/negocios/:id` | `{ id }`; exige no tener productos | Dueño/Administrador + CSRF |
 
-Datos de creación: `nombre`, `categoria`, `telefono`, `direccion`; opcionales `estado` y `usuarioId`. Para Comerciante, el propietario se toma de la sesión; enviar otro ID devuelve 403. Para Administrador, se selecciona un `usuarioId` de una cuenta Comerciante existente. Máximo un comercio por comerciante.
+Datos de creación: `nombre`, `categoria`, `telefono`, `direccion`; opcionales `estado`, `usuarioId`, `descripcion` y `municipio`. Para Comerciante, el propietario se toma de la sesión; enviar otro ID devuelve 403. Para Administrador, se selecciona un `usuarioId` de una cuenta Comerciante existente. Máximo un comercio por comerciante.
 
-Negocio público: `id, usuarioId, propietario, nombre, categoria, telefono, direccion, estado, createdAt, updatedAt`. `propietario` se deriva de la cuenta vigente; no se acepta como texto arbitrario de entrada.
+Negocio público: `id, usuarioId, propietario, nombre, categoriaId, categoria, descripcion, municipio, telefono, direccion, estado, createdAt, updatedAt`.
+
+`descripcion` (hasta 2000) y `municipio` (hasta 80) son opcionales y admiten null/vacío para ausencia de información; los negocios migrados no reciben un municipio ni descripción ficticios. `propietario` se deriva de la cuenta vigente; no se acepta como texto arbitrario de entrada.
 
 Filtros: `?gestion=true`, `?usuarioId=2`, `?buscar=cafe`, `?categoria=Alimentos`, `?estado=Activo`. Gestión exige Comerciante o Administrador; el comerciante solo recibe recursos propios. Los filtros no amplían permisos.
 
@@ -79,7 +87,7 @@ Filtros: `?gestion=true`, `?usuarioId=2`, `?buscar=cafe`, `?categoria=Alimentos`
 | POST | `/productos` | Datos → Producto, 201 | Dueño del comercio/Administrador + CSRF |
 | PUT | `/productos/:id` | Datos parciales → Producto | Dueño/Administrador + CSRF |
 | DELETE | `/productos/:id` | `{ id }` | Dueño/Administrador + CSRF |
-| POST | `/productos/:id/visita` | Sin body → Producto con popularidad incrementada | Público, mismo origen, rate limit |
+| POST | `/productos/:id/visita` | Sin body → Producto con visitas incrementadas | Público, mismo origen, rate limit |
 
 Datos de creación:
 
@@ -87,16 +95,18 @@ Datos de creación:
 negocioId: entero positivo de un comercio existente
 nombre: texto, máximo 120
 descripcion: texto, máximo 2000
-categoria: texto, máximo 60
+categoria: nombre de una categoría activa del catálogo, máximo 60
 precio: número positivo, máximo 1 000 000 000, hasta dos decimales
 stock: entero entre 0 y 1 000 000
 imagen: Data URL JPEG/PNG/WEBP optimizada, máximo 1 800 000 caracteres
 estado: Activo o Inactivo, opcional
 ```
 
-El formato y la firma básica de imagen se validan. No se aceptan URLs externas, `popularidad`, IDs ni timestamps enviados por cliente. `popularidad` comienza en cero. PUT conserva los campos omitidos.
+El formato y la firma básica de imagen se validan. No se aceptan URLs externas, `popularidad`, `visitas`, IDs ni timestamps enviados por cliente. `visitas` comienza en cero. PUT conserva los campos omitidos.
 
-Producto público: `id, negocioId, nombre, descripcion, categoria, precio, stock, imagen, estado, popularidad, createdAt, updatedAt`.
+Producto público: `id, negocioId, nombre, descripcion, categoriaId, categoria, precio, stock, imagen, estado, visitas, popularidad, createdAt, updatedAt`.
+
+`popularidad` es un alias de respuesta calculado de `visitas`, conservado para clientes anteriores. Ambos valores son idénticos y solo `/visita` incrementa el contador; la migración no genera visitas. No existe una entidad Inventario: el stock permanece en Producto.
 
 Filtros combinables: `?buscar=artesanal`, `?categoria=Alimentos`, `?negocioId=1`, `?estado=Activo`, `?gestion=true`. Sin gestión, exige producto activo y negocio existente activo. Los agotados se mantienen en catálogo; visita exige además stock positivo. Una consulta pública nunca lista huérfanos/inactivos por añadir filtros.
 
@@ -126,4 +136,4 @@ El resumen no expone la lista de cuentas.
 | 500 | Error interno, sin stack ni detalles de persistencia |
 | 503 | Capacidad temporal de sesiones agotada |
 
-No hay endpoints de carrito, pedidos ni pagos. MySQL es persistencia interna y no expone endpoints SQL. El carrito es del cliente y se valida contra `/productos`, `/negocios` y la sesión actual antes de operar.
+No hay endpoints de Servicio, Horario_Servicio, Reserva o Favorito (PR6), ni Pedido o Detalle_Pedido (PR7), carrito o pagos. MySQL es persistencia interna y no expone endpoints SQL. El carrito es del cliente y se valida contra `/productos`, `/negocios` y la sesión actual antes de operar.

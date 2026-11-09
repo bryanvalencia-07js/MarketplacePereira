@@ -2,7 +2,7 @@
 
 ## Alcance y arquitectura
 
-Leer README y los cuatro documentos de `docs/` antes de cambios estructurales. Revisar `git status` y los archivos involucrados. Trabajar en una rama de tarea; para la fundación MySQL usar `feat/mysql-foundation-xp`, nunca `main`.
+Leer README y los cuatro documentos de `docs/` antes de cambios estructurales. Revisar `git status` y los archivos involucrados. Trabajar en una rama de tarea; para PR5 usar exclusivamente `feat/der-foundation-normalization`, nunca `main`.
 
 Conservar HTML/CSS/JavaScript nativo, Express REST y el flujo frontend → API → controllers → services → repositories → DB. La persistencia se elige por `DATA_SOURCE=memory|mysql`; `createRepositories(datos)` sigue creando memory aislado para fixtures. No introducir ORM ni frameworks frontend/CSS. Nunca conectar el navegador directamente a MySQL.
 
@@ -27,7 +27,7 @@ Una clase ausente del HTML no prueba código muerto. Buscar globalmente en scrip
 
 Conservar scrypt, sesiones HttpOnly/SameSite, CSRF, origen, CSP estricta, roles, autorización por propiedad, límites, validaciones y errores seguros. No agregar `unsafe-inline` ni `unsafe-eval`. No guardar autenticación en LocalStorage, secretos en frontend ni credenciales en Git. No crear cuentas demo en arranque. El único bootstrap es el Administrador explícito mediante entorno.
 
-Las consultas SQL usan parámetros; los nombres de tablas/columnas proceden de listas cerradas. Cambios del esquema requieren una migración nueva: no editar una migración aplicada. La suite MySQL solo se ejecuta contra una base dedicada cuyo nombre termine en `_test`; destruye sus entidades. No ejecutar estas pruebas contra datos del usuario.
+Las consultas SQL usan parámetros; los nombres de tablas/columnas proceden de listas cerradas. Cambios del esquema requieren una migración nueva: no editar una migración aplicada. `001_foundation.sql` es inmutable; PR5 evoluciona mediante `002_normalize_roles_categories.sql`. Resolver roles/categorías mediante sus relaciones, sin IDs mágicos ni usuarioRol duplicado. Mantener visitas como contador y popularidad solo como alias de respuesta. La suite MySQL solo se ejecuta contra una base dedicada cuyo nombre termine en `_test`; destruye sus entidades. No ejecutar estas pruebas contra datos del usuario.
 
 ## Verificación
 

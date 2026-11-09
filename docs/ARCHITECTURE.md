@@ -50,11 +50,19 @@ Las páginas públicas no requieren sesión. Las páginas administrativas y de c
 
 ## Modelo y consistencia
 
-`Usuario.id → Negocio.usuarioId`; `Negocio.id → Producto.negocioId`.
+La fundación PR5 contiene cinco entidades: Rol, Usuario, Categoria, Negocio y Producto. `Rol.id → Usuario.rolId`; `Categoria.id → Negocio.categoriaId` y `Producto.categoriaId`; `Usuario.id → Negocio.usuarioId`; `Negocio.id → Producto.negocioId`.
+
+Los catálogos internos `rol` y `categoria` ofrecen `list/find`, sin CRUD HTTP de escritura. `relations.js` resuelve nombre/FK y valida categoría activa y propietario Comerciante en ambos adaptadores; MySQL mantiene SQL parametrizado/JOIN dentro del repository. Memory almacena relaciones y proyecta los mismos textos, fechas y alias de contador que MySQL. Servicios y rutas siguen validando roles, propiedad y campos HTTP; ni `idRol` ni `rolId` son entradas aceptadas para conceder permisos.
+
+`001` describe el modelo textual anterior y permanece intacta. `002` incorpora catálogos y backfill, retira `usuarioRol` y textos duplicados, preservando datos existentes. Descripción y municipio de negocios históricos quedan nullable; ambos formularios permiten completarlos. El mapeo de nombres académicos, la ventana de migración y las restricciones están en [DATABASE](DATABASE.md). No se crean Inventario (stock pertenece a Producto) ni Sector_Comercial (se utiliza Categoria).
+
+Servicio, Horario_Servicio, Reserva y Favorito quedan para PR6, incluyendo Categoria 1:N Servicio. Pedido y Detalle_Pedido quedan para PR7. Ninguna de esas seis entidades está implementada.
 
 Un comerciante tiene como máximo un comercio. El administrador asigna un comerciante real mediante un selector, no un nombre suelto. El nombre del propietario se proyecta desde su cuenta vigente. No se elimina un usuario con comercio ni un negocio con productos; la API responde 400 y explica la acción previa necesaria. No se crean huérfanos mediante los endpoints.
 
-Un producto público exige producto activo y comercio existente activo. Los agotados pueden verse, pero no comprarse ni generar visita. La gestión privada permite consultar inactivos al propietario/administrador. Popularidad aumenta por carga válida del detalle, no por renderizar tarjetas; no representa visitantes únicos ni ventas.
+Un producto público exige producto activo y comercio existente activo. Los agotados pueden verse, pero no comprarse ni generar visita. La gestión privada permite consultar inactivos al propietario/administrador. `visitas` aumenta por carga válida del detalle, no por renderizar tarjetas; no representa visitantes únicos ni ventas.
+
+`popularidad` se conserva únicamente como alias de salida de `visitas`, para compatibilidad. El frontend consulta `/api/categorias` antes de cargar formularios/marketplace; su mapa local contiene solo correspondencias de SVG. Las categorías adicionales usan el SVG existente `otro`. Si falla el catálogo, se muestra el estado de error con reintento. `Todas` se construye como filtro de interfaz.
 
 ## Sesiones y carrito
 
@@ -175,4 +183,4 @@ Se comprobaron 360/768/1024/1440 px en las páginas de los tres roles y las púb
 
 ## Límites y siguientes decisiones
 
-Con MySQL persisten las tres entidades; sesiones y rate limits siguen siendo de un proceso. El carrito se invalida por instancia al reiniciar, incluso con IDs duraderos, conservando la experiencia actual. Para varias instancias se requieren sesiones/límites compartidos; imágenes grandes deben evolucionar a almacenamiento de objetos y upload validado. No se implementan pagos, pedidos ni facturas. Las consultas actuales conservan listados y filtros en services: paginación y consultas específicas se pueden añadir después con pruebas y sin mezclar SQL en esa capa.
+Con MySQL persisten las cinco entidades de la fundación; sesiones y rate limits siguen siendo de un proceso. El carrito se invalida por instancia al reiniciar, incluso con IDs duraderos, conservando la experiencia actual. Para varias instancias se requieren sesiones/límites compartidos; imágenes grandes deben evolucionar a almacenamiento de objetos y upload validado. No se implementan pagos, pedidos ni facturas. Las consultas actuales conservan listados y filtros en services: paginación y consultas específicas se pueden añadir después con pruebas y sin mezclar SQL en esa capa.

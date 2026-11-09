@@ -10,6 +10,8 @@ HTML5, CSS3 y JavaScript nativo; Node.js 24, Express 5 y `mysql2/promise`. API R
 Browser → fetch → Express API → Controller → Service → Repository → Memory / MySQL
 ```
 
+La fundación PR5 normaliza Rol, Usuario, Categoria, Negocio y Producto en MySQL, manteniendo los mismos contratos HTTP. `001_foundation.sql` se conserva intacta; `002_normalize_roles_categories.sql` migra bases existentes, preserva hashes y convierte `popularidad` en `visitas` 1:1. `GET /api/categorias` proporciona el catálogo activo a Coverflow y formularios. Descripción y municipio de negocios antiguos quedan pendientes (NULL), sin inventar información.
+
 Usuarios, negocios y productos pueden persistir en MySQL. `DATA_SOURCE=memory` sigue siendo el valor predeterminado y permite ejecutar las pruebas sin una base. Sesiones y rate limits permanecen en memoria del proceso. El carrito es temporal del navegador: no hay pedidos, pagos, reservas ni descuento de stock.
 
 ## Instalar y ejecutar
@@ -33,6 +35,8 @@ Abrir [http://localhost:3000](http://localhost:3000). Express sirve el frontend 
 npm run db:migrate --prefix backend
 npm start --prefix backend
 ```
+
+Para actualizar una instalación existente, detener escritores y verificar respaldo/restauración antes de aplicar 002 y desplegar el nuevo backend. No hay rollback global de DDL. Ver la transición y correspondencias DER/API en [DATABASE](docs/DATABASE.md).
 
 MySQL >= 8.0.16; se recomienda 8.4 LTS. Instrucciones, permisos, modelo y recuperación de migraciones en [DATABASE](docs/DATABASE.md). El servidor falla si MySQL no está preparado; no sustituye silenciosamente la base por memoria. Las migraciones son explícitas, no se ejecutan al arrancar.
 
@@ -71,6 +75,8 @@ npm run test:mysql --prefix tests
 ```
 
 Cobertura, controles, CI y límites: [SECURITY_TESTING](docs/SECURITY_TESTING.md).
+
+PR6 queda reservado para Servicio, Horario_Servicio, Reserva y Favorito; PR7 para Pedido y Detalle_Pedido. No están implementados aquí. No se crean Inventario, Sector_Comercial, Pago ni Factura.
 
 ## Interfaz y assets locales
 
