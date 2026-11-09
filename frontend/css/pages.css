@@ -2389,7 +2389,7 @@ html:not(.narrativa-animada) .story-visibilidad-indicador {
   font-size: 0.75rem;
 }
 .hero-pie .icono { color: var(--rojo-rp); }
-.hero-editorial { position: relative; padding: 1rem 1rem 2.5rem 1.5rem; min-width: 0; }
+.hero-editorial { position: relative; padding: 1rem 1rem 4rem 1.5rem; min-width: 0; }
 .hero-retrato { position: relative; margin: 0; }
 .hero-retrato > img {
   width: 100%;
@@ -2429,9 +2429,9 @@ html:not(.narrativa-animada) .story-visibilidad-indicador {
 .hero-sello strong { display: block; font-family: var(--serif); font-size: 1.25rem; }
 .hero-postal {
   position: absolute;
-  left: -1rem;
-  bottom: 0;
-  width: 42%;
+  left: -2.5rem;
+  bottom: -2rem;
+  width: 34%;
   padding: 0.5rem 0.5rem 0.75rem;
   background: var(--papel);
   transform: rotate(-6deg);
@@ -2523,7 +2523,7 @@ html:not(.narrativa-animada) .story-visibilidad-indicador {
 .market-fondo { background: var(--arena); border-block: 1px solid var(--borde); }
 #populares .modulo-tipo, #recientes .modulo-tipo { padding-left: 0.75rem; border-left: 3px solid var(--amarillo-rp); }
 /* Un lugar para acceder, con fotografía y la firma de la ciudad. */
-.auth-presentacion { background: linear-gradient(180deg, #192a2460, #192a24ed 85%), url('../assets/storytelling/comerciante.jpg') center / cover; }
+.auth-presentacion { background: linear-gradient(180deg, #192a2460, #192a24ed 85%), url('../assets/storytelling/comerciante-login.webp') center / cover; }
 .auth-presentacion::after { background: none; border: 1px solid #ffffff30; inset: 1.25rem; }
 .auth-mensaje { position: relative; z-index: 1; margin: auto 0 2rem; }
 .auth-mensaje h1 { font-weight: 500; font-size: clamp(2.5rem, 4.5vw, 4.8rem); letter-spacing: -0.045em; line-height: 1.1; }
@@ -2536,7 +2536,7 @@ html:not(.narrativa-animada) .story-visibilidad-indicador {
 .auth-pie { text-align: left; }
 @media (min-width: 851px) {
   .auth-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "visual form"; }
-  .auth-presentacion { padding: clamp(2.5rem, 5vw, 5rem); background: linear-gradient(180deg, #192a2440, #192a24f5 85%), url('../assets/storytelling/comerciante.jpg') 55% center / cover; }
+  .auth-presentacion { padding: clamp(2.5rem, 5vw, 5rem); background: linear-gradient(180deg, #192a2440, #192a24f5 85%), url('../assets/storytelling/comerciante-login.webp') 55% center / cover; }
   .auth-formulario-contenedor { padding-inline: clamp(2rem, 5vw, 5rem); }
 }
 /* Detalle: la imagen y una columna de decisión con información del comercio. */
