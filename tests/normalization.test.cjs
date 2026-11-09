@@ -7,7 +7,7 @@ const {
   createProductoService,
 } = require("../backend/services/producto.service");
 const imagen = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB";
-const fixture = () =>
+const fixture = (extra = {}) =>
   createRepositories({
     usuarios: [
       {
@@ -45,6 +45,7 @@ const fixture = () =>
         popularidad: 37,
       },
     ],
+    ...extra,
   });
 test("normalización memory: relaciones y contador conservados sin IDs mágicos", async () => {
   const r = fixture();
@@ -62,7 +63,12 @@ test("normalización memory: relaciones y contador conservados sin IDs mágicos"
   assert.equal((await createProductoService(r).visita(9)).visitas, 38);
 });
 test("categorías: públicas activas, sin Todas ni escrituras públicas", async () => {
-  const r = fixture();
+  const r = fixture({
+    categorias: [
+      { id: 91, nombre: "Alimentos", descripcion: null, estado: "Activo" },
+      { id: 92, nombre: "Archivada", descripcion: null, estado: "Inactivo" },
+    ],
+  });
   const sistema = await createApplication({ repositories: r });
   const server = sistema.app.listen(0, "127.0.0.1");
   await new Promise((ok) => server.once("listening", ok));
@@ -73,6 +79,7 @@ test("categorías: públicas activas, sin Todas ni escrituras públicas", async 
     assert.equal(res.headers.get("cache-control"), "no-store");
     const { data } = await res.json();
     assert.ok(data.some((c) => c.nombre === "Alimentos"));
+    assert.equal(data.length, 1);
     assert.ok(data.every((c) => c.estado === "Activo" && c.nombre !== "Todas"));
     assert.equal((await fetch(base, { method: "POST" })).status, 404);
   } finally {
@@ -111,7 +118,12 @@ test("roles: registro no acepta rolId/idRol ni Administrador; categoría normali
     createUsuarioService,
   } = require("../backend/services/usuario.service");
   const s = createUsuarioService(r);
-  for (const extra of [{ rolId: 1 }, { idRol: 1 }, { rol: "Administrador" }])
+  for (const extra of [
+    { rolId: 1 },
+    { idRol: 1 },
+    { id_rol: 1 },
+    { rol: "Administrador" },
+  ])
     await assert.rejects(
       s.registrar({
         nombre: "Ana",

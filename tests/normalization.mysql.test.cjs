@@ -64,6 +64,7 @@ before(async () => {
 });
 after(async () => pool?.end());
 test("002 sobre 001 con datos: preserva todos los atributos, relaciones y visitas 1:1", async () => {
+  await assert.rejects(createMysqlRepositories(pool).ready(), /migraciones/);
   await migrate(pool);
   const r = createMysqlRepositories(pool);
   const [usuarios] = await pool.query(
@@ -146,6 +147,68 @@ test("002 integridad SQL: UNIQUE, FK, CHECK, InnoDB y utf8mb4", async () => {
     ),
   );
 });
+test("MySQL normalizado: referencias activas, JOIN, datos nuevos y checksum 002", async () => {
+  const r = createMysqlRepositories(pool);
+  await pool.query(
+    "INSERT INTO categorias (nombre,estado) VALUES ('Archivada','Inactivo')",
+  );
+  const [[inactiva]] = await pool.query(
+    "SELECT id FROM categorias WHERE nombre='Archivada'",
+  );
+  for (const categoria of ["Archivada", "Inexistente", "Todas"]) {
+    await assert.rejects(
+      r.producto.update(91, { categoria }),
+      (e) => e.status === 400,
+    );
+    await assert.rejects(
+      r.negocio.update(81, { categoria }),
+      (e) => e.status === 400,
+    );
+  }
+  await assert.rejects(
+    r.producto.update(91, { categoriaId: inactiva.id }),
+    (e) => e.status === 400,
+  );
+  const n = await r.negocio.update(81, {
+    municipio: "La Virginia",
+    descripcion: "Información completada",
+    categoria: " alimentos ",
+  });
+  assert.equal(n.categoria, "Alimentos");
+  assert.equal(n.municipio, "La Virginia");
+  const { createApplication } = require("../backend/app");
+  const sistema = await createApplication({ repositories: r });
+  const server = sistema.app.listen(0, "127.0.0.1");
+  await new Promise((ok) => server.once("listening", ok));
+  try {
+    const res = await fetch(
+      `http://127.0.0.1:${server.address().port}/api/categorias`,
+    );
+    assert.equal(res.status, 200);
+    const { data } = await res.json();
+    assert.ok(data.length >= 24);
+    assert.ok(data.every((c) => c.estado === "Activo" && c.id !== inactiva.id));
+  } finally {
+    await new Promise((ok) => server.close(ok));
+  }
+  const version = "002_normalize_roles_categories.sql";
+  const checksum = createHash("sha256")
+    .update(await readFile(archivo(version)))
+    .digest("hex");
+  await pool.execute(
+    "UPDATE schema_migrations SET checksum=REPEAT('0',64) WHERE version=?",
+    [version],
+  );
+  try {
+    await assert.rejects(migrate(pool), /alterada/);
+  } finally {
+    await pool.execute(
+      "UPDATE schema_migrations SET checksum=? WHERE version=?",
+      [checksum, version],
+    );
+  }
+});
+
 test("002 rechaza Todas histórica antes de retirar datos y registra intento incompleto", async () => {
   await preparar001();
   await pool.query("UPDATE productos SET categoria='Todas' WHERE id=91");
