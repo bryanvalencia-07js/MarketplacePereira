@@ -36,38 +36,77 @@ async function actualizarSesion() {
     enlace.textContent = usuarioSesion ? "Mi panel" : "Ingresar";
     zona.append(enlace);
   }
+  const paginaActual = location.pathname.split("/").pop() || "index.html";
+
   const navPublica = document.querySelector(".market-menu-interior");
   const navGestion = document.querySelector(".gestion-nav .contenedor");
+  const navLanding = document.querySelector(".landing-nav nav");
   
-  if (navPublica) {
-    navPublica.querySelectorAll("[data-nav-pr6]").forEach((n) => n.remove());
+  function agregarEnlacesNavegacion(nav, enlaces) {
+    if (!nav) return;
   
-    if (!navPublica.querySelector('a[href="servicios.html"]')) {
-      const a = document.createElement("a");
-      a.href = "servicios.html";
-      a.textContent = "Servicios";
-      a.dataset.navPr6 = "true";
-      navPublica.append(a);
+    nav.querySelectorAll("[data-nav-pr6]").forEach((n) => n.remove());
+  
+    for (const [href, texto] of enlaces) {
+      if (nav.querySelector(`a[href="${href}"]`)) continue;
+  
+      const enlace = document.createElement("a");
+      enlace.href = href;
+      enlace.textContent = texto;
+      enlace.dataset.navPr6 = "true";
+      nav.append(enlace);
     }
   }
   
-  if (navGestion && usuarioSesion) {
-    navGestion.querySelectorAll("[data-nav-pr6]").forEach((n) => n.remove());
+  /* Navegación pública de la landing */
+  if (navLanding) {
+    agregarEnlacesNavegacion(navLanding, [
+      ["servicios.html", "Servicios"],
+    ]);
+  }
   
-    let enlaces = [];
+  /* Navegación tipo marketplace */
+  if (navPublica) {
+    const enlaces = [
+      ["servicios.html", "Servicios"],
+    ];
   
-    if (usuarioSesion.rol === "Comerciante") {
-      enlaces = [
+    if (usuarioSesion?.rol === "Comprador") {
+      enlaces.push(
+        ["mis-reservas.html", "Mis reservas"],
+        ["favoritos.html", "Favoritos"],
+        ["mis-pedidos.html", "Mis pedidos"],
+        ["marketplace.html", "Marketplace"],
+        ["carrito.html", "Carrito"],
+      );
+    }
+  
+    /*
+     * En marketplace.html el Comerciante y Administrador
+     * conservan solamente la navegación pública para evitar
+     * saturar horizontalmente el navbar.
+     *
+     * En las páginas operativas que también usan market-menu,
+     * sí mostramos sus herramientas de gestión.
+     */
+    if (
+      paginaActual !== "marketplace.html" &&
+      usuarioSesion?.rol === "Comerciante"
+    ) {
+      enlaces.push(
         ["mis-servicios.html", "Servicios del comercio"],
         ["reservas.html", "Reservas recibidas"],
         ["pedidos.html", "Pedidos recibidos"],
         ["mi-negocio.html", "Mi negocio"],
         ["mis-productos.html", "Mis productos"],
-      ];
+      );
     }
   
-    if (usuarioSesion.rol === "Administrador") {
-      enlaces = [
+    if (
+      paginaActual !== "marketplace.html" &&
+      usuarioSesion?.rol === "Administrador"
+    ) {
+      enlaces.push(
         ["mis-servicios.html", "Servicios"],
         ["reservas.html", "Reservas"],
         ["pedidos.html", "Pedidos"],
@@ -75,18 +114,39 @@ async function actualizarSesion() {
         ["usuarios.html", "Usuarios"],
         ["negocios.html", "Negocios"],
         ["productos.html", "Productos"],
-      ];
+      );
     }
   
-    for (const [href, texto] of enlaces) {
-      if (navGestion.querySelector(`a[href="${href}"]`)) continue;
+    agregarEnlacesNavegacion(navPublica, enlaces);
+  }
   
-      const a = document.createElement("a");
-      a.href = href;
-      a.textContent = texto;
-      a.dataset.navPr6 = "true";
-      navGestion.append(a);
+  /* Paneles que utilizan gestion-nav */
+  if (navGestion && usuarioSesion) {
+    const enlaces = [];
+  
+    if (usuarioSesion.rol === "Comerciante") {
+      enlaces.push(
+        ["mis-servicios.html", "Servicios del comercio"],
+        ["reservas.html", "Reservas recibidas"],
+        ["pedidos.html", "Pedidos recibidos"],
+        ["mi-negocio.html", "Mi negocio"],
+        ["mis-productos.html", "Mis productos"],
+      );
     }
+  
+    if (usuarioSesion.rol === "Administrador") {
+      enlaces.push(
+        ["mis-servicios.html", "Servicios"],
+        ["reservas.html", "Reservas"],
+        ["pedidos.html", "Pedidos"],
+        ["dashboard.html", "Mi panel"],
+        ["usuarios.html", "Usuarios"],
+        ["negocios.html", "Negocios"],
+        ["productos.html", "Productos"],
+      );
+    }
+  
+    agregarEnlacesNavegacion(navGestion, enlaces);
   }
   return usuarioSesion;
 }
