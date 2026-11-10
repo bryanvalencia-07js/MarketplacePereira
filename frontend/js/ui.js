@@ -54,13 +54,17 @@ const UI = (() => {
   }
   async function tarea(boton, accion, mensajeId = "estadoAplicacion") {
     if (boton?.disabled) return;
+  
     const contenido = boton ? [...boton.childNodes] : [];
+  
     if (boton) {
       boton.disabled = true;
       boton.setAttribute("aria-busy", "true");
       boton.textContent = "Procesando…";
     }
+  
     estado("Procesando…", "carga", mensajeId);
+  
     try {
       return await accion();
     } catch (error) {
@@ -70,6 +74,14 @@ const UI = (() => {
         mensajeId,
       );
     } finally {
+      if (
+        document
+          .getElementById(mensajeId)
+          ?.classList.contains("carga")
+      ) {
+        estado("", "exito", mensajeId);
+      }
+  
       if (boton) {
         boton.replaceChildren(...contenido);
         boton.disabled = false;

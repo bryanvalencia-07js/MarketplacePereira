@@ -36,44 +36,56 @@ async function actualizarSesion() {
     enlace.textContent = usuarioSesion ? "Mi panel" : "Ingresar";
     zona.append(enlace);
   }
-  const nav = document.querySelector(
-    ".gestion-nav .contenedor, .market-menu-interior, .landing-nav nav",
-  );
-  if (nav) {
-    nav.querySelectorAll("[data-nav-pr6]").forEach((n) => n.remove());
-    const enlaces = [["servicios.html", "Servicios"]];
-    if (usuarioSesion?.rol === "Comprador")
-      enlaces.push(
-        ["mis-reservas.html", "Mis reservas"],
-        ["favoritos.html", "Favoritos"],
-        ["mis-pedidos.html", "Mis pedidos"],
-        ["marketplace.html", "Marketplace"],
-        ["carrito.html", "Carrito"],
-      );
-    if (["Comerciante", "Administrador"].includes(usuarioSesion?.rol))
-      enlaces.push(
+  const navPublica = document.querySelector(".market-menu-interior");
+  const navGestion = document.querySelector(".gestion-nav .contenedor");
+  
+  if (navPublica) {
+    navPublica.querySelectorAll("[data-nav-pr6]").forEach((n) => n.remove());
+  
+    if (!navPublica.querySelector('a[href="servicios.html"]')) {
+      const a = document.createElement("a");
+      a.href = "servicios.html";
+      a.textContent = "Servicios";
+      a.dataset.navPr6 = "true";
+      navPublica.append(a);
+    }
+  }
+  
+  if (navGestion && usuarioSesion) {
+    navGestion.querySelectorAll("[data-nav-pr6]").forEach((n) => n.remove());
+  
+    let enlaces = [];
+  
+    if (usuarioSesion.rol === "Comerciante") {
+      enlaces = [
         ["mis-servicios.html", "Servicios del comercio"],
         ["reservas.html", "Reservas recibidas"],
         ["pedidos.html", "Pedidos recibidos"],
-        ...(usuarioSesion.rol === "Comerciante"
-          ? [
-              ["mi-negocio.html", "Mi negocio"],
-              ["mis-productos.html", "Mis productos"],
-            ]
-          : [
-              ["dashboard.html", "Mi panel"],
-              ["usuarios.html", "Usuarios"],
-              ["negocios.html", "Negocios"],
-              ["productos.html", "Productos"],
-            ]),
-      );
+        ["mi-negocio.html", "Mi negocio"],
+        ["mis-productos.html", "Mis productos"],
+      ];
+    }
+  
+    if (usuarioSesion.rol === "Administrador") {
+      enlaces = [
+        ["mis-servicios.html", "Servicios"],
+        ["reservas.html", "Reservas"],
+        ["pedidos.html", "Pedidos"],
+        ["dashboard.html", "Mi panel"],
+        ["usuarios.html", "Usuarios"],
+        ["negocios.html", "Negocios"],
+        ["productos.html", "Productos"],
+      ];
+    }
+  
     for (const [href, texto] of enlaces) {
-      if (nav.querySelector(`a[href="${href}"]`)) continue;
+      if (navGestion.querySelector(`a[href="${href}"]`)) continue;
+  
       const a = document.createElement("a");
       a.href = href;
       a.textContent = texto;
       a.dataset.navPr6 = "true";
-      nav.append(a);
+      navGestion.append(a);
     }
   }
   return usuarioSesion;
