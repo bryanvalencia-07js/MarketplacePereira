@@ -335,6 +335,10 @@ test("responsive: estados vacíos compactos y filtros funcionales", async () => 
     await page.setViewportSize({ width: 360, height: 800 });
     await abrir(page, "usuarios.html");
     await page.locator(".editar").first().click();
+    // Editar carga el usuario por HTTP; el click no espera esa respuesta.
+    await page.waitForFunction(
+      () => document.getElementById("nombre").value === "Administración",
+    );
     assert.equal(await page.locator("#nombre").inputValue(), "Administración");
     await page.locator("#buscarUsuario").fill("sin coincidencias");
     assert.equal(await page.locator("#sinUsuarios").isVisible(), true);
