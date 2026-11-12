@@ -22,7 +22,7 @@ async function actualizarSesion() {
   for (const nodo of document.querySelectorAll('[data-click="cerrarSesion"]'))
     nodo.hidden = !usuarioSesion;
   for (const nodo of document.querySelectorAll(".carrito-navbar"))
-    nodo.hidden = Boolean(usuarioSesion && usuarioSesion.rol !== "Comprador");
+    nodo.hidden = usuarioSesion?.rol !== "Comprador";
   const zona = document.querySelector(".market-usuario");
   if (
     zona &&

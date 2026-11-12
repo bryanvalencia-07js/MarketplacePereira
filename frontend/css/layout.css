@@ -605,10 +605,25 @@
   .market-buscador { grid-column: 1 / -1; grid-row: 2; padding-bottom: 0; margin-bottom: 1rem; }
 }
 @media (max-width: 768px) {
-  .market-nav:not(.detalle-nav):not(.carrito-nav) { position: relative; grid-template-columns: minmax(0, 1fr) auto; }
+  .market-nav:not(.detalle-nav):not(.carrito-nav) { grid-template-columns: minmax(0, 1fr) auto; }
   .market-nav:not(.detalle-nav):not(.carrito-nav) .market-usuario { grid-column: 2; }
-  .market-nav:not(.detalle-nav):not(.carrito-nav) .market-buscador { grid-column: 1 / -1; width: calc(100% - 92px); justify-self: start; margin: 0; }
-  .market-nav:not(.detalle-nav):not(.carrito-nav) .boton.menu-toggle { position: absolute; right: 0; bottom: 0.75rem; padding-inline: 0.6rem; }
+  .market-nav:not(.detalle-nav):not(.carrito-nav) .market-buscador { grid-column: 1; width: 100%; margin: 0; }
+  .market-nav:not(.detalle-nav):not(.carrito-nav) .boton.menu-toggle { position: static; justify-self: end; padding-inline: 0.6rem; }
   .market-nav:not(.detalle-nav):not(.carrito-nav) .carrito-navbar { padding-inline: 0.5rem; gap: 0.3rem; }
   .market-nav #enlacePerfil { padding-inline: 0.7rem; font-size: 0.8rem; }
+}
+
+/* Cabeceras compactas: cada control ocupa su propia celda en móvil. */
+@media (max-width: 768px) {
+  .marca { min-width: 0; flex-shrink: 1; gap: 0.5rem; }
+  .marca > div, .marca > span:last-child { min-width: 0; }
+  .marca-nombre { overflow-wrap: anywhere; }
+  .market-nav, .dashboard-nav, .landing-nav { gap: 0.5rem; padding-block: 0.5rem; }
+  .market-buscador input, .market-buscador button { min-height: 44px; }
+  .market-buscador input { font-size: 1rem; padding-inline: 0.5rem; }
+  .market-buscador button { padding-inline: 0.6rem; }
+  .market-menu-interior, .gestion-nav .contenedor { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .market-menu a, .gestion-nav a { white-space: normal; overflow-wrap: anywhere; }
+  .market-menu.abierta { max-height: calc(100dvh - 120px); overflow-y: auto; }
+  .footer-contenido { gap: 1rem; }
 }
