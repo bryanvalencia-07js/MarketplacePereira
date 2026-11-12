@@ -174,6 +174,35 @@ test("responsive: veinte páginas y cuatro roles en ocho viewports, menú y tabl
       const page = await context.newPage();
       const errors = [];
       page.on("pageerror", (e) => errors.push(e.message));
+      if (!id) {
+        // Una sesión lenta no debe mostrar fugazmente un carrito de invitado.
+        for (const ruta of ["marketplace.html", "detalle-producto.html?id=1"]) {
+          let liberar, recibida;
+          const espera = new Promise((resolve) => {
+            liberar = resolve;
+          });
+          const solicitada = new Promise((resolve) => {
+            recibida = resolve;
+          });
+          await page.route("**/api/auth/sesion", async (route) => {
+            recibida();
+            await espera;
+            await route.continue();
+          });
+          const carga = page.goto(`${base}/${ruta}`);
+          await solicitada;
+          try {
+            assert.equal(
+              await page.locator(".carrito-navbar").isVisible(),
+              false,
+            );
+          } finally {
+            liberar();
+            await carga;
+            await page.unroute("**/api/auth/sesion");
+          }
+        }
+      }
       if (id) await entrar(page, id);
       if (id === 2) {
         await abrir(page, "marketplace.html");
