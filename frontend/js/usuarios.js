@@ -11,7 +11,8 @@ function mostrarUsuarios(lista) {
   contenedor.replaceChildren();
   for (const u of lista) {
     const fila = document.createElement("tr");
-    fila.innerHTML = `<td>${u.id}</td><td><strong>${UI.e(u.nombre)} ${UI.e(u.apellido)}</strong></td><td>${UI.e(u.correo)}</td><td><span class="badge badge-rol">${UI.e(u.rol)}</span></td><td><span class="badge ${u.estado === "Activo" ? "badge-activo" : "badge-inactivo"}">${UI.e(u.estado)}</span></td><td><div class="acciones-tabla"><button class="boton-accion editar">Editar</button><button class="boton-accion estado">Cambiar estado</button><button class="boton-accion eliminar">Eliminar</button></div></td>`;
+    fila.setAttribute("role", "row");
+    fila.innerHTML = `<td role="cell" data-label="ID">${u.id}</td><td role="cell" data-label="Usuario"><strong>${UI.e(u.nombre)} ${UI.e(u.apellido)}</strong></td><td role="cell" data-label="Correo">${UI.e(u.correo)}</td><td role="cell" data-label="Rol"><span class="badge badge-rol">${UI.e(u.rol)}</span></td><td role="cell" data-label="Estado"><span class="badge ${u.estado === "Activo" ? "badge-activo" : "badge-inactivo"}">${UI.e(u.estado)}</span></td><td role="cell" data-label="Acciones"><div class="acciones-tabla"><button class="boton-accion editar">Editar</button><button class="boton-accion estado">Cambiar estado</button><button class="boton-accion eliminar">Eliminar</button></div></td>`;
     fila.querySelector(".editar").onclick = () => editarUsuario(u.id);
     fila.querySelector(".estado").onclick = () => cambiarEstado(u.id);
     fila.querySelector(".eliminar").onclick = () => eliminarUsuario(u.id);

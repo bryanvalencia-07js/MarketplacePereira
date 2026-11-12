@@ -62,11 +62,14 @@ npm ci
 npm ci --prefix tests
 npx --prefix tests playwright install chromium
 npm test --prefix tests
+npm run test:responsive --prefix tests
 npm test --prefix backend
 npm audit --omit=dev --prefix backend
 ```
 
 Con Chrome/Chromium instalado: `CHROMIUM_PATH=/ruta/al/chromium npm test --prefix tests`.
+
+`test:responsive` comprueba las veinte páginas con los cuatro roles en ocho viewports de 360 a 1440 px, además del mockup narrativo, los estados vacíos y la tabla de usuarios. Se ejecuta también en CI; complementa la suite general de 130 casos.
 
 La suite normal usa memory y no necesita MySQL. La integración real se ejecuta separadamente con `DATA_SOURCE=mysql` y una `DB_NAME` terminada en `_test`: **borra las entidades de esa base de prueba**.
 

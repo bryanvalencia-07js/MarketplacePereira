@@ -2685,3 +2685,80 @@ html:not(.narrativa-animada) .story-visibilidad-indicador {
 @media (max-width: 768px) {
   .carrito-nav .menu-toggle { grid-column: 2; grid-row: 1; }
 }
+
+/* Ritmo y flujo natural para móvil, sin cambiar las escenas de escritorio. */
+@media (max-width: 768px) {
+  .market-seccion { padding-block: 1.75rem; }
+  #categorias { padding-block: 1.5rem; }
+  .market-titulo { flex-direction: column; align-items: flex-start; gap: 0.5rem; margin-bottom: 1rem; text-align: left; }
+  .market-titulo h2 { font-size: 1.9rem; }
+  .market-hero-grid { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+  .market-hero-card { display: block; border-radius: 60px 6px 6px 6px; }
+  .market-hero-card > img { height: auto; aspect-ratio: 1.6 / 1; object-position: center 60%; }
+  .market-hero-card figcaption { padding: 3rem 1rem 1rem; }
+  .market-hero-card h2 { font-size: 1.4rem; }
+  .market-hero h1 { font-size: clamp(2.25rem, 9vw, 2.8rem); }
+  .market-hero p { margin-block: 1rem; }
+  .sobre-market { padding: 1.25rem; border-radius: 10px; }
+  .sobre-market h3 { font-size: 1.5rem; margin-bottom: 0.75rem; }
+  .sobre-market p { font-size: 0.95rem; line-height: 1.65; margin-top: 0.75rem; }
+
+  html:not(.narrativa-animada) .story-impacto-imagen { position: absolute; inset: 0; height: auto; }
+  html:not(.narrativa-animada) .story-impacto-imagen img { position: absolute; inset: 0; }
+  html:not(.narrativa-animada) .story-impacto-contenido {
+    position: relative;
+    min-height: 0;
+    width: calc(100% - 2rem);
+    padding-block: 3rem;
+    justify-content: center;
+  }
+  .story-impacto h2 { font-size: clamp(2.4rem, 9vw, 3.4rem); }
+  .story-texto { margin-top: 1.25rem; font-size: 0.95rem; }
+  html:not(.narrativa-animada) .story-humana-visual { min-height: 260px; margin: 1rem; }
+  html:not(.narrativa-animada) .story-humana-contenido { padding: 1rem 1.5rem 2rem; }
+  .story-humana h2, .story-digital-mensaje h2 { font-size: clamp(2rem, 8vw, 2.75rem); }
+  html:not(.narrativa-animada) .story-visibilidad-contenido { padding-block: 2rem; }
+  html:not(.narrativa-animada) .story-problema,
+  html:not(.narrativa-animada) .story-digital-mensaje { margin-block: 1.5rem; }
+  html:not(.narrativa-animada) .story-digital-sticky { width: calc(100% - 2rem); padding-block: 2rem; overflow: visible; }
+  html:not(.narrativa-animada) .story-transformacion { height: auto; }
+  html:not(.narrativa-animada) #storyMarketplaceUI { position: relative; inset: auto; height: auto; }
+  .story-producto-digital { grid-template-columns: minmax(0, 1fr); gap: 1rem; padding: 1rem; }
+  .story-producto-imagen { min-height: 0; aspect-ratio: 1.6 / 1; }
+  .story-producto-info > strong, .story-producto-boton { margin-top: 1rem; }
+  .story-marketplace-header { padding: 1rem; }
+  .story-digital-progreso { margin-top: 1.5rem; }
+  .como-funciona { padding-block: 2.5rem; }
+  .como-funciona-encabezado { margin-bottom: 1.5rem; }
+  .como-funciona-encabezado h2 { font-size: clamp(2rem, 7.5vw, 2.75rem); }
+  .como-funciona-encabezado p { margin-top: 1rem; line-height: 1.65; }
+  .como-funciona-flujo { gap: 1rem; }
+  .como-paso { min-height: 0; }
+
+  .dashboard-main, .agenda-contenido { padding-block: 1.5rem 2rem; }
+  .modulo-encabezado, .dashboard-bienvenida { padding-bottom: 1.25rem; margin-bottom: 1.25rem; }
+  .modulo-encabezado h1, .dashboard-bienvenida h1 { font-size: clamp(2rem, 8vw, 2.5rem); }
+  .form-grid, .barra-herramientas { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+  .barra-herramientas { margin-bottom: 1rem; }
+  .negocio-card { padding: 1rem; gap: 1rem; overflow-wrap: anywhere; }
+  .negocio-card-superior { flex-wrap: wrap; }
+  .mi-comercio-card { padding: 1rem; gap: 1rem; overflow-wrap: anywhere; }
+  .agenda-grid { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+  .agenda-slots { gap: 0.75rem; }
+  .agenda-horario, .agenda-slot { padding: 0.75rem; }
+  .pedidos-lista { gap: 1rem; margin-block: 1rem; }
+  .pedidos-filtro { align-items: stretch; flex-direction: column; }
+  .pedidos-filtro .campo { flex-basis: auto; }
+
+  .auth-formulario-contenedor { padding: 1.5rem; }
+  .auth-encabezado h2 { font-size: 2.25rem; }
+  .auth-mensaje { margin-block: 1.5rem 1rem; }
+  .auth-mensaje h1 { font-size: 2rem; }
+  .detalle-producto-main, .carrito-main { padding-block: 1.5rem 2rem; }
+  .detalle-producto-info h1 { font-size: clamp(2rem, 8vw, 2.6rem); }
+  .detalle-producto-imagen { max-height: 360px; }
+  .resumen-carrito { position: static; padding: 1.25rem; }
+  .carrito-producto-info h3 { font-size: 1.25rem; }
+  .carrito-producto-subtotal { flex-wrap: wrap; gap: 0.5rem; }
+  .carrito-vacio { padding: 1.5rem; border-radius: 12px; }
+}
