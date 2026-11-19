@@ -1,63 +1,174 @@
-CREATE TABLE servicios (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  negocioId INT UNSIGNED NOT NULL,
-  categoriaId INT UNSIGNED NOT NULL,
-  nombre VARCHAR(120) NOT NULL,
-  descripcion VARCHAR(2000) NOT NULL,
-  precioReferencia DECIMAL(12,2) NOT NULL,
-  estado VARCHAR(8) NOT NULL DEFAULT 'Activo',
-  duracionMinutos INT NOT NULL,
-  capacidadSimultanea INT NOT NULL,
-  createdAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  updatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  CONSTRAINT fk_servicio_negocio FOREIGN KEY (negocioId) REFERENCES negocios(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
-  CONSTRAINT fk_servicio_categoria FOREIGN KEY (categoriaId) REFERENCES categorias(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
-  CONSTRAINT ck_servicio_nombre CHECK (CHAR_LENGTH(TRIM(nombre)) > 0),
-  CONSTRAINT ck_servicio_descripcion CHECK (CHAR_LENGTH(TRIM(descripcion)) > 0),
-  CONSTRAINT ck_servicio_precio CHECK (precioReferencia >= 0 AND precioReferencia <= 1000000000),
-  CONSTRAINT ck_servicio_estado CHECK (estado IN ('Activo','Inactivo')),
-  CONSTRAINT ck_servicio_duracion CHECK (duracionMinutos BETWEEN 1 AND 1440),
-  CONSTRAINT ck_servicio_capacidad CHECK (capacidadSimultanea BETWEEN 1 AND 100),
-  INDEX idx_servicio_negocio (negocioId),
-  INDEX idx_servicio_estado_categoria (estado,categoriaId)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_cs;
+-- =====================================================================
+-- REACTIVA PEREIRA
+-- MIGRACIÓN 003 - SERVICIOS, RESERVAS Y FAVORITOS
+--
+-- Esta migración agrega:
+--
+-- 1. Servicio
+-- 2. Horario_Servicio
+-- 3. Reserva
+-- 4. Favorito
+--
+-- Requiere que 001_foundation.sql ya haya creado:
+-- usuario, negocio, categoria y producto.
+-- =====================================================================
 
-CREATE TABLE horarios_servicio (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  servicioId INT UNSIGNED NOT NULL,
-  diaSemana TINYINT NOT NULL,
-  horaInicio TIME NOT NULL,
-  horaFin TIME NOT NULL,
-  createdAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  updatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  CONSTRAINT fk_horario_servicio FOREIGN KEY (servicioId) REFERENCES servicios(id) ON DELETE CASCADE ON UPDATE RESTRICT,
-  CONSTRAINT ck_horario_dia CHECK (diaSemana BETWEEN 1 AND 7),
-  CONSTRAINT ck_horario_horas CHECK (horaInicio >= '00:00:00' AND horaFin < '24:00:00' AND horaInicio < horaFin AND SECOND(horaInicio) = 0 AND SECOND(horaFin) = 0),
-  CONSTRAINT uq_horario_inicio UNIQUE (servicioId,diaSemana,horaInicio)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_cs;
 
-CREATE TABLE reservas (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  usuarioId INT UNSIGNED NOT NULL,
-  servicioId INT UNSIGNED NOT NULL,
-  fechaHoraInicio DATETIME(3) NOT NULL,
-  estado VARCHAR(10) NOT NULL DEFAULT 'Confirmada',
-  createdAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  updatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  CONSTRAINT fk_reserva_usuario FOREIGN KEY (usuarioId) REFERENCES usuarios(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
-  CONSTRAINT fk_reserva_servicio FOREIGN KEY (servicioId) REFERENCES servicios(id) ON DELETE RESTRICT ON UPDATE RESTRICT,
-  CONSTRAINT ck_reserva_estado CHECK (estado IN ('Confirmada','Cancelada')),
-  INDEX idx_reserva_servicio_estado_inicio (servicioId,estado,fechaHoraInicio),
-  INDEX idx_reserva_usuario_inicio (usuarioId,fechaHoraInicio)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_cs;
+-- =====================================================================
+-- SERVICIO
+-- =====================================================================
 
-CREATE TABLE favoritos (
-  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  usuarioId INT UNSIGNED NOT NULL,
-  productoId INT UNSIGNED NOT NULL,
-  createdAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  updatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  CONSTRAINT fk_favorito_usuario FOREIGN KEY (usuarioId) REFERENCES usuarios(id) ON DELETE CASCADE ON UPDATE RESTRICT,
-  CONSTRAINT fk_favorito_producto FOREIGN KEY (productoId) REFERENCES productos(id) ON DELETE CASCADE ON UPDATE RESTRICT,
-  CONSTRAINT uq_favorito_usuario_producto UNIQUE (usuarioId,productoId)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_as_cs;
+CREATE TABLE servicio (
+    id_servicio INT AUTO_INCREMENT PRIMARY KEY,
+    id_negocio INT NOT NULL,
+    id_categoria INT NOT NULL,
+    nombre_servicio VARCHAR(150) NOT NULL,
+    descripcion TEXT NOT NULL,
+    precio_referencia DECIMAL(12,2) NOT NULL DEFAULT 0,
+    estado VARCHAR(20) NOT NULL DEFAULT 'Activo',
+    duracion_minutos INT NOT NULL,
+    capacidad_simultanea INT NOT NULL DEFAULT 1,
+
+    CONSTRAINT chk_servicio_precio
+        CHECK (precio_referencia >= 0),
+
+    CONSTRAINT chk_servicio_estado
+        CHECK (estado IN ('Activo', 'Inactivo')),
+
+    CONSTRAINT chk_servicio_duracion
+        CHECK (duracion_minutos > 0),
+
+    CONSTRAINT chk_servicio_capacidad
+        CHECK (capacidad_simultanea >= 1),
+
+    CONSTRAINT fk_servicio_negocio
+        FOREIGN KEY (id_negocio)
+        REFERENCES negocio(id_negocio)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_servicio_categoria
+        FOREIGN KEY (id_categoria)
+        REFERENCES categoria(id_categoria)
+        ON DELETE RESTRICT
+);
+
+
+-- =====================================================================
+-- HORARIO_SERVICIO
+--
+-- dia_semana:
+-- 1 = Lunes
+-- 2 = Martes
+-- 3 = Miércoles
+-- 4 = Jueves
+-- 5 = Viernes
+-- 6 = Sábado
+-- 7 = Domingo
+-- =====================================================================
+
+CREATE TABLE horario_servicio (
+    id_horario INT AUTO_INCREMENT PRIMARY KEY,
+    id_servicio INT NOT NULL,
+    dia_semana TINYINT NOT NULL,
+    hora_inicio TIME NOT NULL,
+    hora_fin TIME NOT NULL,
+
+    CONSTRAINT uq_horario_servicio
+        UNIQUE (
+            id_servicio,
+            dia_semana,
+            hora_inicio
+        ),
+
+    CONSTRAINT chk_horario_dia
+        CHECK (dia_semana BETWEEN 1 AND 7),
+
+    CONSTRAINT chk_horario_horas
+        CHECK (hora_inicio < hora_fin),
+
+    CONSTRAINT fk_horario_servicio
+        FOREIGN KEY (id_servicio)
+        REFERENCES servicio(id_servicio)
+        ON DELETE CASCADE
+);
+
+
+-- =====================================================================
+-- RESERVA
+--
+-- Una reserva pertenece a:
+-- 1 usuario
+-- 1 servicio
+--
+-- Estados actuales:
+-- Confirmada
+-- Cancelada
+-- =====================================================================
+
+CREATE TABLE reserva (
+    id_reserva INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    id_servicio INT NOT NULL,
+    fecha_hora_inicio DATETIME NOT NULL,
+    estado VARCHAR(20) NOT NULL DEFAULT 'Confirmada',
+    fecha_creacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uq_reserva_usuario_servicio
+        UNIQUE (
+            id_usuario,
+            id_servicio,
+            fecha_hora_inicio
+        ),
+
+    CONSTRAINT chk_reserva_estado
+        CHECK (
+            estado IN (
+                'Confirmada',
+                'Cancelada'
+            )
+        ),
+
+    CONSTRAINT fk_reserva_usuario
+        FOREIGN KEY (id_usuario)
+        REFERENCES usuario(id_usuario)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_reserva_servicio
+        FOREIGN KEY (id_servicio)
+        REFERENCES servicio(id_servicio)
+        ON DELETE RESTRICT
+);
+
+
+-- =====================================================================
+-- FAVORITO
+--
+-- Favorito representa la relación muchos a muchos:
+--
+-- Usuario N:M Producto
+--
+-- Un usuario no puede guardar el mismo producto dos veces.
+-- =====================================================================
+
+CREATE TABLE favorito (
+    id_favorito INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    id_producto INT NOT NULL,
+    fecha_agregado DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uq_favorito_usuario_producto
+        UNIQUE (
+            id_usuario,
+            id_producto
+        ),
+
+    CONSTRAINT fk_favorito_usuario
+        FOREIGN KEY (id_usuario)
+        REFERENCES usuario(id_usuario)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_favorito_producto
+        FOREIGN KEY (id_producto)
+        REFERENCES producto(id_producto)
+        ON DELETE CASCADE
+);
