@@ -1,11 +1,11 @@
 {
-  "name": "api_usuarios",
+  "name": "reactiva-pereira-backend",
   "version": "1.0.0",
   "main": "app.js",
   "scripts": {
     "start": "node --env-file-if-exists=.env app.js",
     "dev": "nodemon --exec \"node --env-file-if-exists=.env\" app.js",
-    "test": "node --test ../tests/api.test.cjs ../tests/mysql.test.cjs ../tests/pr6.test.cjs ../tests/pr6.api.test.cjs ../tests/pr7.test.cjs ../tests/pr7.api.test.cjs",
+    "test": "node --test ../tests/api.test.cjs ../tests/mysql.test.cjs ../tests/services.test.cjs ../tests/services.api.test.cjs ../tests/orders.test.cjs ../tests/orders.api.test.cjs",
     "db:migrate": "node --env-file-if-exists=.env db/migrate.js"
   },
   "keywords": [],

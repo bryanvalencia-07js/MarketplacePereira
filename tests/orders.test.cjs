@@ -6,7 +6,7 @@ const {
   vendedor,
   ajeno,
   admin,
-} = require("./pr6.helpers.cjs");
+} = require("./marketplace.fixtures.cjs");
 const { createPedidoService } = require("../backend/services/pedido.service");
 function setup(extra = {}) {
   const ctx = fixture({

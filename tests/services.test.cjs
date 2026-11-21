@@ -9,7 +9,7 @@ const {
   admin,
   fecha,
   inicio,
-} = require("./pr6.helpers.cjs");
+} = require("./marketplace.fixtures.cjs");
 const status = (code) => (e) => e.status === code;
 test("PR6 Servicio: referencias, validación, filtros públicos y propiedad", async () => {
   const c = fixture(),

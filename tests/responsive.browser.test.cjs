@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
 const { createApplication } = require("../backend/app");
 const { hashPassword } = require("../backend/utils/password");
-const { fixture, agenda, comprador, inicio } = require("./pr6.helpers.cjs");
+const { fixture, agenda, comprador, inicio } = require("./marketplace.fixtures.cjs");
 const { createPedidoService } = require("../backend/services/pedido.service");
 
 const viewports = [

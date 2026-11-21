@@ -10,8 +10,5 @@
   "private": true,
   "scripts": {
     "assets": "node scripts/prepare-ui.cjs"
-  },
-  "dependencies": {
-    "mysql2": "^3.24.6"
   }
 }

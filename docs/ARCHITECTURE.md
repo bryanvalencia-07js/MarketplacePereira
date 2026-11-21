@@ -1,247 +1,2372 @@
-# Arquitectura actual
+# Arquitectura — Reactiva Pereira
 
-## Recorrido completo
+## Propósito
 
-```text
-Acción del usuario
-→ evento DOM (sin handlers inline)
-→ módulo frontend
-→ api.js / fetch, cookie del mismo origen y CSRF
-→ ruta Express
-→ controller (HTTP / JSON)
-→ service (validación, permisos y reglas)
-→ repository async (memory o MySQL)
-→ DTO / JSON { ok, data }
-→ estado y render del DOM
+Reactiva Pereira utiliza una arquitectura web por capas.
+
+El objetivo es separar:
+
+```text id="vmp3ut"
+interfaz
+lógica HTTP
+reglas de negocio
+persistencia
+base de datos
 ```
 
-`backend/app.js` es la raíz de composición. `createApplication({ repositories, ...config })` permite inyectar adaptadores y crear aplicaciones aisladas en pruebas. Solo abre el puerto cuando se ejecuta como programa principal. Sirve `frontend/` y `/api`; evita un despliegue CORS separado y centraliza cabeceras, límites y errores.
-
-## Backend
-
-| Carpeta        | Responsabilidad                                                                  |
-| -------------- | -------------------------------------------------------------------------------- |
-| `config`       | Puerto, origen, DATA_SOURCE, parámetros DB y bootstrap opcional de administrador |
-| `routes`       | Endpoints, autenticación, roles, CSRF y límites de intentos                      |
-| `controllers`  | Traducir request/response; no manipulan arreglos                                 |
-| `services`     | Reglas de usuario, comercio, producto, autenticación y propiedad                 |
-| `repositories` | Contrato async y adaptadores memory/MySQL                                        |
-| `db`           | Pool mysql2/promise, preparación de conexiones y migraciones explícitas          |
-| `data`         | Estado inicial vacío, sin cuentas predeterminadas                                |
-| `middleware`   | Sesión, políticas HTTP, origen, CSRF, rate limits y errores                      |
-| `utils`        | Validación, errores de dominio y hashing                                         |
-
-Los servicios acceden a `usuario`, `negocio`, `producto`, `servicio`, `horario`, `reserva`, `favorito`, `pedido` y `detallePedido` mediante `list/find/create/update/delete`. Los repositorios devuelven copias, generan IDs monotónicos y preservan `createdAt`; `updatedAt` cambia al actualizar. No exponen la colección interna. `transaccion(callback)` serializa escrituras y comprobaciones de unicidad; memory lo hace en este proceso y MySQL entre procesos con una fila bloqueada en InnoDB. MySQL usa AsyncLocalStorage para que el callback comparta conexión sin cambiar services. IDs y fechas se normalizan en DTOs; el propietario se deriva del usuario vigente, sin columna duplicada en MySQL.
-
-El adaptador de memoria no es almacenamiento duradero ni una implementación distribuida. Las transacciones usan copias privadas con commit/rollback y las asociaciones dependientes se eliminan explícitamente en memory. El adaptador MySQL proporciona BEGIN/COMMIT/ROLLBACK reales y libera o descarta la conexión en finally; ver [DATABASE](DATABASE.md).
-
-## Frontend
-
-- `api.js`: única ubicación de `fetch`, prefijo `/api`, JSON, timeout, credenciales, CSRF y errores HTTP.
-- `sesion.js`: identidad obtenida del servidor, destinos por rol y logout. No decide los permisos reales del backend.
-- `app-init.js`: enlaza eventos mediante atributos `data-*`, espera la sesión y carga solo el módulo permitido. Sin `eval`, scripts inline ni frameworks.
-- `ui.js`: tareas con loading y restauración del botón, mensajes inline y notificaciones descartables, skeletons, validación asociada al campo, contraseña visible opcional, menú móvil con Escape, confirmación con `<dialog>`, KPIs y tarjetas escapadas. Un observador decora controles dinámicos con el sprite Lucide local.
-- `estado-local.js`: IDs, precios, texto/imagen segura y reconciliación del carrito temporal con datos actuales de API.
-- `imagenes.js`: lectura, preview, redimensionado y compresión local. Aislado del CRUD para reemplazarlo después por upload.
-- `legado.js`: respaldo local de la etapa anterior, sin credenciales y sin importación de identidades.
-- Módulos por página: landing, marketplace, detalle, carrito, comercio, productos, usuarios, negocios y dashboard.
-
-Las páginas públicas no requieren sesión. Las páginas administrativas y de comerciante esperan la identidad del servidor antes de cargar su lógica. Las comprobaciones de rol del cliente solo mejoran la navegación; cada escritura HTTP se autoriza nuevamente en Express.
-
-## Modelo y consistencia
-
-La fundación PR5 contiene cinco entidades: Rol, Usuario, Categoria, Negocio y Producto. `Rol.id → Usuario.rolId`; `Categoria.id → Negocio.categoriaId` y `Producto.categoriaId`; `Usuario.id → Negocio.usuarioId`; `Negocio.id → Producto.negocioId`.
-
-Los catálogos internos `rol` y `categoria` ofrecen `list/find`, sin CRUD HTTP de escritura. `relations.js` resuelve nombre/FK y valida categoría activa y propietario Comerciante en ambos adaptadores; MySQL mantiene SQL parametrizado/JOIN dentro del repository. Memory almacena relaciones y proyecta los mismos textos, fechas y alias de contador que MySQL. Servicios y rutas siguen validando roles, propiedad y campos HTTP; ni `idRol` ni `rolId` son entradas aceptadas para conceder permisos.
-
-`001` describe el modelo textual anterior y permanece intacta. `002` incorpora catálogos y backfill, retira `usuarioRol` y textos duplicados, preservando datos existentes. Descripción y municipio de negocios históricos quedan nullable; ambos formularios permiten completarlos. El mapeo de nombres académicos, la ventana de migración y las restricciones están en [DATABASE](DATABASE.md). No se crean Inventario (stock pertenece a Producto) ni Sector_Comercial (se utiliza Categoria).
-
-PR6 incorpora Servicio, Horario_Servicio, Reserva y Favorito mediante 003. Negocio/Categoria 1:N Servicio; Servicio 1:N Horario_Servicio y Reserva; Usuario 1:N Reserva; Favorito resuelve Usuario N:M Producto. PR7 completa el modelo con Pedido y Detalle_Pedido mediante 004.
-
-`servicio.service.js`, `horario.service.js`, `reserva.service.js` y `favorito.service.js` concentran validación y propiedad; `agenda.controller.js` traduce HTTP y `agenda.routes.js` exige rol/CSRF. SQL permanece en el repository MySQL. `utils/agenda.js` calcula slots y pico de ocupación, común a ambos adaptadores. No hay tabla Disponibilidad ni fechaHoraFin persistida.
-
-La operación reserva revalida servicio/negocio/categoría Activos, fecha futura, slot exacto y cupo dentro de `transaccion`, después de obtener el bloqueo global MySQL. Mantiene conexión hasta COMMIT/ROLLBACK. Esto impide sobreventa entre procesos/pools que usen el adaptador. Memory serializa por instancia y publica las copias solo al confirmar. GET puede quedar desactualizado; POST vuelve a comprobar. La duración no cambia con reservas Confirmadas futuras/en curso; capacidad no baja del pico reservado. Horarios pueden cambiar sin eliminar reservas, incluidas las que quedan fuera de la nueva cuadrícula. Cancelar libera cupo; Inactivo impide nuevas reservas sin borrar historial. Borrado de servicio/usuario con reservas se rechaza; favorito dependiente y horario sin historial usan CASCADE documentado en DATABASE.
-
-Horarios representan America/Bogota y la conversión IANA no depende de TZ del host. Reserva almacena UTC DATETIME(3), mysql2 usa timezone Z y las respuestas ISO incluyen Z. Frontend formatea explícitamente en Pereira. Precio de referencia 0 significa consultar; capacidad se limita a 100. No se incorpora pago.
-
-Un comerciante tiene como máximo un comercio. El administrador asigna un comerciante real mediante un selector, no un nombre suelto. El nombre del propietario se proyecta desde su cuenta vigente. No se elimina un usuario con comercio ni un negocio con productos; la API responde 400 y explica la acción previa necesaria. No se crean huérfanos mediante los endpoints.
-
-Un producto público exige producto activo y comercio existente activo. Los agotados pueden verse, pero no comprarse ni generar visita. La gestión privada permite consultar inactivos al propietario/administrador. `visitas` aumenta por carga válida del detalle, no por renderizar tarjetas; no representa visitantes únicos ni ventas.
-
-`popularidad` se conserva únicamente como alias de salida de `visitas`, para compatibilidad. El frontend consulta `/api/categorias` antes de cargar formularios/marketplace; su mapa local contiene solo correspondencias de SVG. Las categorías adicionales usan el SVG existente `otro`. Si falla el catálogo, se muestra el estado de error con reintento. `Todas` se construye como filtro de interfaz.
-
-## Trazabilidad DER ↔ funcionalidad real
-
-| Entidad          | Pantalla / módulo frontend                                                                                                    | Ruta y service backend                                                            | Persistencia                      |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------- |
-| Servicio         | `servicios.html` + `servicios.js`, `detalle-servicio.html` + `detalle-servicio.js`, `mis-servicios.html` + `mis-servicios.js` | `/api/servicios`, `servicio.service.js`                                           | repos.servicio / servicios        |
-| Horario_Servicio | Detalle público y sección Horarios de `mis-servicios.html`                                                                    | `/api/servicios/:id/horarios`, `/api/horarios-servicio/:id`, `horario.service.js` | repos.horario / horarios_servicio |
-| Reserva          | Slots en detalle, `mis-reservas.html`, `reservas.html` + `reservas.js`                                                        | disponibilidad, `/api/reservas`, `reserva.service.js`                             | repos.reserva / reservas          |
-| Favorito         | Tarjetas/detalle de producto + `favorito-acciones.js`; `favoritos.html` + `favoritos.js`                                      | `/api/favoritos`, `favorito.service.js`                                           | repos.favorito / favoritos        |
-
-`app-init.js` registra las seis páginas y carga módulos después de la sesión; `sesion.js` añade enlaces por rol. Los nuevos módulos enlazan eventos con addEventListener; el controlador compartido de favoritos funciona también en las tarjetas creadas dinámicamente. API es la fuente de verdad, sin localStorage para reservas/favoritos. Los formularios conservan valores al fallar la red y no muestran confirmaciones simuladas. La UI usa los paneles, botones, formularios, Serif + Sans y CSS modular existentes; no sustituye fotografías, assets manuales ni storytelling.
-
-## Sesiones y carrito
-
-Sesiones absolutas de ocho horas en memoria; cookie opaca HttpOnly. El token se indexa por su hash en servidor y la identidad se vuelve a leer para cada request. Cambiar contraseña/rol/estado o eliminar una cuenta revoca sus sesiones.
-
-El carrito conserva referencias `{ usuarioId, productoId, cantidad }`. Su clave incluye un identificador aleatorio de instancia del backend: un reinicio no vuelve a asociar IDs nuevos con carritos antiguos. Antes de operar se verifica la sesión y se consulta el catálogo público. Solo se ajustan entradas del comprador actual; otros compradores se preservan.
-
-Se eliminan referencias no disponibles y cantidades inválidas, se combinan duplicados y se limita al stock. Los importes se suman en centavos y se formatean como COP con decimales cuando corresponda. Un fallo de red no se interpreta como catálogo vacío ni borra el carrito. El carrito no reserva stock; confirmar mediante `/api/pedidos` crea historial y descuenta stock en servidor.
-
-## Roles y permisos
-
-| Operación                                  | Visitante             | Comprador | Comerciante      | Administrador                        |
-| ------------------------------------------ | --------------------- | --------- | ---------------- | ------------------------------------ |
-| Landing, catálogo y comercios públicos     | Sí                    | Sí        | Sí               | Sí                                   |
-| Detalle de producto público activo         | Sí                    | Sí        | Sí               | Sí                                   |
-| Registrar cuenta pública                   | Comprador/Comerciante | Igual     | Igual            | Igual                                |
-| Carrito temporal                           | Iniciar sesión        | Propio    | No               | No                                   |
-| CRUD de usuarios                           | No                    | No        | No               | Sí                                   |
-| Crear comercio                             | No                    | No        | Uno propio       | Asignado a comerciante real          |
-| Editar/eliminar comercio                   | No                    | No        | Propio           | Cualquiera, con reglas de integridad |
-| CRUD de productos                          | No                    | No        | De su comercio   | De cualquier comercio                |
-| Gestión de inactivos                       | No                    | No        | Recursos propios | Todos                                |
-| Dashboard global                           | No                    | No        | No               | Sí                                   |
-| Servicios/horarios/disponibilidad públicos | Sí                    | Sí        | Sí               | Sí                                   |
-| Gestionar servicios y horarios             | No                    | No        | Su negocio       | Global                               |
-| Crear reserva / Mis reservas               | No                    | Propias   | No               | No                                   |
-| Consultar/cancelar reserva                 | No                    | Propia    | Su negocio       | Global                               |
-| Favoritos                                  | No                    | Propios   | No               | No                                   |
-
-### Autorización real
-
-Las rutas de escritura exigen sesión, rol permitido y CSRF. El servicio determina propiedad a partir del usuario de la sesión y la relación almacenada; no confía en `usuarioId` enviado por el navegador para otorgar permisos.
-
-Un comerciante no puede asignar su comercio a otro usuario, modificar un producto ajeno o moverlo a otro negocio. El administrador puede asignar o reasignar comercios respetando el límite de uno por comerciante. No hay autorregistro de administradores.
-
-- Falta sesión en operación protegida: 401.
-- Rol o propiedad no permitidos: 403.
-- Recurso privado no visible en consulta pública: 404.
-- Reglas de integridad o datos inválidos: 400.
-
-`?gestion=true` solo permite Administrador o Comerciante. Para el comerciante devuelve únicamente sus recursos, incluidos inactivos. Sin ese parámetro, los listados respetan disponibilidad pública incluso cuando quien consulta está autenticado.
-
-### Navegación por rol
-
-- Administrador → `dashboard.html`, `usuarios.html`, `negocios.html`, `productos.html`, `mis-servicios.html`, `reservas.html`.
-- Comerciante → `mi-negocio.html`, `mis-productos.html`, `mis-servicios.html`, `reservas.html`, preview público de su comercio.
-- Comprador → `marketplace.html`, detalles, `carrito.html`, `mis-reservas.html`, `favoritos.html`, `mis-pedidos.html`. Catálogo de servicios en `servicios.html`.
-- Invitado → landing, marketplace y detalle; el botón de compra conduce al login.
-
-Un rol incorrecto vuelve a su inicio, evitando el antiguo bucle hacia dashboard. El preview no convierte al comerciante en comprador ni habilita carrito. La protección del cliente no sustituye al servidor.
-
-### Revocación e integridad
-
-La sesión caduca a las ocho horas, al reiniciar el proceso, al cerrar sesión o cuando se revocan permisos/contraseña/estado. Usuarios inactivos no pueden iniciar sesión. Los mensajes entre pestañas no contienen identidad ni token; sirven para refrescar la sesión desde API.
-
-No puede desaparecer el último administrador activo. No se permite eliminar la propia cuenta administradora. Un comerciante con comercio no puede cambiar a otro rol hasta resolver esa relación. Los borrados de usuario/comercio con dependencias se rechazan, sin cascadas destructivas.
-
-## UI, accesibilidad y storytelling
-
-Las categorías usan el Coverflow 3D de `categorias.js`, tarjetas creadas dinámicamente y SVG propios de `assets/icons/categorias.svg`. Se conservan flechas, scroll táctil, hover 3D, selección activa, `aria-pressed` y filtros compartidos con los selects de formularios. El centrado usa scroll horizontal del carrusel: `scrollIntoView` desplazaba verticalmente el nuevo hero móvil durante el arranque. Perspectiva y escala mantienen la profundidad; se retiró la atenuación de opacidad del texto para conservar contraste en todas las categorías.
-
-### Identidad
-
-Variables centralizadas en un único `:root` de `frontend/css/tokens.css`; escala de espacios, radios y tipografías compartidos. `base.css`, `layout.css`, `components.css`, `pages.css` y `animations.css` separan responsabilidades; `estilos.css` es el resultado compacto generado mediante `npm run assets`, nunca la fuente a editar:
-
-| Token                | Valor / uso                                 |
-| -------------------- | ------------------------------------------- |
-| `--amarillo-rp`      | `#efc75e`: energía, ilustración y acentos   |
-| `--rojo-rp`          | `#a33242`: acciones e identidad             |
-| `--rojo-oscuro`      | `#642635`: contraste y secciones narrativas |
-| `--crema`            | `#faf7f0`: fondo cálido                     |
-| `--superficie`       | Blanco: formularios y tarjetas              |
-| `--texto`            | `#2b302d`: texto principal                  |
-| `--texto-secundario` | `#65665f`: información secundaria           |
-| `--exito`            | `#176346`: estados positivos                |
-| `--peligro`          | `#a22535`: errores y acciones destructivas  |
-
-Playfair Display para identidad/títulos e Inter para interfaz, ambas WOFF2 variables locales precargadas, con fallbacks de sistema. Rojo y amarillo se concentran en CTAs, bordes, ilustración y narrativa; el verde queda para estados positivos. Se unificaron botones, tarjetas, KPIs, badges, mensajes, formularios, modal, foco y estados disabled.
-
-### Landing y scrollytelling
-
-Narrativa: contexto de la comunidad → comerciante publica → comprador descubre → apoyo local → comunidad activa. Hero editorial con retrato local en arco, postal de la ciudad, firma «Pereira se levanta. Contigo.», CTA a explorar y registro de comerciante. Comercios, productos e indicadores se obtienen de API; no se inventan cifras o publicaciones.
-
-La antigua intro de cinco segundos sigue retirada. La nueva firma de apertura (`apertura.js`, diferida e independiente de API) dura 1250 ms, no captura puntero ni foco y se descarta con pointerdown, rueda, scroll, tacto, teclado o foco. Usa una clave de sessionStorage para mostrarse una sola vez por sesión; con movimiento reducido, ancla inicial, scroll restaurado o almacenamiento denegado, el acceso es inmediato. `pagehide` y el cambio de preferencia limpian listeners y temporizador. No modifica el scroll del documento ni intercepta navegación. `IntersectionObserver` conserva reveal y contadores puntuales. GSAP + ScrollTrigger reemplazan cuatro manejadores manuales de scroll y sus bucles; solo se cargan en la landing por encima de 900 px y con `prefers-reduced-motion: no-preference`. Un contexto revierte estilos y elimina triggers al cambiar la preferencia o el ancho. No hay animación de filtros de imagen durante scroll. La landing usa fotografía local con dimensiones reservadas y carga diferida fuera del hero. Se retiró el vídeo del hero y sus observadores: los archivos históricos se conservan, pero no se solicitan desde la landing.
-
-Sin movimiento o sin la biblioteca, todos los mensajes narrativos se muestran en orden estático. Todas las páginas ofrecen salto al contenido, foco visible y controles accesibles por teclado.
-
-### Dirección de arte: Pereira se levanta
-
-La composición toma la puerta del comercio como motivo: arcos fotográficos, serif editorial y acentos de amarillo sobre papel cálido. El rojo profundo guía acciones y selección; la tinta verde `#293d35` sostiene narrativa y resumen del carrito; `#fffcf6` distingue las superficies. No se añaden colores a los estados de manera decorativa: éxito y error conservan sus significados. Playfair Display e Inter continúan como fuentes locales.
-
-- Landing: apertura breve → retrato de comerciante → impacto → personas → visibilidad → vitrina digital → descubrimiento → acción. Los capítulos se distinguen por fotografía, papel y ritmo tipográfico; GSAP conserva cuatro triggers y solo se carga por encima de 900 px con movimiento permitido. Los dos capítulos progresivos duran 240vh en escritorio; móvil, reduced motion y ausencia de JS muestran mensajes en secuencia estática.
-- Marketplace: hero fotográfico, búsqueda con foco compartido, categorías con selección marcada y tarjetas con comercio, precio/COP y stock diferenciados. Los productos sin imagen se identifican como «Imagen por publicar». No se inventan ofertas, ventas, reseñas ni fotografías de producto.
-- Detalle y carrito: ruta de regreso, fotografía reservada, precio protagonista, disponibilidad y vendedor visibles; lista y resumen de selección con cantidades y totales. El texto explica que el carrito no reserva ni cobra.
-- Acceso: fotografía de encuentro comercial, firma de Pereira y formulario en papel; escritorio presenta relato y formulario en paralelo, móvil conserva una cabecera narrativa compacta y campos de ancho completo.
-- Gestión: navegación lateral a partir de 1200 px; cabecera horizontal en tablet y menú móvil por debajo de 768 px. KPIs jerarquizados, alertas/actividad y superficies de formulario/listado; sin cambiar autenticación, acciones, permisos o datos.
-
-No hay dependencias nuevas, framework, SPA, CDN ni cambios de seguridad. El CSS sigue en los seis módulos existentes; `estilos.css` se regenera. La eliminación se limita a la presentación del hero anterior y sus listeners de vídeo, que ya no tenían un elemento al que atender.
-
-### Decisiones de herramientas
-
-`package.json` de raíz contiene solo herramientas de preparación: PostCSS, lucide-static, GSAP y paquetes Fontsource variables. `scripts/prepare-ui.cjs` genera un CSS compacto, un sprite con 19 iconos funcionales, dos fuentes y dos scripts minificados, con licencias. Assets versionados permiten mantener el arranque Express existente; la CI regenera y detecta drift. No se introdujo Vite: este procesamiento acotado no necesita otro servidor ni cambiar rutas, módulos o despliegue.
-
-Swiper fue evaluado: el componente actual ya resuelve scroll táctil, perspectiva y selección con un frame por evento. Se mantuvo para conservar `filtrarCategoria()`, SVG, hover y semántica de botones, añadiendo ArrowLeft/Right y Home/End sin otra dependencia. El estado sigue siendo local por página y no justifica Alpine CSP; no se añadió framework reactivo.
-
-### Experiencias
-
-- Marketplace: buscador por nombre/descripción/categoría/comercio, categorías combinadas, limpiar filtros, resultados, populares, recientes, comercios y contador real del carrito. El hero móvil se compacta.
-- Detalle: imagen, categoría, descripción, precio, stock, estado, datos del vendedor, selector y feedback de compra. Agotado deshabilita selector y agregar.
-- Carrito: cantidades, stock actual, quitar, vaciar con confirmación, estado vacío correcto y totales actualizados. No simula pago.
-- Comerciante: KPIs de catálogo, activos/inactivos, agotados, stock bajo y visitas; completitud del perfil, edición y accesos a productos/preview.
-- Administrador: cuatro KPIs principales y ocho desplegables mediante details/summary; alertas y actividad en paralelo, navegación vigente con aria-current, usuarios, negocios con dueño real y catálogo global.
-
-### Accesibilidad y feedback
-
-Eventos enlazados desde JavaScript externo, sin handlers inline. Formularios con labels y filtros con nombres accesibles. Foco visible, botones disabled durante tareas, estados loading/error/success/empty, mensajes con `role` y `aria-live`.
-
-La confirmación usa `<dialog>` nativo con Cancelar inicialmente enfocado, Escape para cancelar y retorno de foco al disparador. Se sustituyeron `alert()` y `confirm()` del flujo normal.
-
-Se comprobaron 360/768/1024/1440 px en las páginas de los tres roles y las públicas, sin overflow horizontal. Se revisaron capturas de landing escritorio y marketplace móvil. Esto no equivale a una certificación WCAG ni a una revisión completa en todos los navegadores.
-
-## Límites y siguientes decisiones
-
-Con MySQL persisten las once entidades implementadas; sesiones y rate limits siguen siendo de un proceso. El carrito se invalida por instancia al reiniciar, incluso con IDs duraderos, conservando la experiencia actual. Para varias instancias se requieren sesiones/límites compartidos; imágenes grandes deben evolucionar a almacenamiento de objetos y upload validado. No se implementan pagos ni facturas. Las consultas actuales conservan listados y filtros en services: paginación y consultas específicas se pueden añadir después con pruebas y sin mezclar SQL en esa capa.
-
-## Cierre del dominio: pedidos
-
-```text
-carrito.html + carrito.js → API.post /pedidos
-→ pedido.routes.js (sesión, Comprador, CSRF)
-→ pedido.controller.js (HTTP / JSON)
-→ pedido.service.js (campos, rol/propiedad, consolidación, validación y agrupación)
-→ repos.transaccion + bloquearProductos
-→ repos.pedido / repos.detallePedido / repos.producto
-→ pedidos / detalles_pedido / productos
-→ COMMIT → JSON 201 → confirmar en UI y limpiar los ítems procesados
+para evitar que una sola parte de la aplicación concentre todas las responsabilidades.
+
+La arquitectura principal es:
+
+```text id="76c8fv"
+Usuario
+↓
+Frontend
+↓
+fetch()
+↓
+HTTP
+↓
+Express
+↓
+Route
+↓
+Controller
+↓
+Service
+↓
+Repository
+↓
+MySQL / MariaDB
 ```
 
-No hay SQL en controllers/services ni acceso MySQL desde frontend. Se amplía la abstracción existente porque su transacción ya coordina todos los módulos; `bloquearProductos` añade locks de filas deterministas sin sustituir el bloqueo global ni forzar lógica SQL en una capa HTTP. Memory conserva el contrato y añade copias privadas/rollback; MySQL conserva AsyncLocalStorage, parámetros, BEGIN/COMMIT/ROLLBACK/release y bloqueo de PR6.
+La respuesta realiza el camino inverso:
 
-`pedido.service.js` consulta de nuevo precio, stock, negocio y categoría; nunca acepta usuarioId/negocioId/precio/estado inicial del cliente. Crea un Pedido por negocio y todos sus detalles en una sola transacción. `precioUnitario` es histórico; total/subtotal son propiedades derivadas. Estados, límites, FK y decisiones de normalización se documentan en [DATABASE](DATABASE.md).
+```text id="d2a3p3"
+MySQL / MariaDB
+↓
+Repository
+↓
+Service
+↓
+Controller
+↓
+HTTP Response
+↓
+JSON
+↓
+Frontend
+↓
+DOM
+↓
+Usuario
+```
 
-`pedido-vista.js` comparte únicamente presentación segura: cards, detalles, cantidades, precios, subtotales, total, fecha America/Bogota, nota escapada y botones autorizados por la vista. `pedidos.js` consulta `/mios` o `/gestion`; usa PATCH reales para estados/cancelación y filtro por estado en gestión. No guarda historial en LocalStorage. Si falla un refresco después de PATCH, informa que el cambio se registró y permite recargar sin fingir una escritura fallida.
+---
 
-El carrito captura `{productoId,cantidad}` al pulsar Confirmar pedido, revalida que no cambien usuario ni instancia, evita doble envío en la página y mantiene nota/cantidades si falla el POST. Solo después de recibir 201 muestra los pedidos de API y resta las cantidades procesadas de la lista más reciente, conservando otros compradores e incrementos durante el envío. Actualiza indicador y enlaza Mis pedidos. Si falla almacenamiento local tras el commit, conserva la confirmación e indica revisar el historial. No hay retry automático ni garantía de idempotencia de POST ante pérdida de respuesta; consultar Mis pedidos antes de repetir. No se añade entidad ni atributo fuera del DER para resolver esa futura mejora.
+# Principio fundamental
 
-Se reutilizan paneles, cards, botones, tipografía, tokens y menú accesible; CSS nuevo se limita a estas vistas/formulario. Sin imágenes, historias, dependencias o frameworks nuevos. Comprador navega a Marketplace, Servicios, Favoritos, Mis reservas, Mis pedidos y Carrito; Comerciante a Mi negocio, Mis productos, Mis servicios, Reservas recibidas y Pedidos recibidos; Admin mantiene su gestión y recibe pedidos globales. El servidor vuelve a verificar siempre propiedad.
+El frontend nunca se conecta directamente a MySQL.
 
-### Trazabilidad de las once entidades
+La única forma normal de acceder a los datos es:
 
-| Entidad          | Pantalla / ruta real                                       | Service      | Repository / tabla              |
-| ---------------- | ---------------------------------------------------------- | ------------ | ------------------------------- |
-| Rol              | registro/usuarios, autenticación                           | usuario/auth | rol / roles                     |
-| Usuario          | login, registro, usuarios; /api/usuarios                   | usuario/auth | usuario / usuarios              |
-| Categoria        | catálogo y selects; /api/categorias                        | categoria    | categoria / categorias          |
-| Negocio          | mi-negocio, negocios; /api/negocios                        | negocio      | negocio / negocios              |
-| Producto         | marketplace, detalle, mis-productos; /api/productos        | producto     | producto / productos            |
-| Servicio         | servicios, detalle-servicio, mis-servicios; /api/servicios | servicio     | servicio / servicios            |
-| Horario_Servicio | horarios en mis-servicios/detalle; /api/horarios-servicio  | horario      | horario / horarios_servicio     |
-| Reserva          | mis-reservas, reservas; /api/reservas                      | reserva      | reserva / reservas              |
-| Favorito         | favoritos y tarjetas; /api/favoritos                       | favorito     | favorito / favoritos            |
-| Pedido           | carrito, mis-pedidos, pedidos; /api/pedidos                | pedido       | pedido / pedidos                |
-| Detalle_Pedido   | detalle dentro de cards de Pedido y DTO /api/pedidos/:id   | pedido       | detallePedido / detalles_pedido |
+```text id="e8r48b"
+Frontend
+↓
+API REST
+↓
+Backend
+↓
+Repository
+↓
+Base de datos
+```
 
-El contrato conserva list/find/create/update/delete como infraestructura interna; no expone CRUD genérico de Pedido/Detalle. La persistencia de historial y restauración exacta pasan por el service, no por botones ocultos. Las once entidades aprobadas tienen una funcionalidad real; el trabajo se detiene en PR7.
+Esto permite aplicar en el servidor:
+
+```text id="gr4mah"
+autenticación
+autorización
+validación
+reglas de negocio
+transacciones
+manejo de errores
+seguridad
+```
+
+antes de acceder o modificar información.
+
+---
+
+# Estructura general
+
+```text id="xxylnt"
+MarketplacePereira/
+│
+├── backend/
+│   ├── config/
+│   ├── controllers/
+│   ├── data/
+│   ├── db/
+│   ├── middleware/
+│   ├── repositories/
+│   ├── routes/
+│   ├── services/
+│   ├── utils/
+│   └── app.js
+│
+├── frontend/
+│   ├── assets/
+│   ├── css/
+│   ├── js/
+│   └── *.html
+│
+├── docs/
+│
+├── tests/
+│
+├── scripts/
+│
+└── .github/
+```
+
+---
+
+# Backend
+
+El backend está desarrollado con:
+
+```text id="e7r96c"
+Node.js
+Express
+JavaScript
+mysql2/promise
+```
+
+Su responsabilidad es:
+
+```text id="e2mkx4"
+recibir Requests
+↓
+validar
+↓
+autorizar
+↓
+ejecutar reglas
+↓
+consultar o modificar datos
+↓
+devolver Responses JSON
+```
+
+---
+
+# app.js
+
+Archivo:
+
+```text id="nhfmf6"
+backend/app.js
+```
+
+Es la raíz de composición del backend.
+
+Su responsabilidad principal es ensamblar:
+
+```text id="lrlri6"
+Express
+Middleware
+Repositories
+Services
+Routes
+Frontend estático
+Manejo de errores
+```
+
+Conceptualmente:
+
+```text id="aybstp"
+createApplication()
+↓
+crear Express
+↓
+preparar Repository
+↓
+crear Services
+↓
+registrar Middleware
+↓
+registrar Routes
+↓
+servir frontend
+↓
+registrar errorHandler
+```
+
+La función:
+
+```javascript id="1xr4qi"
+createApplication(...)
+```
+
+permite además inyectar Repositories diferentes durante las pruebas.
+
+Eso evita que todos los tests necesiten una base MySQL real.
+
+---
+
+# Arranque del servidor
+
+Cuando `backend/app.js` se ejecuta directamente:
+
+```text id="f0rmi8"
+configuración
+↓
+Repository
+↓
+createApplication()
+↓
+app.listen()
+```
+
+La configuración determina, entre otras cosas:
+
+```text id="ivvo2c"
+PORT
+DATA_SOURCE
+conexión DB
+APP_ORIGIN
+NODE_ENV
+Administrador inicial opcional
+```
+
+---
+
+# Config
+
+Carpeta:
+
+```text id="wpl8b7"
+backend/config/
+```
+
+Archivo principal:
+
+```text id="150lr8"
+backend/config/index.js
+```
+
+Lee variables de entorno como:
+
+```text id="12155o"
+PORT
+DATA_SOURCE
+
+DB_HOST
+DB_PORT
+DB_NAME
+DB_USER
+DB_PASSWORD
+
+APP_ORIGIN
+
+ADMIN_EMAIL
+ADMIN_PASSWORD
+```
+
+No contiene credenciales reales escritas directamente en el código.
+
+---
+
+# Routes
+
+Carpeta:
+
+```text id="ckcgl2"
+backend/routes/
+```
+
+Las Routes relacionan:
+
+```text id="05h7j7"
+Método HTTP
++
+URL
++
+Middleware
++
+Controller
+```
+
+Ejemplo conceptual:
+
+```javascript id="0qclj4"
+router.post(
+  "/productos",
+  roles("Administrador", "Comerciante"),
+  csrf,
+  controller.crear
+);
+```
+
+La Route decide:
+
+```text id="w25699"
+qué URL existe
+qué método HTTP utiliza
+qué Middleware debe ejecutarse
+qué Controller continúa el proceso
+```
+
+No debe contener consultas SQL ni reglas complejas del negocio.
+
+---
+
+# Controllers
+
+Carpeta:
+
+```text id="3vbyb3"
+backend/controllers/
+```
+
+El Controller funciona como puente entre HTTP y la lógica de negocio.
+
+Recibe:
+
+```text id="36gm35"
+req
+```
+
+y utiliza:
+
+```text id="4gzcg9"
+res
+```
+
+para responder.
+
+Por ejemplo:
+
+```text id="5er1by"
+req.params
+req.query
+req.body
+req.usuario
+```
+
+pueden convertirse en argumentos para un Service.
+
+Después el resultado se transforma en:
+
+```json id="kgrtb0"
+{
+  "ok": true,
+  "data": {}
+}
+```
+
+El Controller no debería decidir reglas como:
+
+```text id="tg89pt"
+si un Comerciante es propietario
+si existe suficiente stock
+si una reserva tiene cupo
+si un pedido puede cambiar de estado
+```
+
+Eso corresponde al Service.
+
+---
+
+# Services
+
+Carpeta:
+
+```text id="jv2wwm"
+backend/services/
+```
+
+Los Services contienen las reglas de negocio.
+
+Actualmente existen Services para:
+
+```text id="s42v4u"
+Auth
+Usuario
+Categoria
+Negocio
+Producto
+Servicio
+Horario
+Reserva
+Favorito
+Pedido
+Público
+```
+
+Ejemplos:
+
+```text id="yym2pz"
+usuario.service.js
+negocio.service.js
+producto.service.js
+servicio.service.js
+reserva.service.js
+pedido.service.js
+```
+
+---
+
+# Responsabilidad de Service
+
+Un Service responde preguntas como:
+
+```text id="63dqta"
+¿puede este usuario hacer esta operación?
+
+¿el recurso existe?
+
+¿le pertenece al comerciante?
+
+¿el estado solicitado es válido?
+
+¿hay stock?
+
+¿hay cupo?
+
+¿puede eliminarse?
+
+¿debe conservarse el historial?
+```
+
+Ejemplo:
+
+```text id="69dqqs"
+POST /api/productos
+↓
+Route
+↓
+Controller
+↓
+ProductoService
+```
+
+ProductoService valida:
+
+```text id="92gntp"
+Comerciante autorizado
+Negocio existente
+propiedad del Negocio
+nombre
+descripción
+Categoría
+precio
+stock
+imagen
+estado
+```
+
+y solo después utiliza el Repository.
+
+---
+
+# Repository Pattern
+
+Carpeta:
+
+```text id="3s4jjr"
+backend/repositories/
+```
+
+El proyecto utiliza el patrón Repository para separar la lógica de negocio del mecanismo concreto de almacenamiento.
+
+Los Services no ejecutan SQL directamente.
+
+En lugar de:
+
+```javascript id="a5rxnj"
+connection.query(...)
+```
+
+un Service utiliza operaciones como:
+
+```javascript id="9d9qld"
+repos.producto.find(id)
+repos.producto.create(datos)
+repos.producto.update(id, datos)
+repos.producto.delete(id)
+```
+
+---
+
+# Contrato del Repository
+
+Archivo:
+
+```text id="5j5e73"
+backend/repositories/contract.js
+```
+
+Los repositorios principales implementan:
+
+```text id="796k0q"
+list()
+find()
+create()
+update()
+delete()
+```
+
+También existe:
+
+```text id="6yn5gh"
+transaccion(callback)
+```
+
+y para operaciones de stock:
+
+```text id="eziztb"
+bloquearProductos(ids)
+```
+
+Los catálogos:
+
+```text id="rb4x4q"
+rol
+categoria
+```
+
+son de lectura dentro del Repository actual y exponen:
+
+```text id="0k9ohr"
+list()
+find()
+```
+
+---
+
+# Dos implementaciones de persistencia
+
+La aplicación dispone de:
+
+```text id="ahgy6e"
+Memory Repository
+MySQL Repository
+```
+
+La selección se realiza con:
+
+```text id="ic8wzs"
+DATA_SOURCE
+```
+
+---
+
+# Memory Repository
+
+Se utiliza con:
+
+```text id="gbmkgj"
+DATA_SOURCE=memory
+```
+
+Los datos viven dentro del proceso Node.js.
+
+Arquitectura:
+
+```text id="m71lh3"
+Service
+↓
+Memory Repository
+↓
+objetos JavaScript
+```
+
+Ventajas:
+
+```text id="qy58w1"
+rápido para tests
+no necesita MySQL
+permite aislar escenarios
+```
+
+Limitación principal:
+
+```text id="82xldp"
+reiniciar Node
+↓
+se pierden los datos
+```
+
+No constituye persistencia permanente.
+
+---
+
+# MySQL Repository
+
+Se utiliza con:
+
+```text id="rylnpr"
+DATA_SOURCE=mysql
+```
+
+Arquitectura:
+
+```text id="2lazjc"
+Service
+↓
+MySQL Repository
+↓
+mysql2/promise
+↓
+MySQL / MariaDB
+```
+
+Los datos permanecen después de reiniciar la aplicación.
+
+---
+
+# Selección del Repository
+
+Archivo:
+
+```text id="at82j3"
+backend/repositories/index.js
+```
+
+Conceptualmente:
+
+```text id="q16j2z"
+DATA_SOURCE=memory
+↓
+createRepositories()
+
+
+DATA_SOURCE=mysql
+↓
+createPool()
+↓
+createMysqlRepositories()
+```
+
+Los Services reciben el mismo contrato independientemente del adaptador.
+
+Esta es una de las principales ventajas de la arquitectura.
+
+---
+
+# Ejemplo de desacoplamiento
+
+UsuarioService puede ejecutar:
+
+```javascript id="1wpqo1"
+repos.usuario.create(datos)
+```
+
+Sin saber si termina en:
+
+```text id="qjddes"
+Map / objetos JavaScript
+```
+
+o:
+
+```text id="6wsm0w"
+INSERT INTO usuario
+```
+
+Por tanto:
+
+```text id="8qpmma"
+Service
+```
+
+depende de una abstracción de persistencia, no directamente del motor SQL.
+
+---
+
+# relations.js
+
+Archivo:
+
+```text id="10iwrn"
+backend/repositories/relations.js
+```
+
+Contiene normalizaciones compartidas entre ambos adaptadores.
+
+Entre otras cosas resuelve:
+
+```text id="v23scc"
+Rol textual
+↓
+rolId
+
+Categoria textual
+↓
+categoriaId
+```
+
+También valida reglas como:
+
+```text id="6w82ai"
+Categoria existente
+Categoria activa
+Comerciante propietario válido
+un Negocio máximo por Comerciante
+Negocio existente para Producto/Servicio
+```
+
+Esto ayuda a que Memory y MySQL mantengan comportamientos equivalentes.
+
+---
+
+# Traducción JavaScript ↔ SQL
+
+El esquema de base utiliza nombres académicos en snake_case.
+
+El backend utiliza nombres JavaScript en camelCase.
+
+Ejemplos:
+
+| JavaScript | SQL |
+|---|---|
+| `rolId` | `id_rol` |
+| `usuarioId` | `id_usuario` |
+| `negocioId` | `id_negocio` |
+| `categoriaId` | `id_categoria` |
+| `productoId` | `id_producto` |
+| `servicioId` | `id_servicio` |
+| `pedidoId` | `id_pedido` |
+| `passwordHash` | `contrasena_hash` |
+| `precioReferencia` | `precio_referencia` |
+| `duracionMinutos` | `duracion_minutos` |
+| `capacidadSimultanea` | `capacidad_simultanea` |
+| `fechaHoraInicio` | `fecha_hora_inicio` |
+| `precioUnitario` | `precio_unitario` |
+
+Esta traducción pertenece al:
+
+```text id="hbvq56"
+MySQL Repository
+```
+
+No al frontend.
+
+---
+
+# DTO
+
+DTO significa:
+
+```text id="l6vo9h"
+Data Transfer Object
+```
+
+El Repository transforma resultados SQL a objetos cómodos para JavaScript.
+
+Por ejemplo:
+
+```text id="bf2aku"
+DECIMAL de MySQL
+↓
+Number
+```
+
+o:
+
+```text id="koc1tp"
+TIME 09:00:00
+↓
+09:00
+```
+
+También transforma determinadas fechas a ISO.
+
+---
+
+# Fechas
+
+El esquema actual no tiene fechas técnicas universales.
+
+Algunas entidades tienen una fecha real del dominio:
+
+```text id="m4thbl"
+Usuario.fecha_registro
+Negocio.fecha_registro
+Reserva.fecha_creacion
+Favorito.fecha_agregado
+Pedido.fecha_pedido
+```
+
+El Repository puede proyectarlas como:
+
+```text id="4vfk8t"
+createdAt
+```
+
+En cambio:
+
+```text id="zmul34"
+Producto
+Servicio
+Horario_Servicio
+Detalle_Pedido
+```
+
+no tienen actualmente una fecha de creación física en el esquema académico.
+
+`updatedAt` tampoco forma parte del esquema MySQL actual.
+
+Por esta razón los Services y el frontend no deben depender universalmente de ese campo.
+
+---
+
+# Base de datos
+
+Carpeta:
+
+```text id="w2lpio"
+backend/db/
+```
+
+Contiene:
+
+```text id="2bjeh6"
+pool.js
+migrate.js
+migrations/
+```
+
+---
+
+# pool.js
+
+Responsable de crear el pool de conexiones mediante:
+
+```text id="j850wi"
+mysql2/promise
+```
+
+El pool permite reutilizar conexiones.
+
+También configura:
+
+```text id="q2ghr1"
+UTF-8
+UTC
+SQL estricto
+límite de conexiones
+timeout
+multipleStatements=false
+```
+
+---
+
+# migrate.js
+
+Responsable de ejecutar las migraciones SQL.
+
+Proceso:
+
+```text id="dcwuqv"
+leer migraciones
+↓
+ordenarlas
+↓
+calcular checksum
+↓
+comprobar schema_migrations
+↓
+ejecutar pendientes
+↓
+registrar resultado
+```
+
+Las migraciones actuales son:
+
+```text id="674nkh"
+001_foundation.sql
+002_reference_data.sql
+003_services_reservations_favorites.sql
+004_orders_and_details.sql
+```
+
+---
+
+# Modelo de negocio
+
+El DER contiene once entidades:
+
+```text id="33ic7t"
+Rol
+Usuario
+Categoria
+Negocio
+Producto
+Servicio
+Horario_Servicio
+Reserva
+Favorito
+Pedido
+Detalle_Pedido
+```
+
+No forman parte del DER:
+
+```text id="115tvs"
+repository_lock
+schema_migrations
+```
+
+porque son tablas técnicas.
+
+---
+
+# Mapa entidad → Repository
+
+| Entidad | Repository | Tabla MySQL |
+|---|---|---|
+| Rol | `repos.rol` | `rol` |
+| Categoria | `repos.categoria` | `categoria` |
+| Usuario | `repos.usuario` | `usuario` |
+| Negocio | `repos.negocio` | `negocio` |
+| Producto | `repos.producto` | `producto` |
+| Servicio | `repos.servicio` | `servicio` |
+| Horario_Servicio | `repos.horario` | `horario_servicio` |
+| Reserva | `repos.reserva` | `reserva` |
+| Favorito | `repos.favorito` | `favorito` |
+| Pedido | `repos.pedido` | `pedido` |
+| Detalle_Pedido | `repos.detallePedido` | `detalle_pedido` |
+
+---
+
+# Transacciones
+
+Algunas operaciones necesitan modificar varios registros como una sola unidad.
+
+Ejemplo:
+
+```text id="6z4zmh"
+crear Pedido
++
+crear Detalles
++
+descontar Stock
+```
+
+No sería correcto que solo algunas partes quedaran guardadas.
+
+Por eso se utiliza:
+
+```javascript id="axdcdx"
+repos.transaccion(async () => {
+  ...
+});
+```
+
+---
+
+# Transacción MySQL
+
+Conceptualmente:
+
+```text id="xzl3qf"
+BEGIN
+↓
+operaciones
+↓
+COMMIT
+```
+
+Si algo falla:
+
+```text id="yczsrf"
+ROLLBACK
+```
+
+---
+
+# AsyncLocalStorage
+
+El Repository MySQL utiliza:
+
+```text id="kv1td1"
+AsyncLocalStorage
+```
+
+para conservar la misma conexión durante una transacción.
+
+Así, un Service puede hacer:
+
+```text id="541ez0"
+repos.pedido.create()
+repos.detallePedido.create()
+repos.producto.update()
+```
+
+sin recibir manualmente un objeto `connection`.
+
+Internamente todas las operaciones continúan usando la conexión de la misma transacción.
+
+---
+
+# repository_lock
+
+Existe una tabla técnica:
+
+```text id="mx32wy"
+repository_lock
+```
+
+con una fila:
+
+```text id="xqk05d"
+id = 1
+```
+
+Durante ciertas transacciones MySQL se ejecuta:
+
+```sql id="z3dyvp"
+SELECT id
+FROM repository_lock
+WHERE id = 1
+FOR UPDATE;
+```
+
+Esto serializa las escrituras críticas que utilizan el Repository.
+
+Es una solución sencilla y apropiada para el alcance académico actual.
+
+En sistemas con mucha concurrencia podría evolucionarse hacia estrategias de locking más específicas.
+
+---
+
+# Bloqueo de Productos
+
+Los Pedidos además pueden bloquear las filas de Producto que van a modificar.
+
+Conceptualmente:
+
+```sql id="3ewtwx"
+SELECT id_producto
+FROM producto
+WHERE id_producto = ?
+FOR UPDATE;
+```
+
+Los IDs se bloquean en orden para reducir problemas de concurrencia.
+
+Esto protege operaciones de stock.
+
+---
+
+# Flujo de creación de Pedido
+
+```text id="wt20rk"
+Comprador
+↓
+carrito.html
+↓
+carrito.js
+↓
+api.js
+↓
+POST /api/pedidos
+↓
+pedido.routes.js
+↓
+pedido.controller.js
+↓
+pedido.service.js
+↓
+repos.transaccion()
+↓
+bloquear Productos
+↓
+consultar Producto
+↓
+consultar Negocio
+↓
+consultar Categoria
+↓
+validar stock y precio
+↓
+agrupar por Negocio
+↓
+crear Pedido
+↓
+crear Detalle_Pedido
+↓
+descontar Stock
+↓
+COMMIT
+↓
+JSON 201
+↓
+Frontend
+```
+
+Si cualquier parte falla:
+
+```text id="3o04z8"
+ROLLBACK
+```
+
+---
+
+# Flujo de creación de Reserva
+
+```text id="il2u68"
+Comprador
+↓
+detalle-servicio.html
+↓
+detalle-servicio.js
+↓
+POST /api/reservas
+↓
+agenda.routes.js
+↓
+agenda.controller.js
+↓
+reserva.service.js
+↓
+repos.transaccion()
+↓
+consultar Servicio
+↓
+validar disponibilidad
+↓
+validar fecha futura
+↓
+validar cupo
+↓
+crear Reserva
+↓
+COMMIT
+↓
+JSON 201
+```
+
+La disponibilidad mostrada mediante GET es informativa.
+
+Durante POST se vuelve a comprobar.
+
+---
+
+# Concurrencia de Reserva
+
+Dos compradores pueden intentar reservar simultáneamente el último cupo.
+
+El sistema no confía únicamente en el resultado anterior del GET.
+
+Hace:
+
+```text id="5jwl5q"
+POST
+↓
+transacción
+↓
+bloqueo
+↓
+recalcular cupo
+↓
+INSERT
+```
+
+Así se reduce el riesgo de sobrepasar la capacidad.
+
+---
+
+# utils
+
+Carpeta:
+
+```text id="66xcl6"
+backend/utils/
+```
+
+Contiene responsabilidades reutilizables.
+
+---
+
+## validation.js
+
+Centraliza validaciones como:
+
+```text id="25xvbg"
+texto
+correo
+password
+entero
+ID
+opciones permitidas
+imagen
+campos permitidos
+```
+
+---
+
+## errors.js
+
+Contiene:
+
+```text id="a3z25a"
+AppError
+exigir()
+```
+
+Permite lanzar errores controlados con:
+
+```text id="y1jnue"
+status HTTP
+mensaje seguro
+```
+
+---
+
+## password.js
+
+Contiene el sistema de hashing de contraseñas.
+
+Utiliza:
+
+```text id="xxoei4"
+scrypt
+```
+
+Las contraseñas nunca se guardan directamente.
+
+---
+
+## agenda.js
+
+Contiene reglas relacionadas con:
+
+```text id="gg3rpu"
+fechas
+zona horaria
+slots
+duración
+capacidad
+ocupación
+```
+
+La misma lógica puede ser reutilizada independientemente del Repository.
+
+---
+
+# Middleware
+
+Carpeta:
+
+```text id="dt1y5m"
+backend/middleware/
+```
+
+---
+
+## security.js
+
+Incluye:
+
+```text id="sjle6o"
+lectura de cookie
+sesión requerida
+roles
+CSRF
+mismo origen
+rate limiting
+headers de seguridad
+CSP
+```
+
+La Route aplica estas funciones antes de llegar al Controller.
+
+---
+
+## errors.js
+
+Contiene el Middleware final de errores.
+
+Transforma errores controlados o inesperados en respuestas JSON seguras.
+
+Ejemplo:
+
+```json id="2kvq0n"
+{
+  "ok": false,
+  "mensaje": "Producto no encontrado."
+}
+```
+
+No devuelve stack traces al navegador.
+
+---
+
+# Autenticación
+
+La aplicación utiliza sesiones almacenadas en memoria del proceso Node.js.
+
+El navegador recibe una cookie:
+
+```text id="5n0v90"
+rp_session
+```
+
+con:
+
+```text id="usds0p"
+HttpOnly
+SameSite=Strict
+```
+
+La contraseña nunca se guarda en la cookie.
+
+La sesión del servidor relaciona el token con el Usuario autenticado.
+
+---
+
+# Autenticación vs autorización
+
+Autenticación:
+
+```text id="o54zb7"
+¿Quién eres?
+```
+
+Autorización:
+
+```text id="y7mhlg"
+¿Puedes hacer esto?
+```
+
+Ejemplo:
+
+```text id="ap2hz3"
+cookie válida
+↓
+Usuario Comerciante
+↓
+intenta modificar Producto
+↓
+Service consulta Negocio
+↓
+comprueba propietario
+↓
+permitir / rechazar
+```
+
+---
+
+# Roles
+
+Roles operativos:
+
+```text id="db4o7r"
+Administrador
+Comerciante
+Comprador
+```
+
+La autorización real ocurre en backend.
+
+El frontend solo adapta la experiencia visual.
+
+---
+
+# Propiedad
+
+Un Comerciante no puede modificar cualquier recurso únicamente por tener rol Comerciante.
+
+También debe cumplirse la propiedad.
+
+Ejemplo:
+
+```text id="v3sz94"
+Comerciante
+↓
+Negocio
+↓
+Producto
+```
+
+Para modificar el Producto:
+
+```text id="j8048j"
+Producto.negocioId
+↓
+Negocio.usuarioId
+↓
+Usuario autenticado
+```
+
+deben coincidir.
+
+---
+
+# Un Negocio por Comerciante
+
+La regla existe en:
+
+```text id="rr3zcf"
+Service
+Repository relations
+Base de datos
+```
+
+En MySQL:
+
+```text id="f3dya7"
+UNIQUE(id_usuario)
+```
+
+Esto proporciona defensa en profundidad.
+
+---
+
+# Historial
+
+Algunos recursos no deben eliminarse físicamente cuando poseen información histórica.
+
+Ejemplos:
+
+```text id="cqs860"
+Usuario con Pedidos
+Negocio con Pedidos
+Producto en Detalle_Pedido
+Servicio con Reservas
+```
+
+En estos casos la aplicación normalmente rechaza DELETE y recomienda:
+
+```text id="i5wjtz"
+estado = Inactivo
+```
+
+Esto conserva las relaciones históricas.
+
+---
+
+# Frontend
+
+Carpeta:
+
+```text id="p821sr"
+frontend/
+```
+
+Está desarrollado con:
+
+```text id="iwabqd"
+HTML5
+CSS3
+JavaScript nativo
+```
+
+No utiliza React, Vue, Angular ni frameworks CSS.
+
+---
+
+# api.js
+
+Archivo:
+
+```text id="57h5kd"
+frontend/js/api.js
+```
+
+Centraliza las solicitudes HTTP realizadas por el frontend.
+
+Conceptualmente:
+
+```text id="8wlc1g"
+módulo de página
+↓
+api.js
+↓
+fetch()
+↓
+/api
+```
+
+Esto evita repetir lógica de Requests en cada página.
+
+---
+
+# sesion.js
+
+Archivo:
+
+```text id="k1kjvz"
+frontend/js/sesion.js
+```
+
+Gestiona la identidad visible del usuario en el cliente.
+
+Obtiene la sesión real desde el backend.
+
+Puede adaptar:
+
+```text id="wvjjut"
+navegación
+botones
+destinos
+logout
+```
+
+según el rol.
+
+No sustituye la autorización del servidor.
+
+---
+
+# app-init.js
+
+Archivo:
+
+```text id="tyrb7e"
+frontend/js/app-init.js
+```
+
+Inicializa comportamiento común de la interfaz.
+
+Ayuda a cargar la lógica correspondiente a cada página y a vincular eventos.
+
+---
+
+# ui.js
+
+Archivo:
+
+```text id="toxd9o"
+frontend/js/ui.js
+```
+
+Agrupa funciones reutilizables de interfaz.
+
+Ejemplos:
+
+```text id="xxcpap"
+mensajes
+loading
+notificaciones
+skeletons
+formularios
+diálogos
+menú móvil
+estados visuales
+```
+
+---
+
+# estado-local.js
+
+Archivo:
+
+```text id="mzlu83"
+frontend/js/estado-local.js
+```
+
+Administra determinadas estructuras temporales del navegador.
+
+El caso principal es el carrito.
+
+El carrito no constituye persistencia de negocio.
+
+---
+
+# Carrito
+
+El carrito permanece temporalmente en el navegador.
+
+Conceptualmente:
+
+```text id="hyzlk5"
+Comprador
+↓
+Carrito local
+↓
+Confirmar
+↓
+POST /api/pedidos
+↓
+persistencia MySQL
+```
+
+Antes de confirmar, los datos se vuelven a validar contra la API.
+
+El frontend no puede decidir de forma confiable:
+
+```text id="b5fsd5"
+precio
+stock
+Negocio
+estado
+```
+
+El servidor vuelve a consultar esos valores.
+
+---
+
+# Módulos frontend principales
+
+Entre los módulos actuales se encuentran:
+
+```text id="y0sj7j"
+landing.js
+marketplace.js
+detalle-producto.js
+detalle-servicio.js
+carrito.js
+mi-negocio.js
+mis-productos.js
+mis-servicios.js
+reservas.js
+favoritos.js
+pedidos.js
+usuarios.js
+negocios.js
+dashboard.js
+```
+
+Cada módulo se ocupa principalmente de una pantalla o flujo concreto.
+
+---
+
+# Páginas públicas
+
+Entre las páginas públicas están:
+
+```text id="zwwret"
+index.html
+marketplace.html
+detalle-producto.html
+servicios.html
+detalle-servicio.html
+negocios.html
+login.html
+registro.html
+```
+
+Algunas acciones dentro de ellas pueden requerir autenticación.
+
+---
+
+# Páginas del Comprador
+
+Entre otras:
+
+```text id="ui9ggl"
+carrito.html
+mis-pedidos.html
+mis-reservas.html
+favoritos.html
+```
+
+---
+
+# Páginas del Comerciante
+
+Entre otras:
+
+```text id="5ckkxi"
+mi-negocio.html
+mis-productos.html
+mis-servicios.html
+reservas.html
+pedidos.html
+```
+
+---
+
+# Páginas administrativas
+
+Entre otras:
+
+```text id="p1dihn"
+dashboard.html
+usuarios.html
+negocios.html
+productos.html
+mis-servicios.html
+reservas.html
+pedidos.html
+```
+
+El mismo HTML puede utilizar lógica diferente dependiendo del rol.
+
+---
+
+# API como fuente de verdad
+
+Los datos persistentes no deben duplicarse como fuente autoritativa dentro del frontend.
+
+La fuente principal es:
+
+```text id="yrjpus"
+API REST
+```
+
+y, detrás de ella:
+
+```text id="pf7soa"
+Repository
+↓
+MySQL / MariaDB
+```
+
+El DOM únicamente representa una vista temporal de los datos.
+
+---
+
+# Modelo de flujo frontend
+
+Ejemplo para mostrar Productos:
+
+```text id="rlx71m"
+productos.html
+↓
+JavaScript
+↓
+api.js
+↓
+GET /api/productos
+↓
+JSON
+↓
+render
+↓
+DOM
+```
+
+---
+
+# Seguridad frontend
+
+El frontend no debe contener:
+
+```text id="zdk7hi"
+credenciales MySQL
+contraseñas
+hashes
+secretos
+tokens privados de servicios externos
+```
+
+Tampoco se utiliza `localStorage` para guardar autenticación.
+
+---
+
+# Categorías
+
+Las Categorías reales provienen del backend:
+
+```text id="dyzrcc"
+GET /api/categorias
+```
+
+El frontend puede asociar un SVG o presentación visual a los nombres conocidos.
+
+La categoría:
+
+```text id="1hmfnv"
+Todas
+```
+
+es únicamente un filtro de interfaz.
+
+No es una fila de la tabla `categoria`.
+
+---
+
+# Disponibilidad
+
+Disponibilidad tampoco es una entidad persistente.
+
+Se calcula con:
+
+```text id="15sdel"
+Servicio
++
+Horario_Servicio
++
+duración
++
+capacidad
++
+Reservas Confirmadas
+```
+
+Esto evita almacenar información derivada que puede quedar desactualizada.
+
+---
+
+# Totales de Pedido
+
+El total tampoco se almacena directamente.
+
+Se calcula con:
+
+```text id="ac72fv"
+Σ (
+  Detalle_Pedido.cantidad
+  ×
+  Detalle_Pedido.precio_unitario
+)
+```
+
+El precio unitario sí se almacena porque representa información histórica.
+
+---
+
+# Stock
+
+Stock pertenece a:
+
+```text id="auhykk"
+Producto
+```
+
+No existe entidad Inventario en el alcance actual.
+
+Esto mantiene el modelo más sencillo mientras no existan requerimientos de múltiples almacenes, movimientos de inventario o lotes.
+
+---
+
+# Tabla de responsabilidades
+
+| Capa | Responsabilidad |
+|---|---|
+| HTML | Estructura visual |
+| CSS | Presentación y responsive |
+| JavaScript frontend | Interacción y consumo de API |
+| `api.js` | Requests HTTP |
+| Route | Método, URL y Middleware |
+| Controller | Traducir HTTP ↔ Service |
+| Service | Reglas del negocio |
+| Repository | Persistencia abstracta |
+| MySQL Repository | Traducción a SQL |
+| `mysql2` | Comunicación con el motor |
+| MySQL/MariaDB | Persistencia e integridad |
+| Middleware | Seguridad y errores |
+| Utils | Lógica reutilizable |
+
+---
+
+# Ejemplo completo: crear Producto
+
+```text id="5drqka"
+Comerciante
+↓
+formulario
+↓
+JavaScript
+↓
+api.js
+↓
+fetch()
+↓
+POST /api/productos
+↓
+Express
+↓
+roles()
+↓
+csrf()
+↓
+recurso.controller.js
+↓
+producto.service.js
+↓
+validar propietario
+↓
+validar campos
+↓
+repos.producto.create()
+↓
+MySQL Repository
+↓
+INSERT INTO producto
+↓
+MariaDB
+↓
+SELECT del registro creado
+↓
+DTO
+↓
+Controller
+↓
+201 Created
+↓
+JSON
+↓
+Frontend
+↓
+actualizar DOM
+```
+
+---
+
+# Ejemplo completo: consultar Producto
+
+```text id="l78ep8"
+Visitante
+↓
+marketplace.html
+↓
+marketplace.js
+↓
+api.js
+↓
+GET /api/productos
+↓
+Route
+↓
+Controller
+↓
+ProductoService
+↓
+repos.producto.list()
+↓
+SELECT
+↓
+MySQL
+↓
+DTO
+↓
+JSON
+↓
+render
+```
+
+---
+
+# Ejemplo completo: login
+
+```text id="zr8qrq"
+Usuario
+↓
+login.html
+↓
+login.js
+↓
+POST /api/auth/login
+↓
+auth.controller.js
+↓
+auth.service.js
+↓
+buscar Usuario
+↓
+verificar scrypt
+↓
+crear sesión
+↓
+cookie rp_session
+↓
+csrfToken
+↓
+Frontend
+```
+
+La contraseña nunca vuelve al frontend.
+
+---
+
+# Manejo de errores
+
+Un error puede originarse en:
+
+```text id="pdiyzi"
+validación
+autorización
+Service
+Repository
+MySQL
+```
+
+Los errores esperados utilizan:
+
+```text id="klhdhr"
+AppError
+```
+
+El Middleware:
+
+```text id="pv1nyc"
+errorHandler
+```
+
+los convierte en una respuesta uniforme.
+
+Ejemplo:
+
+```json id="1jqz8i"
+{
+  "ok": false,
+  "mensaje": "Stock insuficiente para el producto #15."
+}
+```
+
+---
+
+# Errores MySQL
+
+El MySQL Repository transforma determinados errores técnicos a mensajes seguros.
+
+Ejemplos:
+
+```text id="b0p321"
+ER_DUP_ENTRY
+↓
+Ya existe un registro con esos datos.
+
+
+ER_NO_REFERENCED_ROW_2
+↓
+La relación requiere un recurso existente.
+
+
+ER_ROW_IS_REFERENCED_2
+↓
+El registro tiene información relacionada y no puede eliminarse.
+```
+
+El frontend no debe recibir sentencias SQL ni información sensible del servidor.
+
+---
+
+# Separación de responsabilidades
+
+Una regla importante del proyecto es:
+
+```text id="oxct2x"
+Route
+no debe hacer trabajo de Service
+
+Controller
+no debe hacer trabajo de Repository
+
+Service
+no debe ejecutar SQL
+
+Frontend
+no debe decidir autorización real
+```
+
+Cada capa debe mantener su responsabilidad.
+
+---
+
+# Ventajas de esta arquitectura
+
+## Mantenibilidad
+
+Un cambio en MySQL puede concentrarse principalmente en:
+
+```text id="fgbwc5"
+migraciones
+Repository MySQL
+```
+
+sin reescribir toda la aplicación.
+
+---
+
+## Pruebas
+
+Los Services pueden probarse utilizando Memory Repository.
+
+No necesitan arrancar una base real para cada prueba.
+
+---
+
+## Persistencia intercambiable
+
+La misma lógica puede utilizar:
+
+```text id="ze3tns"
+memory
+```
+
+o:
+
+```text id="sl9jb1"
+mysql
+```
+
+según configuración.
+
+---
+
+## Seguridad
+
+Las reglas están concentradas en el backend.
+
+El navegador no tiene acceso directo a la base.
+
+---
+
+## Claridad
+
+El recorrido de una operación puede explicarse capa por capa.
+
+Eso facilita mantenimiento y sustentación académica.
+
+---
+
+# Integridad en dos niveles
+
+Reactiva Pereira utiliza:
+
+```text id="h1chq2"
+reglas de aplicación
++
+restricciones de base de datos
+```
+
+Ejemplo:
+
+```text id="743q9o"
+Un Comerciante solo puede tener un Negocio.
+```
+
+La aplicación lo comprueba en Service/Repository.
+
+MySQL además utiliza:
+
+```text id="u77nsk"
+UNIQUE(id_usuario)
+```
+
+Otro ejemplo:
+
+```text id="bad0io"
+stock >= 0
+```
+
+Service valida el valor.
+
+MySQL además utiliza:
+
+```sql id="mj54j2"
+CHECK (stock >= 0)
+```
+
+Esto proporciona defensa en profundidad.
+
+---
+
+# Estado actual de persistencia
+
+La aplicación ya superó la etapa inicial de almacenamiento únicamente temporal.
+
+Actualmente el flujo principal puede ser:
+
+```text id="stnjna"
+Frontend
+↓
+Express
+↓
+Repository MySQL
+↓
+MariaDB
+```
+
+Los datos permanecen después de:
+
+```text id="wpcgfa"
+cerrar Node
+reiniciar XAMPP
+reiniciar el computador
+```
+
+si se vuelve a utilizar la misma base.
+
+Memory continúa existiendo principalmente para pruebas y desarrollo aislado.
+
+---
+
+# Alcance del modelo
+
+Actualmente no existen entidades independientes para:
+
+```text id="ma49b3"
+Pago
+Factura
+Método_Pago
+Inventario
+Disponibilidad
+Sector_Comercial
+Carrito
+```
+
+No deben añadirse simplemente para aumentar el número de tablas.
+
+Una nueva entidad debe responder a un requerimiento real del sistema.
+
+---
+
+# Evolución futura
+
+Para agregar una nueva funcionalidad persistente:
+
+```text id="a0mvqj"
+Requerimiento
+↓
+revisar modelo
+↓
+revisar relaciones
+↓
+crear migración
+↓
+adaptar Repository
+↓
+adaptar Service
+↓
+crear Route / Controller si corresponde
+↓
+adaptar frontend
+↓
+probar
+↓
+documentar
+```
+
+Este orden evita comenzar por la interfaz sin definir correctamente el dominio.
+
+---
+
+# Resumen para sustentación
+
+## ¿Por qué existe Controller?
+
+Para separar HTTP de las reglas del negocio.
+
+---
+
+## ¿Por qué existe Service?
+
+Para concentrar validaciones, permisos y reglas del dominio.
+
+---
+
+## ¿Por qué existe Repository?
+
+Para que los Services no dependan directamente de SQL.
+
+---
+
+## ¿Por qué existen Memory y MySQL Repository?
+
+Memory permite pruebas y escenarios temporales.
+
+MySQL proporciona persistencia real.
+
+---
+
+## ¿Quién habla con MySQL?
+
+```text id="eqzd7l"
+MySQL Repository
+```
+
+mediante:
+
+```text id="vf91y5"
+mysql2/promise
+```
+
+---
+
+## ¿Puede el frontend hablar con MySQL?
+
+No.
+
+Debe utilizar:
+
+```text id="inw9d3"
+fetch()
+↓
+API REST
+```
+
+---
+
+## ¿Dónde se validan los permisos?
+
+Principalmente en:
+
+```text id="yw2rxn"
+Middleware
+Services
+```
+
+---
+
+## ¿Dónde se almacenan las reglas de integridad?
+
+En dos niveles:
+
+```text id="qjxb44"
+Services
++
+MySQL
+```
+
+---
+
+## ¿Qué ocurre si MySQL deja de funcionar?
+
+Si la aplicación está configurada con:
+
+```text id="phpu15"
+DATA_SOURCE=mysql
+```
+
+las operaciones que necesiten persistencia deben fallar.
+
+La aplicación no debe cambiar silenciosamente a Memory.
+
+---
+
+## ¿Qué ocurre si reinicio Node?
+
+Con MySQL:
+
+```text id="o4lf4s"
+los datos persisten
+```
+
+pero las sesiones almacenadas en memoria se pierden.
+
+---
+
+## ¿Cuál es el recorrido más importante del sistema?
+
+```text id="cbvwhk"
+Usuario
+↓
+Frontend
+↓
+fetch()
+↓
+Route
+↓
+Controller
+↓
+Service
+↓
+Repository
+↓
+MySQL
+↓
+JSON
+↓
+DOM
+```
+
+Ese recorrido resume la arquitectura de Reactiva Pereira.

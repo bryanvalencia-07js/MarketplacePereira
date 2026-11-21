@@ -1,226 +1,2218 @@
-# Persistencia y modelo relacional
+# Base de datos — Reactiva Pereira
 
-## Fundación normalizada (PR5)
+## Propósito
 
-`001_foundation.sql` permanece intacta, con SHA-256 `d527db03c8dfa21e30d042cd0061da30191aafb7134de071a31ace4bd1ca21ca`. Describe el esquema anterior: `usuarios.rol` textual, `negocios.categoria` y `productos.categoria` textuales, `negocios.usuarioRol` técnico y `productos.popularidad`. PR5 añade exclusivamente `002_normalize_roles_categories.sql`.
+Reactiva Pereira utiliza una base de datos relacional para almacenar de forma persistente la información principal del marketplace.
+
+La arquitectura de persistencia es:
 
 ```text
-Rol       1 ── N Usuario
-Usuario   1 ── 0..1 Negocio
-Categoria 1 ── N Negocio
-Categoria 1 ── N Producto
-Negocio   1 ── N Producto
+Frontend
+↓
+fetch()
+↓
+API REST
+↓
+Express
+↓
+Controller
+↓
+Service
+↓
+Repository
+↓
+mysql2/promise
+↓
+MySQL / MariaDB
 ```
 
-| Entidad / tabla          | Campos físicos relevantes                                                                                         | Integridad                                                                      |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Rol / `roles`            | id, nombre, descripcion nullable                                                                                  | PK, nombre UNIQUE, tres roles de referencia                                     |
-| Usuario / `usuarios`     | id, rolId, nombre, apellido, correo, telefono, passwordHash, estado, createdAt, updatedAt                         | FK rolId, correo UNIQUE, CHECK correo/estado                                    |
-| Categoria / `categorias` | id, nombre, descripcion nullable, estado                                                                          | PK, nombre UNIQUE, CHECK nombre/estado                                          |
-| Negocio / `negocios`     | id, usuarioId, categoriaId, nombre, descripcion nullable, direccion, municipio nullable, telefono, estado, fechas | FK usuario/categoría, UNIQUE usuarioId, CHECK estado                            |
-| Producto / `productos`   | id, negocioId, categoriaId, nombre, descripcion, precio, imagen, stock, visitas, estado, fechas                   | FK negocio/categoría, CHECK precio > 0, stock >= 0, visitas >= 0, estado/imagen |
+El frontend nunca se conecta directamente a la base de datos.
 
-Los tres roles tienen identidad persistente en `roles`; services y repositories resuelven su significado por `nombre`, sin IDs numéricos de privilegio. Los catálogos solo exponen `list/find` al backend y no hay CRUD público de roles/categorías. La API permite únicamente Comerciante/Comprador en registro, rechazando `rolId`, `idRol` e `id_rol` como campos de entrada.
+La capa Repository es responsable de traducir entre los objetos utilizados por JavaScript y los nombres físicos utilizados por SQL.
 
-`usuarioRol` se retira definitivamente. La FK simple garantiza que exista el usuario y el backend verifica `Usuario → Rol` al asignar propietario o cambiar el rol de una cuenta con negocio. Esa regla transversal se ejecuta dentro de la transacción con `repository_lock`; no se simula mediante una columna duplicada ni un CHECK entre tablas. SQL externo puede saltarse esa regla de aplicación: los operadores deben respetarla. El propietario visible sigue derivándose del usuario mediante JOIN.
+---
 
-### Migración de una base con datos
+# Motor utilizado
 
-Detener la aplicación y escritores externos, verificar un respaldo restaurable y ejecutar el runner. El despliegue de código y 002 requiere esta ventana: el código nuevo exige 002 y el código anterior usa columnas retiradas. No es una migración online compatible con ambos binarios.
+El proyecto utiliza SQL compatible con MySQL y MariaDB para las funcionalidades actuales.
 
-1. Una tabla temporal técnica con CHECK aborta si existen categorías vacías o `Todas`. No se inventa una categoría ni se elimina un registro para ocultar ese caso. Corregir el dato histórico con un operador y el respaldo, según la recuperación de intentos incompletos descrita abajo.
-2. Se crean `roles` con Administrador, Comerciante y Comprador y `categorias` con los 24 nombres que utilizaba la interfaz. Se incorporan también las categorías históricas distintas de negocios **y** productos.
-3. Solo se colapsa espacio en blanco y se recortan extremos. La comparación UNIQUE `utf8mb4_0900_ai_ci` reúne variantes de mayúsculas/acentos; el nombre del catálogo conocido prevalece. Para nombres nuevos se elige una variante determinista. No se fusionan sinónimos ni se recategoriza contenido por inferencia.
-4. Se agregan FK inicialmente nullable, se rellenan mediante JOIN y se verifica que no falten roles/categorías ni haya propietarios de rol incorrecto. Después se hacen NOT NULL y se retiran los textos redundantes e índices antiguos, reconstruyendo FK e índices.
-5. `popularidad` se renombra físicamente a `visitas` sin recalcular ni incrementar. El valor 37 continúa siendo 37. No se modifican hashes, IDs, relaciones, fechas, estados, precios, stock, imágenes ni textos ajenos a categorías.
-6. `descripcion` y `municipio` de negocios históricos quedan en NULL. Los formularios permiten completar información real de Pereira o el área metropolitana, con límites de 2000/80 caracteres; vacío/null conserva ausencia de información. Endurecer NOT NULL requiere una migración posterior después de completar los datos.
+Durante el desarrollo local se ha probado con:
 
-La tabla temporal no es una entidad de negocio. La fundación PR5 contiene exactamente cinco tablas; PR6 agrega cuatro mediante 003, para nueve entidades de negocio. `schema_migrations` y `repository_lock` siguen siendo infraestructura. Las cinco tablas de PR5 conservan InnoDB/utf8mb4 y sus FK RESTRICT. Las asociaciones dependientes nuevas tienen las cascadas explícitas descritas más abajo. Se preservan los CHECK previos de estado, precio, stock, imagen y correo. Los índices `(estado,categoriaId)` y `(rolId,estado)` reemplazan sus variantes textuales.
+```text
+XAMPP 8.2.12
+MariaDB 10.4.32
+```
 
-### DER académico y contratos existentes
+La integración continua del repositorio utiliza MySQL 8.4.
 
-| DER                                     | MySQL / objeto interno / API                                                   |
-| --------------------------------------- | ------------------------------------------------------------------------------ |
-| id_rol / nombre_rol                     | roles.id / roles.nombre; usuarios.rolId; API rol textual por JOIN              |
-| id_categoria / nombre_categoria         | categorias.id / categorias.nombre; categoriaId; API categoria textual por JOIN |
-| id_usuario / id_negocio / id_producto   | id en cada entidad; FK usuarioId / negocioId                                   |
-| nombre_negocio / nombre_producto        | nombre                                                                         |
-| direccion_comercial / telefono_contacto | negocios.direccion / negocios.telefono                                         |
-| contraseña_hash                         | passwordHash, exclusivamente interno, eliminado del DTO público                |
-| fecha_registro                          | createdAt, UTC e ISO 8601 en API                                               |
-| visitas                                 | productos.visitas; alias de respuesta popularidad por compatibilidad           |
+La conexión desde Node.js se realiza mediante:
 
-La API mantiene `rol` y `categoria` textuales, agrega `rolId`, `categoriaId` y `visitas` sin renombrar masivamente contratos. `popularidad` es un alias calculado de `visitas` en ambos adaptadores, sin almacenamiento duplicado; el frontend nuevo usa `visitas`. Ninguno de los dos contadores se admite como entrada HTTP de creación/edición. La visita al detalle sigue incrementando una sola vez el mismo valor bajo bloqueo transaccional.
+```text
+mysql2/promise
+```
 
-IDs INT UNSIGNED, fechas DATETIME(3) UTC, precio DECIMAL(12,2) convertido a Number en DTO; se mantienen los límites vigentes. El correo se normaliza a minúsculas en services y CHECK. Los demás textos conservan `utf8mb4_0900_as_cs`, salvo el nombre de categoría indicado arriba.
+No se utiliza ORM.
 
-`DATA_SOURCE=memory` guarda FK y visitas en su almacén por instancia y proyecta los mismos DTOs, con roles/categorías de referencia. Acepta fixtures antiguos importando sus categorías una vez al construir el adaptador; eso no ofrece importación de datos de producción ni permite crear categorías por HTTP. El repositorio genérico memory conserva el soporte de fixtures parciales; los services son la frontera obligatoria de validación de entradas HTTP.
+---
 
-Asignar explícitamente una categoría inexistente/inactiva produce 400. Un recurso histórico con categoría desactivada puede conservar su relación al editar otros atributos omitiendo `categoria`; una nueva asignación debe ser activa. El endpoint público y los selects solo ofrecen categorías activas. No se añade administración visual de categorías.
+# Base de datos local
 
-### DER final implementado
+El nombre utilizado actualmente es:
 
-El DER aprobado está implementado con exactamente once entidades: Rol, Usuario, Categoria, Negocio, Producto, Servicio, Horario_Servicio, Reserva, Favorito, Pedido y Detalle_Pedido. No hay Inventario (stock pertenece a Producto), Sector_Comercial (se utiliza Categoria), Pago, Factura ni Disponibilidad persistida.
+```text
+reactiva_pereira
+```
 
-## Servicios, horarios, reservas y favoritos (003)
+El cotejamiento recomendado para el entorno local es:
 
-`003_services_reservations_favorites.sql` se aplica después de 001 → 002. No altera tablas ni datos de PR5. Las tres migraciones se registran con checksum SHA-256 y estado de aplicación; un intento incompleto o checksum distinto bloquea el runner. 001 conserva `d527db03c8dfa21e30d042cd0061da30191aafb7134de071a31ace4bd1ca21ca`; 002 conserva `8a22693280d0b780c6453733520c9bc4efc60e69ad498af63c1692617ffe7a74`. El arranque MySQL exige 003 y 004 aplicadas.
+```text
+utf8mb4_unicode_ci
+```
 
-| DER / tabla                            | PK, FK y atributos físicos                                                                                                                    | Cardinalidades / integridad                                                                                                                                                          |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Servicio / `servicios`                 | id; negocioId → negocios.id; categoriaId → categorias.id; nombre, descripcion, precioReferencia, estado, duracionMinutos, capacidadSimultanea | Negocio 1:N Servicio; Categoria 1:N Servicio. FK RESTRICT. Nombre/descripción obligatorios, precio 0..1e9, dos decimales, estado Activo/Inactivo, duración 1..1440, capacidad 1..100 |
-| Horario_Servicio / `horarios_servicio` | id; servicioId → servicios.id; diaSemana, horaInicio, horaFin                                                                                 | Servicio 1:N Horario. FK CASCADE al borrar un servicio sin reservas. ISO 1=lunes…7=domingo; TIME con precisión de minutos, 00:00..23:59, inicio < fin. UNIQUE servicio/día/inicio    |
-| Reserva / `reservas`                   | id; usuarioId → usuarios.id; servicioId → servicios.id; fechaHoraInicio UTC, estado                                                           | Usuario 1:N Reserva; Servicio 1:N Reserva. FK RESTRICT en ambas relaciones, conservando incluso las Canceladas. Solo Confirmada/Cancelada                                            |
-| Favorito / `favoritos`                 | id; usuarioId → usuarios.id; productoId → productos.id                                                                                        | Entidad asociativa Usuario N:M Producto. UNIQUE(usuarioId,productoId); ambas FK CASCADE por ser una asociación dependiente                                                           |
+`utf8mb4` permite almacenar correctamente caracteres como:
 
-Los nombres académicos `id_servicio`, `id_horario`, `id_reserva`, `id_favorito` corresponden a `id` en cada tabla/DTO; `id_negocio/id_categoria/id_usuario/id_producto` a sus FK camelCase. `nombre_servicio` → `nombre`, `precio_referencia` → `precioReferencia`, `duracion_minutos` → `duracionMinutos`, `capacidad_simultanea` → `capacidadSimultanea`, `dia_semana/hora_inicio/hora_fin` → `diaSemana/horaInicio/horaFin`, `fecha_hora_inicio` → `fechaHoraInicio`. `fecha_creacion` y `fecha_agregado` corresponden a `createdAt`; `updatedAt` es auditoría técnica común. No se almacena fechaHoraFin: el final se deriva de inicio + duración.
+```text
+á
+é
+í
+ó
+ú
+ñ
+símbolos
+emojis
+```
 
-Los índices cubren servicio/negocio, estado/categoría, horario/servicio/día/inicio, reserva/servicio/estado/inicio, reserva/usuario/inicio y la asociación favorita única. Las FK añaden sus índices requeridos. No se agregan otras tablas de negocio.
+---
 
-### Disponibilidad y concurrencia
+# Modelo de datos
 
-`backend/utils/agenda.js` contiene el cálculo compartido por ambos adaptadores. Por cada ventana del día ISO se generan inicios separados por duracionMinutos; el último debe terminar dentro de horaFin. Las ventanas no cruzan medianoche y deben contener una duración completa. El backend rechaza solapamientos del mismo servicio/día dentro de `transaccion`, junto con la escritura del horario. Un servicio de 1440 minutos es válido en catálogo, pero no puede reservarse con una ventana intradía menor que su duración.
+El DER aprobado contiene exactamente once entidades de negocio:
 
-Las reservas Confirmadas ocupan intervalos semiabiertos [inicio, inicio+duración). Para cada slot se calcula el pico de reservas simultáneas dentro del intervalo, ordenando finales antes que inicios coincidentes; esto también respeta reservas que quedaron desalineadas al cambiar un horario. `cuposOcupados` es ese pico; `cuposDisponibles=max(0,capacidad-pico)`; `disponible` exige además un inicio futuro. Una Cancelada no ocupa cupos. No se persisten slots ni contadores derivados ni se crea tabla Disponibilidad.
+```text
+Rol
+Usuario
+Categoria
+Negocio
+Producto
+Servicio
+Horario_Servicio
+Reserva
+Favorito
+Pedido
+Detalle_Pedido
+```
 
-Crear reserva ejecuta lectura de servicio/negocio/categoría, validación de slot futuro, comprobación de cupos e INSERT Confirmada dentro del mismo callback de `transaccion`. MySQL obtiene primero `SELECT id FROM repository_lock WHERE id=1 FOR UPDATE`, antes de cualquier lectura de negocio, y mantiene conexión/bloqueo hasta COMMIT o ROLLBACK. El siguiente proceso espera antes de leer, observa la reserva confirmada y rechaza con 409 si no hay cupo. Se reutiliza el bloqueo global existente: es correcto entre procesos que usan este adaptador, aunque serializa todas las escrituras. Memory usa una cola por instancia con las mismas reglas de servicio y copias privadas con rollback.
+Las tablas físicas son:
 
-El GET de disponibilidad es una consulta informativa y puede quedar desactualizado por otra reserva; POST siempre recalcula bajo bloqueo. No se acepta usuarioId desde el cliente. Las pruebas ejecutan simultáneamente dos intentos para capacidad 1 (un éxito y un 409) y cuatro para capacidad 3 (tres éxitos y un 409), alternando dos pools independientes, además de pruebas equivalentes memory/HTTP.
+```text
+rol
+usuario
+categoria
+negocio
+producto
+servicio
+horario_servicio
+reserva
+favorito
+pedido
+detalle_pedido
+```
 
-### Zona horaria y cambios
+También existen dos tablas técnicas:
 
-Horarios son hora comercial de `America/Bogota`. Se valida fecha YYYY-MM-DD real (año >=2000), se obtiene el offset IANA mediante `Intl.DateTimeFormat` y se convierte cada slot a UTC. Nunca se usan getters de fecha local ni la TZ del host. Reservas HTTP requieren ISO 8601 con segundos y `Z` u offset explícito; se normalizan a ISO UTC con milisegundos, y MySQL utiliza DATETIME(3) con conexión UTC y driver `timezone: Z`. La UI muestra instantes en America/Bogota. Se prueban hosts con TZ Asia/Tokyo y Pacific/Honolulu.
+```text
+repository_lock
+schema_migrations
+```
 
-Cambiar duración se rechaza con 409 mientras haya reservas Confirmadas futuras o en curso, porque cambiaría su final derivado. Sin ellas, se comprueba que los horarios existentes contengan la nueva duración. Reducir capacidad solo se permite si sigue cubriendo el pico de las reservas futuras/en curso. Trasladar un servicio con cualquier reserva a otro negocio se rechaza. Desactivar servicio/negocio/categoría impide nuevas reservas y oculta el servicio público, sin cancelar reservas existentes. Cambiar/eliminar horarios conserva las reservas y su ocupación. Eliminar servicio con cualquier reserva, incluso Cancelada, está prohibido; debe usarse Inactivo. Usuario con reservas tampoco puede eliminarse físicamente.
+Estas dos últimas no forman parte del DER.
 
-Para crear/cambiar categoría se exige una categoría existente Activa; omitirla permite editar otros atributos de un servicio histórico con categoría desactivada. Solo el propietario Comerciante o un Administrador gestiona servicios/horarios. Comprador crea, consulta y cancela sus reservas; propietario y Administrador consultan/cancelan las autorizadas. No hay aprobación manual, pagos ni descuento de stock.
+---
 
-Favoritos solo admite Comprador, producto existente Activo, negocio Activo y categoría Activa; usuarioId proviene de sesión. Los agotados siguen siendo productos públicos y pueden guardarse. Si el producto deja de estar disponible, el favorito se conserva y su DTO devuelve `producto:null, disponible:false`, permitiendo quitarlo sin publicar datos privados. Borrar físicamente producto/usuario elimina sus favoritos con CASCADE, decisión replicada en memory. Las demás relaciones conservan el historial con RESTRICT.
+# Diagrama lógico simplificado
 
-## Configurar y arrancar
+```text
+Rol
+ │
+ │ 1:N
+ ↓
+Usuario
+ │
+ ├────────────── 0..1 Negocio
+ │                     │
+ │                     ├──── 1:N Producto
+ │                     │
+ │                     ├──── 1:N Servicio
+ │                     │            │
+ │                     │            ├──── 1:N Horario_Servicio
+ │                     │            │
+ │                     │            └──── 1:N Reserva
+ │                     │
+ │                     └──── 1:N Pedido
+ │                                  │
+ │                                  └──── 1:N Detalle_Pedido
+ │
+ ├──── 1:N Reserva
+ │
+ ├──── 1:N Favorito ──── N:1 Producto
+ │
+ └──── 1:N Pedido
 
-Requiere **MySQL >= 8.0.16**, por aplicación efectiva de CHECK; recomendado 8.4 LTS. MariaDB no se declara compatible. Crear una base vacía UTF-8 y un usuario dedicado con contraseña privada mediante la administración habitual de MySQL; no usar root para la aplicación. No hay credenciales predeterminadas.
 
-Completar `backend/.env` (ignorado por Git):
+Categoria
+ │
+ ├──── 1:N Negocio
+ ├──── 1:N Producto
+ └──── 1:N Servicio
+```
 
-```dotenv
+---
+
+# Claves
+
+## Primary Key
+
+Una Primary Key o PK identifica de forma única cada fila de una tabla.
+
+Ejemplo:
+
+```text
+usuario.id_usuario
+```
+
+Dos usuarios nunca pueden compartir el mismo `id_usuario`.
+
+Las PK principales son:
+
+```text
+rol.id_rol
+categoria.id_categoria
+usuario.id_usuario
+negocio.id_negocio
+producto.id_producto
+servicio.id_servicio
+horario_servicio.id_horario
+reserva.id_reserva
+favorito.id_favorito
+pedido.id_pedido
+detalle_pedido.id_detalle
+```
+
+Todas son generadas mediante:
+
+```sql
+AUTO_INCREMENT
+```
+
+excepto la clave técnica de `repository_lock`.
+
+---
+
+## Foreign Key
+
+Una Foreign Key o FK conecta una tabla con otra.
+
+Ejemplo:
+
+```text
+usuario.id_rol
+↓
+rol.id_rol
+```
+
+Esto significa que un Usuario solo puede hacer referencia a un Rol que realmente exista.
+
+Las FK ayudan a mantener la integridad referencial.
+
+---
+
+# 1. Rol
+
+Tabla:
+
+```text
+rol
+```
+
+Estructura:
+
+| Columna | Tipo | Regla |
+|---|---|---|
+| `id_rol` | INT | PK, AUTO_INCREMENT |
+| `nombre_rol` | VARCHAR(50) | NOT NULL, UNIQUE |
+| `descripcion` | VARCHAR(255) | Opcional |
+
+Restricción principal:
+
+```text
+nombre_rol UNIQUE
+```
+
+No pueden existir dos roles con el mismo nombre.
+
+Los roles operativos cargados actualmente son:
+
+```text
+Administrador
+Comerciante
+Comprador
+```
+
+La aplicación resuelve los permisos utilizando el nombre del rol y no debe depender de IDs mágicos como asumir que `1 = Administrador`.
+
+---
+
+# 2. Categoria
+
+Tabla:
+
+```text
+categoria
+```
+
+Estructura:
+
+| Columna | Tipo | Regla |
+|---|---|---|
+| `id_categoria` | INT | PK, AUTO_INCREMENT |
+| `nombre_categoria` | VARCHAR(80) | NOT NULL, UNIQUE |
+| `descripcion` | VARCHAR(255) | Opcional |
+| `estado` | VARCHAR(20) | Activo/Inactivo |
+
+Restricción:
+
+```sql
+CHECK (estado IN ('Activo', 'Inactivo'))
+```
+
+La migración de datos de referencia carga actualmente 24 categorías.
+
+Entre ellas:
+
+```text
+Alimentos
+Bebidas
+Restaurantes
+Café y panadería
+Ropa
+Calzado
+Tecnología
+Hogar
+Belleza
+Servicios
+Turismo
+Entretenimiento
+Agro
+Otro
+```
+
+Categoria es utilizada por:
+
+```text
+Negocio
+Producto
+Servicio
+```
+
+---
+
+# 3. Usuario
+
+Tabla:
+
+```text
+usuario
+```
+
+Estructura:
+
+| Columna | Tipo | Regla |
+|---|---|---|
+| `id_usuario` | INT | PK, AUTO_INCREMENT |
+| `id_rol` | INT | FK → rol |
+| `nombre` | VARCHAR(100) | NOT NULL |
+| `apellido` | VARCHAR(100) | NOT NULL |
+| `correo` | VARCHAR(150) | NOT NULL, UNIQUE |
+| `telefono` | VARCHAR(20) | Opcional |
+| `contrasena_hash` | VARCHAR(255) | NOT NULL |
+| `estado` | VARCHAR(20) | Activo/Inactivo |
+| `fecha_registro` | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+
+Relación:
+
+```text
+Rol 1:N Usuario
+```
+
+FK:
+
+```text
+usuario.id_rol
+→
+rol.id_rol
+```
+
+Política:
+
+```text
+ON DELETE RESTRICT
+```
+
+Esto evita eliminar un Rol mientras existan Usuarios relacionados.
+
+El correo tiene:
+
+```text
+UNIQUE
+```
+
+por lo que no pueden existir dos cuentas con el mismo correo.
+
+La contraseña nunca se guarda directamente.
+
+El backend genera:
+
+```text
+password
+↓
+scrypt
+↓
+contrasena_hash
+```
+
+---
+
+# 4. Negocio
+
+Tabla:
+
+```text
+negocio
+```
+
+Estructura:
+
+| Columna | Tipo | Regla |
+|---|---|---|
+| `id_negocio` | INT | PK |
+| `id_categoria` | INT | FK |
+| `id_usuario` | INT | FK, UNIQUE |
+| `nombre_negocio` | VARCHAR(120) | NOT NULL |
+| `descripcion` | TEXT | Opcional |
+| `direccion_comercial` | VARCHAR(200) | NOT NULL |
+| `municipio` | VARCHAR(80) | Opcional |
+| `telefono_contacto` | VARCHAR(20) | NOT NULL |
+| `estado` | VARCHAR(20) | Activo/Inactivo |
+| `fecha_registro` | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+
+Relaciones:
+
+```text
+Usuario 1 : 0..1 Negocio
+Categoria 1 : N Negocio
+```
+
+La restricción:
+
+```text
+UNIQUE(id_usuario)
+```
+
+es especialmente importante.
+
+Impide que un mismo Usuario sea propietario de varios Negocios.
+
+Por tanto:
+
+```text
+Usuario
+↓
+máximo un Negocio
+```
+
+Las FK hacia Usuario y Categoria utilizan:
+
+```text
+ON DELETE RESTRICT
+```
+
+para evitar eliminar registros que todavía son necesarios para mantener la relación.
+
+---
+
+# 5. Producto
+
+Tabla:
+
+```text
+producto
+```
+
+Estructura:
+
+| Columna | Tipo | Regla |
+|---|---|---|
+| `id_producto` | INT | PK |
+| `id_negocio` | INT | FK |
+| `id_categoria` | INT | FK |
+| `nombre_producto` | VARCHAR(150) | NOT NULL |
+| `descripcion` | TEXT | NOT NULL |
+| `precio` | DECIMAL(12,2) | > 0 |
+| `imagen` | MEDIUMTEXT | Opcional |
+| `stock` | INT | >= 0 |
+| `visitas` | INT | >= 0 |
+| `estado` | VARCHAR(20) | Activo/Inactivo |
+
+Relaciones:
+
+```text
+Negocio 1:N Producto
+Categoria 1:N Producto
+```
+
+Restricciones:
+
+```sql
+CHECK (precio > 0)
+CHECK (stock >= 0)
+CHECK (visitas >= 0)
+CHECK (estado IN ('Activo', 'Inactivo'))
+```
+
+Un Producto agotado se determina mediante:
+
+```text
+stock = 0
+```
+
+No existe un estado independiente llamado:
+
+```text
+Agotado
+```
+
+El stock pertenece directamente a Producto.
+
+Por esta razón el modelo no necesita una entidad adicional `Inventario` en el alcance actual.
+
+---
+
+# 6. Servicio
+
+Tabla:
+
+```text
+servicio
+```
+
+Estructura:
+
+| Columna | Tipo | Regla |
+|---|---|---|
+| `id_servicio` | INT | PK |
+| `id_negocio` | INT | FK |
+| `id_categoria` | INT | FK |
+| `nombre_servicio` | VARCHAR(150) | NOT NULL |
+| `descripcion` | TEXT | NOT NULL |
+| `precio_referencia` | DECIMAL(12,2) | >= 0 |
+| `estado` | VARCHAR(20) | Activo/Inactivo |
+| `duracion_minutos` | INT | > 0 |
+| `capacidad_simultanea` | INT | >= 1 |
+
+Relaciones:
+
+```text
+Negocio 1:N Servicio
+Categoria 1:N Servicio
+```
+
+Restricciones:
+
+```sql
+CHECK (precio_referencia >= 0)
+CHECK (duracion_minutos > 0)
+CHECK (capacidad_simultanea >= 1)
+```
+
+Un valor:
+
+```text
+precio_referencia = 0
+```
+
+puede utilizarse para representar un servicio cuyo precio debe ser consultado.
+
+Las FK hacia Negocio y Categoria usan:
+
+```text
+ON DELETE RESTRICT
+```
+
+---
+
+# 7. Horario_Servicio
+
+Tabla:
+
+```text
+horario_servicio
+```
+
+Estructura:
+
+| Columna | Tipo | Regla |
+|---|---|---|
+| `id_horario` | INT | PK |
+| `id_servicio` | INT | FK |
+| `dia_semana` | TINYINT | 1 a 7 |
+| `hora_inicio` | TIME | NOT NULL |
+| `hora_fin` | TIME | NOT NULL |
+
+Los días se representan como:
+
+```text
+1 = Lunes
+2 = Martes
+3 = Miércoles
+4 = Jueves
+5 = Viernes
+6 = Sábado
+7 = Domingo
+```
+
+Restricciones:
+
+```sql
+CHECK (dia_semana BETWEEN 1 AND 7)
+
+CHECK (hora_inicio < hora_fin)
+```
+
+Existe además:
+
+```text
+UNIQUE(
+    id_servicio,
+    dia_semana,
+    hora_inicio
+)
+```
+
+para evitar duplicar exactamente el mismo inicio de horario para un Servicio y día.
+
+Relación:
+
+```text
+Servicio 1:N Horario_Servicio
+```
+
+La FK utiliza:
+
+```text
+ON DELETE CASCADE
+```
+
+En este caso sí tiene sentido CASCADE porque Horario_Servicio es información completamente dependiente de Servicio.
+
+---
+
+# 8. Reserva
+
+Tabla:
+
+```text
+reserva
+```
+
+Estructura:
+
+| Columna | Tipo | Regla |
+|---|---|---|
+| `id_reserva` | INT | PK |
+| `id_usuario` | INT | FK |
+| `id_servicio` | INT | FK |
+| `fecha_hora_inicio` | DATETIME | NOT NULL |
+| `estado` | VARCHAR(20) | Confirmada/Cancelada |
+| `fecha_creacion` | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+
+Relaciones:
+
+```text
+Usuario 1:N Reserva
+Servicio 1:N Reserva
+```
+
+Estados:
+
+```text
+Confirmada
+Cancelada
+```
+
+Restricción:
+
+```text
+UNIQUE(
+    id_usuario,
+    id_servicio,
+    fecha_hora_inicio
+)
+```
+
+Esto evita que el mismo usuario genere dos reservas idénticas para el mismo Servicio y horario.
+
+Las FK utilizan:
+
+```text
+ON DELETE RESTRICT
+```
+
+porque las Reservas forman parte del historial del sistema.
+
+---
+
+# 9. Favorito
+
+Tabla:
+
+```text
+favorito
+```
+
+Favorito funciona como entidad asociativa entre Usuario y Producto.
+
+Conceptualmente:
+
+```text
+Usuario N:M Producto
+```
+
+La relación muchos a muchos se resuelve mediante:
+
+```text
+Favorito
+```
+
+Estructura:
+
+| Columna | Tipo | Regla |
+|---|---|---|
+| `id_favorito` | INT | PK |
+| `id_usuario` | INT | FK |
+| `id_producto` | INT | FK |
+| `fecha_agregado` | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+
+Restricción:
+
+```text
+UNIQUE(
+    id_usuario,
+    id_producto
+)
+```
+
+Esto impide que el mismo Usuario marque dos veces como favorito el mismo Producto.
+
+Las FK utilizan:
+
+```text
+ON DELETE CASCADE
+```
+
+porque Favorito es una asociación dependiente.
+
+Si desaparece físicamente el Usuario o Producto, la relación favorita deja de tener sentido.
+
+---
+
+# 10. Pedido
+
+Tabla:
+
+```text
+pedido
+```
+
+Estructura:
+
+| Columna | Tipo | Regla |
+|---|---|---|
+| `id_pedido` | INT | PK |
+| `id_usuario` | INT | FK |
+| `id_negocio` | INT | FK |
+| `fecha_pedido` | DATETIME | DEFAULT CURRENT_TIMESTAMP |
+| `estado` | VARCHAR(20) | Estado del pedido |
+| `observaciones` | VARCHAR(255) | Opcional |
+
+Relaciones:
+
+```text
+Usuario 1:N Pedido
+Negocio 1:N Pedido
+```
+
+Estados permitidos:
+
+```text
+Pendiente
+Confirmado
+Completado
+Cancelado
+```
+
+Restricción:
+
+```sql
+CHECK (
+    estado IN (
+        'Pendiente',
+        'Confirmado',
+        'Completado',
+        'Cancelado'
+    )
+)
+```
+
+Las FK hacia Usuario y Negocio utilizan:
+
+```text
+ON DELETE RESTRICT
+```
+
+porque un Pedido representa información histórica.
+
+---
+
+# 11. Detalle_Pedido
+
+Tabla:
+
+```text
+detalle_pedido
+```
+
+Representa cada Producto incluido dentro de un Pedido.
+
+Estructura:
+
+| Columna | Tipo | Regla |
+|---|---|---|
+| `id_detalle` | INT | PK |
+| `id_pedido` | INT | FK |
+| `id_producto` | INT | FK |
+| `cantidad` | INT | > 0 |
+| `precio_unitario` | DECIMAL(12,2) | > 0 |
+
+Relaciones:
+
+```text
+Pedido 1:N Detalle_Pedido
+Producto 1:N Detalle_Pedido
+```
+
+Restricciones:
+
+```sql
+CHECK (cantidad > 0)
+CHECK (precio_unitario > 0)
+```
+
+También existe:
+
+```text
+UNIQUE(
+    id_pedido,
+    id_producto
+)
+```
+
+Por lo tanto, dentro de un mismo Pedido un Producto se representa mediante una sola fila con su cantidad consolidada.
+
+---
+
+# Precio histórico
+
+`detalle_pedido.precio_unitario` tiene una responsabilidad importante.
+
+Supongamos que hoy:
+
+```text
+Producto A = $25.000
+```
+
+un comprador realiza un pedido.
+
+El detalle guarda:
+
+```text
+precio_unitario = 25000
+```
+
+Si mañana el Comerciante cambia el Producto a:
+
+```text
+Producto A = $30.000
+```
+
+el pedido antiguo debe seguir mostrando:
+
+```text
+$25.000
+```
+
+Por eso el precio histórico pertenece a:
+
+```text
+Detalle_Pedido
+```
+
+y no se calcula consultando nuevamente el precio actual del Producto.
+
+---
+
+# RESTRICT y CASCADE
+
+## RESTRICT
+
+`ON DELETE RESTRICT` significa:
+
+```text
+No permitas borrar el registro padre
+si todavía existen registros que dependen de él.
+```
+
+Ejemplo:
+
+```text
+Usuario
+↓
+Pedido existente
+```
+
+No conviene eliminar físicamente al Usuario y dejar el Pedido sin propietario.
+
+Por eso Pedido → Usuario utiliza RESTRICT.
+
+---
+
+## CASCADE
+
+`ON DELETE CASCADE` significa:
+
+```text
+Si se elimina el padre,
+elimina automáticamente la relación dependiente.
+```
+
+Se utiliza solamente donde la fila hija no tiene sentido por sí sola.
+
+Actualmente se utiliza, entre otros casos, en:
+
+```text
+Servicio
+↓
+Horario_Servicio
+```
+
+y:
+
+```text
+Usuario / Producto
+↓
+Favorito
+```
+
+---
+
+# Resumen de políticas de eliminación
+
+| Relación | Política |
+|---|---|
+| Usuario → Rol | RESTRICT |
+| Negocio → Usuario | RESTRICT |
+| Negocio → Categoria | RESTRICT |
+| Producto → Negocio | RESTRICT |
+| Producto → Categoria | RESTRICT |
+| Servicio → Negocio | RESTRICT |
+| Servicio → Categoria | RESTRICT |
+| Horario_Servicio → Servicio | CASCADE |
+| Reserva → Usuario | RESTRICT |
+| Reserva → Servicio | RESTRICT |
+| Favorito → Usuario | CASCADE |
+| Favorito → Producto | CASCADE |
+| Pedido → Usuario | RESTRICT |
+| Pedido → Negocio | RESTRICT |
+| Detalle_Pedido → Pedido | RESTRICT |
+| Detalle_Pedido → Producto | RESTRICT |
+
+---
+
+# Tablas técnicas
+
+## repository_lock
+
+Estructura:
+
+```text
+repository_lock
+└── id
+```
+
+Actualmente contiene una fila:
+
+```text
+id = 1
+```
+
+No representa información del marketplace.
+
+El Repository MySQL utiliza esta fila para adquirir un bloqueo durante determinadas operaciones transaccionales:
+
+```sql
+SELECT id
+FROM repository_lock
+WHERE id = 1
+FOR UPDATE;
+```
+
+Esto permite serializar operaciones críticas que utilizan el Repository.
+
+La tabla no debe incluirse como entidad del DER.
+
+---
+
+# schema_migrations
+
+Esta tabla es creada por:
+
+```text
+backend/db/migrate.js
+```
+
+Su estructura es:
+
+| Columna | Función |
+|---|---|
+| `version` | Nombre del archivo de migración |
+| `checksum` | SHA-256 del contenido |
+| `applied` | Indica si finalizó correctamente |
+| `applied_at` | Fecha de aplicación |
+
+Ejemplo:
+
+```text
+001_foundation.sql
+002_reference_data.sql
+003_services_reservations_favorites.sql
+004_orders_and_details.sql
+```
+
+El objetivo es saber qué cambios estructurales ya fueron aplicados.
+
+---
+
+# Migraciones
+
+Las migraciones se encuentran en:
+
+```text
+backend/db/migrations/
+```
+
+Actualmente:
+
+```text
+001_foundation.sql
+002_reference_data.sql
+003_services_reservations_favorites.sql
+004_orders_and_details.sql
+```
+
+Se ejecutan en orden alfabético, que en este caso también corresponde al orden numérico.
+
+---
+
+# 001_foundation.sql
+
+Crea:
+
+```text
+rol
+categoria
+usuario
+negocio
+producto
+repository_lock
+```
+
+También inserta:
+
+```text
+repository_lock.id = 1
+```
+
+No introduce usuarios demo.
+
+---
+
+# 002_reference_data.sql
+
+Inserta los catálogos requeridos por la aplicación.
+
+Principalmente:
+
+```text
+3 roles
+24 categorías
+```
+
+No crea datos ficticios de:
+
+```text
+usuarios
+negocios
+productos
+pedidos
+reservas
+```
+
+Los datos de negocio deben ser creados a través de la aplicación o de operaciones controladas.
+
+---
+
+# 003_services_reservations_favorites.sql
+
+Crea:
+
+```text
+servicio
+horario_servicio
+reserva
+favorito
+```
+
+Depende de las entidades creadas en 001.
+
+---
+
+# 004_orders_and_details.sql
+
+Crea:
+
+```text
+pedido
+detalle_pedido
+```
+
+Depende principalmente de:
+
+```text
+usuario
+negocio
+producto
+```
+
+---
+
+# Cómo funciona migrate.js
+
+El runner:
+
+```text
+backend/db/migrate.js
+```
+
+realiza aproximadamente este proceso:
+
+```text
+conectar
+↓
+preparar conexión
+↓
+consultar versión del servidor
+↓
+obtener GET_LOCK
+↓
+crear schema_migrations si no existe
+↓
+leer archivos SQL
+↓
+ordenarlos
+↓
+calcular SHA-256
+↓
+comprobar si ya fueron aplicados
+↓
+ejecutar los pendientes
+↓
+marcar applied = TRUE
+↓
+liberar lock
+```
+
+---
+
+# Checksum
+
+Cada migración tiene un hash SHA-256.
+
+Conceptualmente:
+
+```text
+archivo SQL
+↓
+SHA-256
+↓
+checksum
+```
+
+Si una migración ya aplicada cambia posteriormente, el checksum deja de coincidir.
+
+El runner lo detecta y se detiene.
+
+Esto protege contra modificaciones silenciosas del historial del esquema.
+
+---
+
+# Migraciones aplicadas
+
+Si se ejecuta:
+
+```bash
+npm run db:migrate --prefix backend
+```
+
+sobre una base actualizada, puede aparecer:
+
+```text
+001_foundation.sql ya estaba aplicada
+002_reference_data.sql ya estaba aplicada
+003_services_reservations_favorites.sql ya estaba aplicada
+004_orders_and_details.sql ya estaba aplicada
+```
+
+Esto significa que el runner es repetible en una base correctamente registrada.
+
+No vuelve a crear las tablas.
+
+---
+
+# Migración incompleta
+
+Antes de ejecutar las sentencias de una nueva migración, el runner registra:
+
+```text
+applied = FALSE
+```
+
+Cuando termina correctamente cambia a:
+
+```text
+applied = TRUE
+```
+
+Si falla a mitad del proceso, la siguiente ejecución detectará que quedó incompleta.
+
+Esto obliga a revisar el estado real de la base antes de continuar.
+
+---
+
+# Importante sobre DDL
+
+Operaciones como:
+
+```text
+CREATE TABLE
+ALTER TABLE
+DROP TABLE
+```
+
+son DDL.
+
+MySQL y MariaDB pueden realizar commits implícitos alrededor de determinadas operaciones DDL.
+
+Por esta razón no debe asumirse que un simple `ROLLBACK` puede deshacer completamente una migración estructural fallida.
+
+Antes de cambios importantes de esquema se debe considerar:
+
+```text
+respaldo
+ventana de mantenimiento
+prueba previa
+procedimiento de recuperación
+```
+
+---
+
+# Limitación actual del runner SQL
+
+El runner divide los archivos utilizando:
+
+```javascript
+sql.split(";")
+```
+
+Esto funciona porque las migraciones actuales contienen sentencias SQL simples.
+
+No deben introducirse sin adaptar el runner elementos complejos como:
+
+```text
+procedimientos almacenados
+triggers con DELIMITER
+bloques SQL con ; internos
+```
+
+Si en el futuro son necesarios, primero debe mejorarse el parser de migraciones.
+
+---
+
+# Configuración de conexión
+
+La configuración se obtiene mediante:
+
+```text
+backend/config/index.js
+```
+
+Variables principales:
+
+```env
 DATA_SOURCE=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_NAME=reactiva_pereira
-DB_USER=reactiva_app
-DB_PASSWORD=<configurar-localmente>
+DB_USER=root
+DB_PASSWORD=
 ```
 
-El valor entre ángulos es un marcador, no una contraseña distribuida. Las cinco variables se validan; el puerto predeterminado es 3306. `DATA_SOURCE=memory` no abre conexiones ni requiere configuración DB. No existe fallback silencioso al fallar MySQL.
+En el entorno académico local con XAMPP puede utilizarse temporalmente:
+
+```text
+root
+sin contraseña
+```
+
+si esa es la configuración local.
+
+Esto no debe utilizarse como configuración de producción.
+
+---
+
+# Pool de conexiones
+
+El archivo:
+
+```text
+backend/db/pool.js
+```
+
+utiliza:
+
+```text
+mysql2/promise
+```
+
+y crea un pool.
+
+Un pool evita abrir una conexión nueva desde cero para cada Request HTTP.
+
+Configuración actual relevante:
+
+```text
+waitForConnections = true
+connectionLimit = 10
+queueLimit = 100
+connectTimeout = 10000
+timezone = Z
+charset = utf8mb4_unicode_ci
+multipleStatements = false
+decimalNumbers = false
+```
+
+---
+
+# ¿Por qué usar un pool?
+
+Sin pool:
+
+```text
+Request
+↓
+abrir conexión
+↓
+consulta
+↓
+cerrar conexión
+```
+
+cada vez.
+
+Con pool:
+
+```text
+Pool
+├── conexión disponible
+├── conexión disponible
+├── conexión disponible
+└── ...
+```
+
+Las peticiones reutilizan conexiones existentes.
+
+Esto reduce el costo de conectarse repetidamente al servidor SQL.
+
+---
+
+# Preparación de conexión
+
+Cada conexión utilizada por la aplicación ejecuta:
+
+```sql
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+También configura:
+
+```text
+time_zone = '+00:00'
+```
+
+y:
+
+```text
+STRICT_TRANS_TABLES
+```
+
+---
+
+# UTC
+
+El backend trabaja internamente con fechas utilizando UTC cuando corresponde.
+
+Esto ayuda a evitar resultados distintos dependiendo de la zona horaria del equipo donde se ejecute Node.js.
+
+La presentación de horarios comerciales puede adaptarse posteriormente a la zona local de Pereira.
+
+---
+
+# STRICT_TRANS_TABLES
+
+Este modo obliga al motor a ser más estricto ante datos inválidos.
+
+Sin un modo estricto, ciertos motores/configuraciones podrían intentar convertir silenciosamente algunos valores incorrectos.
+
+Con:
+
+```text
+STRICT_TRANS_TABLES
+```
+
+se busca que esos problemas sean rechazados en lugar de ocultados.
+
+---
+
+# multipleStatements = false
+
+El pool configura:
+
+```text
+multipleStatements: false
+```
+
+Esto impide enviar múltiples sentencias SQL arbitrarias dentro de una única operación del driver.
+
+Es una medida adicional de reducción de superficie de riesgo.
+
+No reemplaza el uso de consultas parametrizadas.
+
+---
+
+# Consultas parametrizadas
+
+Los valores procedentes de la aplicación deben enviarse como parámetros.
+
+Conceptualmente:
+
+```javascript
+connection.execute(
+  "SELECT * FROM usuario WHERE id_usuario = ?",
+  [id]
+);
+```
+
+y no concatenarse directamente:
+
+```javascript
+"SELECT * FROM usuario WHERE id_usuario = " + id
+```
+
+La primera forma ayuda a prevenir inyección SQL.
+
+---
+
+# Repository MySQL
+
+Archivo principal:
+
+```text
+backend/repositories/mysql/index.js
+```
+
+El Repository traduce los campos del dominio JavaScript al esquema académico.
+
+Ejemplos:
+
+| Backend | SQL |
+|---|---|
+| `id` | `id_usuario`, `id_producto`, etc. |
+| `rolId` | `id_rol` |
+| `passwordHash` | `contrasena_hash` |
+| `usuarioId` | `id_usuario` |
+| `negocioId` | `id_negocio` |
+| `categoriaId` | `id_categoria` |
+| `nombre` de Negocio | `nombre_negocio` |
+| `nombre` de Producto | `nombre_producto` |
+| `telefono` de Negocio | `telefono_contacto` |
+| `direccion` | `direccion_comercial` |
+| `precioReferencia` | `precio_referencia` |
+| `duracionMinutos` | `duracion_minutos` |
+| `capacidadSimultanea` | `capacidad_simultanea` |
+| `fechaHoraInicio` | `fecha_hora_inicio` |
+| `precioUnitario` | `precio_unitario` |
+
+Esto permite que Services y Controllers continúen utilizando objetos JavaScript legibles sin acoplarse directamente a los nombres físicos de SQL.
+
+---
+
+# Ejemplo Usuario
+
+SQL:
+
+```text
+id_usuario
+id_rol
+nombre
+apellido
+correo
+telefono
+contrasena_hash
+estado
+fecha_registro
+```
+
+Repository:
+
+```javascript
+{
+  id,
+  rolId,
+  nombre,
+  apellido,
+  correo,
+  telefono,
+  passwordHash,
+  estado,
+  createdAt,
+  rol
+}
+```
+
+`rol` se obtiene mediante JOIN con la tabla `rol`.
+
+---
+
+# Ejemplo Negocio
+
+SQL:
+
+```text
+id_negocio
+id_categoria
+id_usuario
+nombre_negocio
+direccion_comercial
+telefono_contacto
+```
+
+Repository:
+
+```javascript
+{
+  id,
+  categoriaId,
+  usuarioId,
+  nombre,
+  direccion,
+  telefono,
+  categoria,
+  propietario
+}
+```
+
+`categoria` y `propietario` pueden obtenerse mediante JOIN.
+
+---
+
+# DECIMAL y JavaScript
+
+MySQL puede devolver valores `DECIMAL` como texto para evitar pérdida silenciosa de precisión.
+
+El Repository convierte los campos utilizados por esta aplicación cuando corresponde:
+
+```text
+precio
+precioReferencia
+precioUnitario
+```
+
+a:
+
+```text
+Number
+```
+
+antes de devolverlos a otras capas.
+
+---
+
+# Transacciones
+
+Una transacción permite agrupar varias operaciones como una unidad.
+
+Ejemplo:
+
+```text
+BEGIN
+↓
+crear pedido
+↓
+crear detalles
+↓
+descontar stock
+↓
+COMMIT
+```
+
+Si ocurre un error:
+
+```text
+ROLLBACK
+```
+
+Así se evita guardar solo una parte de una operación.
+
+---
+
+# Ejemplo sin transacción
+
+Supongamos:
+
+```text
+crear pedido ✅
+crear detalle ✅
+descontar producto 1 ✅
+descontar producto 2 ❌
+```
+
+Sin transacción podríamos terminar con información inconsistente.
+
+Con transacción:
+
+```text
+algo falla
+↓
+ROLLBACK
+↓
+se revierten las operaciones de esa transacción
+```
+
+---
+
+# AsyncLocalStorage
+
+El Repository MySQL utiliza:
+
+```text
+AsyncLocalStorage
+```
+
+para conservar la misma conexión durante las operaciones que pertenecen a una transacción.
+
+Conceptualmente:
+
+```text
+repos.transaccion()
+↓
+connection A
+↓
+Service
+├── repos.pedido.create()
+├── repos.detallePedido.create()
+└── repos.producto.update()
+```
+
+Todas esas operaciones pueden compartir la misma conexión transaccional sin obligar al Service a manejar directamente conexiones SQL.
+
+---
+
+# Bloqueo del Repository
+
+Durante una transacción se utiliza:
+
+```sql
+SELECT id
+FROM repository_lock
+WHERE id = 1
+FOR UPDATE;
+```
+
+Mientras la transacción está abierta, otro proceso que utilice el mismo mecanismo debe esperar para adquirir ese bloqueo.
+
+Esta implementación favorece simplicidad y consistencia para el proyecto académico.
+
+También significa que puede serializar más escrituras de las estrictamente necesarias.
+
+En un sistema de gran escala podría evolucionarse a estrategias de locking más específicas.
+
+---
+
+# Bloqueo de productos
+
+Durante determinadas operaciones de Pedido, el Repository también puede bloquear Productos mediante:
+
+```sql
+SELECT id_producto
+FROM producto
+WHERE id_producto = ?
+FOR UPDATE;
+```
+
+Esto ayuda a evitar que dos operaciones concurrentes modifiquen simultáneamente el mismo stock sin coordinación.
+
+---
+
+# DATA_SOURCE
+
+La aplicación soporta:
+
+```text
+DATA_SOURCE=memory
+```
+
+y:
+
+```text
+DATA_SOURCE=mysql
+```
+
+## memory
+
+Los datos viven únicamente en memoria.
+
+```text
+reiniciar Node
+↓
+datos temporales desaparecen
+```
+
+## mysql
+
+Los datos se guardan en MariaDB/MySQL.
+
+```text
+reiniciar Node
+↓
+datos permanecen
+```
+
+Incluso si se apaga completamente el computador:
+
+```text
+encender computador
+↓
+iniciar MySQL
+↓
+iniciar Node
+↓
+consultar base
+↓
+los registros siguen allí
+```
+
+---
+
+# XAMPP
+
+En el entorno local actual, MariaDB se ejecuta mediante XAMPP.
+
+Iniciar MySQL:
 
 ```bash
-npm ci --prefix backend
-npm run db:migrate --prefix backend
-npm start --prefix backend
+sudo /opt/lampp/lampp startmysql
 ```
 
-Crear la base requiere un operador; el runner no crea bases, usuarios ni grants. Para migraciones, otorgar al usuario de migración CREATE/ALTER/INDEX/REFERENCES/CREATE TEMPORARY TABLES y DML sobre esa base. El usuario de ejecución solo necesita SELECT/INSERT/UPDATE/DELETE sobre las entidades, SELECT sobre `schema_migrations` y SELECT sobre `repository_lock`. Se pueden usar credenciales de migración distintas pasando sus variables al comando y retirar privilegios DDL después. No se necesita configuración DB en el navegador.
+Iniciar Apache:
 
-El pool limita conexiones a 10, cola a 100 y conexión inicial a 10 segundos. Cada conexión arrendada configura UTF-8, UTC y modo SQL estricto antes de usarla. La aplicación cierra el pool al recibir SIGTERM/SIGINT y al fallar el arranque. Consultas de usuario siempre parametrizadas mediante `execute`; identificadores salen de listas cerradas. `multipleStatements` permanece deshabilitado.
+```bash
+sudo /opt/lampp/lampp startapache
+```
 
-## Migraciones
+Estado:
 
-`backend/db/migrations/001_foundation.sql` contiene únicamente el esquema de entidades, índices y la fila de bloqueo técnico. Sin datos demo. `002_normalize_roles_categories.sql` evoluciona esa base con datos de referencia y backfill verificado. `schema_migrations` registra nombre, SHA-256, estado aplicado y fecha. El runner ordena archivos numéricos, usa una conexión y `GET_LOCK` para excluir otros runners. Repetir el comando no altera datos de migraciones ya aplicadas.
+```bash
+sudo /opt/lampp/lampp status
+```
 
-**No editar migraciones aplicadas**. Añadir un archivo nuevo para cambios de esquema. El SQL de migraciones usa sentencias simples separadas por `;`; no admite `DELIMITER`, procedimientos ni separadores dentro de literales/comentarios. Ampliar el runner antes de introducir esos formatos.
-
-DDL MySQL hace commit implícito: una migración fallida puede dejar tablas parciales. El runner registra primero el intento; si falla, queda `applied=false` y el siguiente intento se detiene. Una suma distinta también detiene la ejecución. No se marca éxito ni se ejecuta rollback ficticio de DDL.
-
-Ante fallo: detener arranques concurrentes, inspeccionar el error y los objetos creados, respaldar datos si existen y resolver con un operador. En una base **vacía de pruebas** se puede recrear la base y repetir. En una base con datos no borrar tablas ni alterar `schema_migrations` a ciegas: reparar el esquema y comprobarlo contra el archivo antes de marcar el intento como aplicado. No existe down automático destructivo.
-
-Antes de cambios de esquema o despliegues: respaldo con la herramienta de operación MySQL (por ejemplo mysqldump) y comprobación de restauración en otra base. Esta PR no convierte memory/LocalStorage en una fuente importable automáticamente ni ofrece recuperación certificada.
-
-## Contrato y transacciones
-
-| Método                  | Resultado                         |
-| ----------------------- | --------------------------------- |
-| `list()`                | Array de DTOs nuevos              |
-| `find(id)`              | DTO o null                        |
-| `create(datos)`         | DTO con id y fechas generadas     |
-| `update(id, datos)`     | DTO o null; preserva id/createdAt |
-| `delete(id)`            | Booleano                          |
-| `transaccion(callback)` | Resultado del callback o error    |
-
-`createRepositories(datos)` conserva memory. `repositoriesFromConfig(config)` selecciona el adaptador; `createApplication` permite inyectarlo para pruebas. Los métodos MySQL de escritura abren transacción si se invocan fuera de una; dentro usan la conexión del contexto. `propietario`, IDs/fechas y campos ajenos al modelo no se escriben desde el DTO de entrada. `rol` y `categoria` se resuelven contra catálogos antes de escribir sus FK; los SELECT usan JOIN. `ready()` exige 003 y 004 aplicadas.
+Apache es necesario para acceder a:
 
 ```text
-getConnection → configurar sesión → BEGIN
-→ SELECT id FROM repository_lock WHERE id=1 FOR UPDATE
-→ AsyncLocalStorage.run(connection, callback)
-→ COMMIT
-error → ROLLBACK
-finally → release (destroy si no se puede revertir)
+http://localhost/phpmyadmin
 ```
 
-El bloqueo global es deliberado: reproduce la exclusión de memory entre todos los procesos que usan este adaptador y preserva comprobaciones `list → validar → escribir` sin reescribir services. Evita carreras del último administrador y pérdida de incrementos de visitas. Se libera por commit/rollback. Es una decisión simple para este marketplace académico; limita el rendimiento de escritura y requiere revisar bloqueos más granulares al crecer. Escritores SQL externos no respetan esa fila: UNIQUE/FK/CHECK siguen protegiendo integridad, pero deben respetar también las reglas de aplicación.
+MariaDB es el servicio que realmente almacena los datos.
 
-No hay transacciones anidadas: se rechazan explícitamente. El callback debe esperar todo su trabajo asincrónico; no lanzar tareas sueltas que continúen después del commit. No se hacen reintentos automáticos de callbacks con posibles efectos externos. Errores de integridad se convierten a errores seguros 400; otros errores llegan al middleware genérico sin revelar SQL. Memory serializa por proceso con copias privadas y commit/rollback; no persiste tras reiniciar.
+---
 
-## Pruebas
+# MySQL del sistema vs XAMPP
 
-La suite normal no necesita MySQL. `npm run test:mysql --prefix tests` exige `DATA_SOURCE=mysql` y `DB_NAME` terminada en `_test`, ejecuta secuencialmente la integración existente y las regresiones de 001 → 002 → 003 → 004, integridad y concurrencia de reservas/pedidos. Esta última reconstruye únicamente la base dedicada y comprueba todos los atributos históricos, checksums y fallo parcial. Nunca usar datos del usuario. La CI usa MySQL 8.4; validación local realizada también con MySQL 8.0.46. Detalle en [SECURITY_TESTING](SECURITY_TESTING.md).
+En Linux puede existir simultáneamente otro MySQL instalado como servicio del sistema.
 
-## Pedido y Detalle_Pedido (004)
-
-`004_orders_and_details.sql` crea dos tablas InnoDB/utf8mb4, sin alterar tablas, datos ni checksums de 001–003. La prueba de actualización conserva todas las columnas y filas de las nueve entidades de PR6, incluyendo horarios, reservas y favoritos. El runner registra cuatro versiones SHA-256; drift o un intento incompleto bloquean la migración. `ready()` comprueba 003 y 004 antes de servir MySQL. DDL requiere la ventana y respaldo descritos arriba.
-
-| Entidad / tabla                    | PK / FK / atributos                                                                                           | Restricciones e índices                                                                                                                   |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Pedido / `pedidos`                 | id PK; usuarioId → usuarios.id; negocioId → negocios.id; estado, observaciones nullable, createdAt, updatedAt | CHECK Pendiente/Confirmado/Completado/Cancelado; índices (usuarioId,createdAt), (negocioId,estado,createdAt)                              |
-| Detalle_Pedido / `detalles_pedido` | id PK; pedidoId → pedidos.id; productoId → productos.id; cantidad, precioUnitario; timestamps técnicos        | UNIQUE(pedidoId,productoId); CHECK cantidad 1..1000 y precioUnitario >0 hasta 1e9; índice por producto. UNIQUE cubre búsquedas por pedido |
-
-Las **cuatro FK usan ON DELETE RESTRICT y ON UPDATE RESTRICT**, incluida Detalle → Pedido: impiden que un borrado accidental retire historial completo. Los services devuelven 409 con una recomendación de desactivación para Producto/Negocio/Usuario referenciados antes de depender del error SQL. No hay endpoint DELETE de Pedido. Un producto con detalles no puede trasladarse a otro negocio mediante su service; se preserva la relación original del pedido. Cambiar nombre o precio, o desactivar, sí conserva el registro histórico. El nombre se resuelve desde el Producto vigente; no hay columna nombre_producto en Detalle.
+Por ejemplo:
 
 ```text
-Usuario  1 ── N Pedido
-Negocio  1 ── N Pedido
-Pedido   1 ── N Detalle_Pedido
-Producto 1 ── N Detalle_Pedido
+/usr/sbin/mysqld
 ```
 
-Un pedido tiene exactamente un negocio y al menos un detalle. El service valida que cada producto del detalle pertenezca a ese negocio. La relación Pedido N:M Producto se resuelve mediante Detalle_Pedido; no se añade una entidad de agrupación del carrito.
+y XAMPP:
 
-### Mapeo DER y normalización
+```text
+/opt/lampp/sbin/mysqld
+```
 
-| DER                                | Implementación                                                          |
-| ---------------------------------- | ----------------------------------------------------------------------- |
-| id_pedido                          | pedidos.id / DTO id                                                     |
-| id_usuario, id_negocio             | pedidos.usuarioId, negocioId                                            |
-| fecha_pedido                       | pedidos.createdAt UTC; DTO createdAt y alias fecha, sin segunda columna |
-| estado, observaciones              | pedidos.estado, observaciones                                           |
-| id_detalle, id_pedido, id_producto | detalles_pedido.id, pedidoId, productoId                                |
-| cantidad, precio_unitario          | detalles_pedido.cantidad, precioUnitario DECIMAL(12,2)                  |
+Ambos no pueden escuchar simultáneamente en:
 
-`precioUnitario` es un hecho histórico de la venta, obtenido exclusivamente de Producto.precio al crear el pedido; un cambio posterior a 40.000 no cambia un detalle de 30.000. `subtotal = cantidad × precioUnitario` y `total = SUM(subtotal)` son derivados de ese hecho y no se persisten. Los cálculos usan enteros en centavos y el DTO entrega COP. El total del carrito debe caber en Number.MAX_SAFE_INTEGER centavos (se rechaza 400 si lo supera). Cada producto acepta 1..1000 unidades **después** de consolidar repetidos; se admiten 1..100 líneas de entrada, IDs numéricos enteros positivos y observaciones de hasta 2000 caracteres. No se admiten cantidades decimales/strings/NaN ni importes arbitrarios del navegador.
+```text
+3306
+```
 
-`stock` permanece en Producto, sin Inventario. Carrito es intención temporal del navegador, sin tabla Carrito/Carrito_Item. `Pedido.negocioId` identifica al único negocio de cada pedido. No hay duplicación de fecha, nombre, subtotal ni total por copiar literalmente el DER.
+si utilizan la misma dirección.
 
-### Atomicidad, locks y concurrencia
+Para verificar qué proceso utiliza el puerto:
 
-El service ejecuta todo el POST dentro de **una** `repos.transaccion`: bloqueo → leer/validar → agrupar → insertar todos los pedidos/detalles → descontar stock → construir DTO → COMMIT. Si falla cualquier producto o cualquier escritura, ROLLBACK retira todos los pedidos/detalles y descuentos, incluso si otro negocio ya había sido insertado. La respuesta 201 solo llega después del commit.
+```bash
+sudo ss -ltnp | grep ':3306'
+```
 
-MySQL conserva el bloqueo global `repository_lock ... FOR UPDATE` de PR5/PR6, adquirido antes de leer reglas y compartido por las escrituras de los demás módulos. Después, `bloquearProductos(ids)` bloquea cada fila de Producto con `SELECT ... FOR UPDATE` en **productoId ascendente, sin duplicados**, antes de consultar precio y existencias. Creación y cancelación utilizan el mismo orden: global → productos ascendentes → escrituras; todos los locks permanecen en la misma conexión AsyncLocalStorage hasta commit/rollback. No hay SELECT liberado seguido de UPDATE. El bloqueo global simplifica coordinación pero serializa las escrituras; no se eliminó la protección de agenda ni último administrador. Escritores SQL externos deben respetar también estas reglas de aplicación.
+Para el entorno actual de Reactiva Pereira se utiliza el servidor de XAMPP cuando se trabaja con phpMyAdmin local.
 
-Las pruebas MySQL abren dos pools independientes y dos aplicaciones HTTP: con stock 1 y dos POST simultáneos se obtiene un fulfilled, un rejected 409, stock 0 y un único Pedido/Detalle; con stock 3 y cuatro POST hay tres éxitos y un 409. No son llamadas secuenciales. También hay rollback multinegocio vía POST y fallo provocado después del primer INSERT/descuento, más cancelaciones simultáneas entre pools.
+---
 
-Memory utiliza la misma cola por instancia y AsyncLocalStorage con copias privadas del estado de cada repositorio. Un error descarta todas las copias; el commit publica cambios de forma síncrona. Lectores externos observan el último estado confirmado. Las escrituras de repositorios se encolan si no están ya dentro de una transacción. No hay persistencia ni coordinación entre procesos memory.
+# phpMyAdmin
 
-### Estados y restitución
+phpMyAdmin no es la base de datos.
 
-| Actor                   | Permisos                                                                                                                  |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Comprador               | Crear Pendiente y consultar sus pedidos; cancelar solo su Pendiente                                                       |
-| Comerciante propietario | Consultar/gestionar solo pedidos de su negocio; confirmar Pendiente, completar Confirmado y cancelar Pendiente/Confirmado |
-| Administrador           | Las mismas transiciones globalmente; no crea mediante el flujo de compra                                                  |
+Es una interfaz web que permite administrar MySQL/MariaDB.
 
-Completado y Cancelado son terminales. Pendiente → Completado se rechaza 409. Cancelar bloquea antes de leer estado, autoriza propiedad, suma las cantidades históricas y actualiza a Cancelado en la misma transacción. Repetir `/cancelar` devuelve el Cancelado sin sumar otra vez; repetir una transición terminal vía `/estado` produce 409. Cancelar Completado siempre produce 409. Stock insuficiente al crear produce 409 indicando el ID seguro del producto.
+La relación correcta es:
 
-Se conserva el límite previo de Producto.stock 0..1.000.000. Si una reposición manual deja existencias tan altas que la restitución superaría ese límite, cancelar produce 409 y revierte todo; se debe revisar la existencia del producto antes de volver a cancelar. No se elimina el CHECK ni se pierde stock silenciosamente.
+```text
+phpMyAdmin
+↓
+MariaDB / MySQL
+↓
+reactiva_pereira
+```
 
-Las once tablas de negocio finales son `roles`, `usuarios`, `categorias`, `negocios`, `productos`, `servicios`, `horarios_servicio`, `reservas`, `favoritos`, `pedidos`, `detalles_pedido`. Solo `schema_migrations` y `repository_lock` son infraestructura. No se crean Pago, Factura, Método_Pago, Transaccion financiera, Disponibilidad, Inventario, Sector_Comercial o estados como tablas independientes.
+La aplicación Node.js no se conecta a phpMyAdmin.
+
+Se conecta directamente al servidor SQL:
+
+```text
+Node.js
+↓
+mysql2
+↓
+127.0.0.1:3306
+↓
+MariaDB / MySQL
+```
+
+---
+
+# Verificar conexión desde Node.js
+
+Una consulta simple como:
+
+```sql
+SELECT 1 + 1 AS resultado;
+```
+
+permite comprobar:
+
+```text
+Node
+↓
+mysql2
+↓
+servidor SQL
+↓
+respuesta
+```
+
+Un resultado:
+
+```text
+2
+```
+
+confirma que la conexión básica funciona.
+
+---
+
+# Comprobar persistencia
+
+Una prueba completa de persistencia puede ser:
+
+```text
+1. Iniciar MySQL.
+2. Iniciar backend con DATA_SOURCE=mysql.
+3. Crear un Usuario.
+4. Confirmarlo en phpMyAdmin.
+5. Detener Node.
+6. Detener XAMPP.
+7. Reiniciar los servicios.
+8. Iniciar nuevamente Node.
+9. Consultar el Usuario.
+```
+
+Si permanece, se ha demostrado persistencia real.
+
+La misma lógica aplica para:
+
+```text
+Negocio
+Producto
+Servicio
+Reserva
+Favorito
+Pedido
+Detalle_Pedido
+```
+
+---
+
+# Pruebas MySQL
+
+Las pruebas automatizadas que modifican datos no deben utilizar la base principal:
+
+```text
+reactiva_pereira
+```
+
+Deben utilizar una base cuyo nombre termine en:
+
+```text
+_test
+```
+
+Ejemplo:
+
+```text
+reactiva_pereira_test
+```
+
+El comando correspondiente es:
+
+```bash
+npm run test:mysql --prefix tests
+```
+
+Estas pruebas pueden crear o eliminar fixtures.
+
+Nunca deben utilizarse sobre información que se quiera conservar.
+
+---
+
+# Integridad
+
+La base utiliza varias herramientas de integridad:
+
+```text
+PRIMARY KEY
+FOREIGN KEY
+UNIQUE
+CHECK
+NOT NULL
+DEFAULT
+RESTRICT
+CASCADE
+```
+
+Cada una protege un tipo diferente de regla.
+
+La aplicación también valida reglas en Services.
+
+Por tanto existen dos niveles:
+
+```text
+Aplicación
+↓
+validaciones y reglas de negocio
+
+Base de datos
+↓
+integridad estructural
+```
+
+No se debe depender exclusivamente de uno de los dos cuando una regla puede protegerse razonablemente en ambos.
+
+---
+
+# ¿Qué cambia respecto al almacenamiento en memoria?
+
+Antes:
+
+```text
+Route
+↓
+Service
+↓
+Repository Memory
+↓
+arreglo / Map
+```
+
+Ahora, en modo MySQL:
+
+```text
+Route
+↓
+Service
+↓
+Repository MySQL
+↓
+SQL
+↓
+MariaDB
+```
+
+La API puede mantener los mismos endpoints.
+
+Ese desacoplamiento es precisamente una ventaja del patrón Repository.
+
+---
+
+# Entidades que no existen
+
+El modelo actual no contiene:
+
+```text
+Pago
+Factura
+Metodo_Pago
+Inventario
+Disponibilidad
+Sector_Comercial
+Carrito
+```
+
+Esto es intencional.
+
+## Inventario
+
+Actualmente:
+
+```text
+Producto.stock
+```
+
+es suficiente para el alcance definido.
+
+## Disponibilidad
+
+Se deriva mediante:
+
+```text
+Horario
++
+Duración del Servicio
++
+Capacidad
++
+Reservas
+```
+
+## Carrito
+
+Permanece temporalmente en el frontend.
+
+## Pago y Factura
+
+El sistema no procesa pagos reales actualmente.
+
+Si el alcance cambia, estas entidades deberán diseñarse y aprobarse antes de incorporarlas.
+
+---
+
+# Evolución futura
+
+Si el modelo necesita una nueva columna o tabla, la evolución recomendada es:
+
+```text
+Requerimiento
+↓
+revisión del DER
+↓
+nueva migración
+↓
+adaptar Repository
+↓
+adaptar Service si corresponde
+↓
+pruebas
+↓
+documentación
+```
+
+Ejemplo:
+
+```text
+005_nueva_funcionalidad.sql
+```
+
+No agregar tablas directamente desde phpMyAdmin y olvidar reflejar el cambio en las migraciones.
+
+El esquema debe poder reproducirse a partir del código versionado.
+
+---
+
+# Regla de conservación
+
+Una base de datos local puede contener información que Git no conoce.
+
+Git guarda:
+
+```text
+migraciones
+Repository
+configuración
+código
+```
+
+MariaDB guarda:
+
+```text
+usuarios
+negocios
+productos
+reservas
+pedidos
+etc.
+```
+
+Hacer:
+
+```text
+git commit
+git push
+git pull
+```
+
+no debería eliminar la información de MariaDB.
+
+Sin embargo, ejecutar SQL destructivo como:
+
+```text
+DROP DATABASE
+DROP TABLE
+DELETE
+TRUNCATE
+```
+
+sí puede modificar o eliminar datos.
+
+Por esta razón cualquier operación destructiva sobre una base real debe revisarse antes de ejecutarse.
+
+---
+
+# Resumen para sustentación
+
+## ¿Dónde se almacenan los datos?
+
+En MariaDB/MySQL cuando:
+
+```text
+DATA_SOURCE=mysql
+```
+
+## ¿Cómo llega un dato desde el navegador?
+
+```text
+Frontend
+↓
+fetch()
+↓
+HTTP
+↓
+Express
+↓
+Controller
+↓
+Service
+↓
+Repository
+↓
+SQL
+↓
+MariaDB
+```
+
+## ¿Qué devuelve la base?
+
+Filas SQL.
+
+El Repository las transforma a objetos JavaScript.
+
+Después Express devuelve JSON al frontend.
+
+## ¿Qué es una PK?
+
+El identificador único de una fila.
+
+## ¿Qué es una FK?
+
+Una referencia a otra tabla.
+
+## ¿Qué hace UNIQUE?
+
+Evita valores o combinaciones duplicadas.
+
+## ¿Qué hace CHECK?
+
+Impide guardar valores que violen una condición.
+
+## ¿Qué hace RESTRICT?
+
+Impide eliminar un registro padre que todavía tiene dependencias.
+
+## ¿Qué hace CASCADE?
+
+Elimina automáticamente relaciones dependientes cuando desaparece su padre.
+
+## ¿Qué es una transacción?
+
+Un conjunto de operaciones que debe completarse como una unidad.
+
+## ¿Qué es un Repository?
+
+La capa que abstrae cómo se almacenan y recuperan los datos.
+
+## ¿Qué es una migración?
+
+Un archivo versionado que modifica o crea la estructura de la base de datos de manera reproducible.
+
+## ¿Qué aporta MySQL frente a memory?
+
+Persistencia.
+
+Los datos permanecen después de reiniciar el servidor o el computador.

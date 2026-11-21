@@ -2,11 +2,11 @@
   "name": "reactiva-pereira-regression",
   "private": true,
   "scripts": {
-    "test": "node --test api.test.cjs mysql.test.cjs normalization.test.cjs phase1.test.cjs structure.test.cjs pr6.test.cjs pr6.api.test.cjs pr6.browser.test.cjs pr7.test.cjs pr7.api.test.cjs pr7.browser.test.cjs",
-    "test:api": "node --test api.test.cjs pr6.api.test.cjs pr7.api.test.cjs",
-    "test:browser": "node --test phase1.test.cjs pr6.browser.test.cjs pr7.browser.test.cjs",
+    "test": "node --test api.test.cjs mysql.test.cjs normalization.test.cjs phase1.test.cjs structure.test.cjs services.test.cjs services.api.test.cjs services.browser.test.cjs orders.test.cjs orders.api.test.cjs orders.browser.test.cjs",
+    "test:api": "node --test api.test.cjs services.api.test.cjs orders.api.test.cjs",
+    "test:browser": "node --test phase1.test.cjs services.browser.test.cjs orders.browser.test.cjs",
     "test:responsive": "node --test responsive.browser.test.cjs",
-    "test:mysql": "node --env-file-if-exists=../backend/.env --test --test-concurrency=1 mysql.integration.test.cjs normalization.mysql.test.cjs pr6.mysql.test.cjs pr7.mysql.test.cjs"
+    "test:mysql": "node --env-file-if-exists=../backend/.env --test --test-concurrency=1 schema.mysql.test.cjs mysql.integration.test.cjs services.mysql.test.cjs orders.mysql.test.cjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",

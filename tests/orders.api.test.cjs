@@ -2,7 +2,7 @@ const { test, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { createApplication } = require("../backend/app");
 const { hashPassword } = require("../backend/utils/password");
-const { fixture } = require("./pr6.helpers.cjs");
+const { fixture } = require("./marketplace.fixtures.cjs");
 let server, base, repos;
 const clave = "Una-clave-de-prueba-2026";
 before(async () => {

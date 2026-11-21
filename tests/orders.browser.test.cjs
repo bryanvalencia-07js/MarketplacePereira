@@ -6,7 +6,7 @@ const fs = require("node:fs/promises");
 const path = require("node:path");
 const { createApplication } = require("../backend/app");
 const { hashPassword } = require("../backend/utils/password");
-const { fixture, comprador } = require("./pr6.helpers.cjs");
+const { fixture, comprador } = require("./marketplace.fixtures.cjs");
 const { createPedidoService } = require("../backend/services/pedido.service");
 let browser, context, page, server, base, repos, service, hash, errors;
 const clave = "Una-clave-de-prueba-2026";

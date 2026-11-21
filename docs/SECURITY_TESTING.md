@@ -1,180 +1,2400 @@
-# Seguridad y pruebas
+# Seguridad y pruebas — Reactiva Pereira
 
-## Controles efectivos
+## Propósito
 
-- Scrypt con sal aleatoria de 16 bytes, clave de 64 bytes, N=32768, r=8, p=3 y comparación constante. El formato guarda parámetros para evolución. Contraseñas de 12–128 caracteres; API y respaldo legado no exponen contraseña/hash.
-- Sesiones opacas aleatorias de 32 bytes, indexadas por SHA-256 en memoria del servidor, expiración absoluta de ocho horas y revocación por cambio real de rol/estado/contraseña o eliminación.
-- Cookie HttpOnly, SameSite Strict, Path=/, Secure en producción. Sin autenticación en LocalStorage; CSRF de página en memoria.
-- CSRF en CRUD y logout; origen/Fetch Metadata también en login, registro y visitas. Frontend y API comparten origen; no hay CORS abierto.
-- Roles y propiedad en servidor, campos permitidos y validaciones de tipos/límites. No hay autorregistro de Administrador ni cuentas demo automáticas; bootstrap privado por entorno.
-- CSP estricta sin `unsafe-inline`/`unsafe-eval`; scripts/eventos externos y escape de texto en tarjetas/listados. Las Data URLs se limitan a imágenes admitidas con validación básica de firma.
-- Cabeceras nosniff, frames denegados, referrer same-origin y permisos de cámara/micrófono/geolocalización deshabilitados. HSTS en producción.
-- JSON máximo 2 MiB, imágenes máximo 1 800 000 caracteres. Content-Encoding distinto de identity se rechaza antes del parser; `inflate:false` se conserva. Query parser `simple`.
-- Rate limits: API 300/IP/min; auth 30/IP/15 min; login 12/correo/15 min; visitas 40/IP/min. Mapas acotados con expiración.
-- Request timeout 30 segundos y headers 15 segundos. Errores internos sin stack, credenciales, SQL ni datos del driver.
-- MySQL: consultas parametrizadas, identificadores cerrados, pool limitado, UTC/modo estricto, PK/FK/UNIQUE/CHECK, transacciones con rollback y cierre de conexiones. Ver [DATABASE](DATABASE.md).
+Este documento describe los principales controles de seguridad implementados actualmente en Reactiva Pereira y la estrategia utilizada para comprobar su funcionamiento.
 
-## Dependencias
+El proyecto es académico, pero busca aplicar prácticas razonables de seguridad en:
 
-Consultar siempre el estado actual:
+```text
+autenticación
+autorización
+sesiones
+contraseñas
+CSRF
+validación
+SQL
+errores
+headers HTTP
+concurrencia
+integridad
+pruebas automatizadas
+```
+
+La existencia de estos controles no convierte automáticamente al sistema en una plataforma certificada para producción.
+
+---
+
+# Principio de seguridad
+
+El navegador no es una fuente confiable de autorización ni de datos críticos.
+
+Por esta razón:
+
+```text
+Frontend
+↓
+envía solicitud
+↓
+Backend
+↓
+vuelve a validar
+↓
+autoriza
+↓
+consulta datos reales
+↓
+ejecuta operación
+```
+
+El frontend puede mejorar la experiencia ocultando botones o páginas, pero la decisión definitiva ocurre en el servidor.
+
+---
+
+# Contraseñas
+
+Las contraseñas nunca se almacenan en texto plano.
+
+El archivo:
+
+```text
+backend/utils/password.js
+```
+
+utiliza:
+
+```text
+scrypt
+```
+
+con los parámetros actuales:
+
+```text
+N = 32768
+r = 8
+p = 3
+```
+
+La sal tiene:
+
+```text
+16 bytes aleatorios
+```
+
+y el hash derivado:
+
+```text
+64 bytes
+```
+
+El formato almacenado incluye los parámetros:
+
+```text
+scrypt:32768:8:3:salt:hash
+```
+
+Esto permite identificar el algoritmo y sus parámetros durante la verificación.
+
+---
+
+# Comparación segura de contraseñas
+
+La verificación utiliza:
+
+```text
+timingSafeEqual()
+```
+
+para comparar el hash calculado con el almacenado.
+
+Esto reduce diferencias de tiempo derivadas de comparaciones convencionales.
+
+---
+
+# Longitud de contraseña
+
+Durante creación o registro se exige:
+
+```text
+12 a 128 caracteres
+```
+
+Las contraseñas nunca se devuelven mediante la API.
+
+Tampoco se devuelve:
+
+```text
+passwordHash
+contrasena_hash
+```
+
+---
+
+# Protección contra enumeración básica en login
+
+Cuando el correo no existe, el sistema igualmente realiza una comprobación contra un hash ficticio.
+
+Conceptualmente:
+
+```text
+correo existente
+↓
+verificar hash real
+
+
+correo inexistente
+↓
+verificar hash ficticio
+```
+
+Esto busca reducir diferencias evidentes de tiempo entre:
+
+```text
+usuario existente
+usuario inexistente
+```
+
+El mensaje de error de login permanece genérico:
+
+```text
+Correo o contraseña incorrectos.
+```
+
+---
+
+# Sesiones
+
+Las sesiones se almacenan actualmente en memoria del proceso Node.js.
+
+No se almacenan en:
+
+```text
+localStorage
+sessionStorage
+MySQL
+```
+
+como mecanismo de autenticación.
+
+---
+
+# Token de sesión
+
+Después del login se genera un token aleatorio de:
+
+```text
+32 bytes
+```
+
+representado en hexadecimal.
+
+El navegador recibe el token mediante una cookie llamada:
+
+```text
+rp_session
+```
+
+El servidor no utiliza directamente el token como clave del Map.
+
+Primero calcula:
+
+```text
+SHA-256(token)
+```
+
+y utiliza ese resultado para localizar la sesión.
+
+---
+
+# Cookie
+
+La cookie de autenticación utiliza:
+
+```text
+HttpOnly
+SameSite=Strict
+Path=/
+```
+
+En producción utiliza además:
+
+```text
+Secure
+```
+
+`HttpOnly` impide que JavaScript del navegador lea directamente la cookie mediante `document.cookie`.
+
+---
+
+# Duración de sesión
+
+La duración máxima actual es:
+
+```text
+8 horas
+```
+
+La expiración es absoluta.
+
+Reiniciar el proceso Node.js elimina las sesiones existentes porque actualmente se almacenan en memoria.
+
+Los datos persistentes de MySQL no se pierden por ese reinicio.
+
+---
+
+# Revocación de sesión
+
+Las sesiones de un Usuario se revocan cuando se producen cambios sensibles como:
+
+```text
+contraseña
+rol
+estado
+eliminación de cuenta
+```
+
+Cerrar sesión también elimina la sesión correspondiente.
+
+---
+
+# Límite de sesiones en memoria
+
+El almacenamiento actual limita el número total de sesiones activas manejadas por el proceso.
+
+El límite actual es:
+
+```text
+10000
+```
+
+Si se alcanza:
+
+```text
+503 Service Unavailable
+```
+
+puede ser devuelto durante un nuevo login.
+
+---
+
+# CSRF
+
+Las operaciones sensibles autenticadas utilizan protección CSRF.
+
+Durante el login se genera un token CSRF aleatorio de:
+
+```text
+32 bytes
+```
+
+El cliente lo envía mediante:
+
+```http
+X-CSRF-Token
+```
+
+El Middleware compara:
+
+```text
+token recibido
+vs
+token de la sesión
+```
+
+mediante:
+
+```text
+timingSafeEqual()
+```
+
+---
+
+# Operaciones protegidas por CSRF
+
+Entre ellas se encuentran operaciones como:
+
+```text
+crear
+actualizar
+eliminar
+logout
+reservar
+cancelar
+favoritos
+pedidos
+cambios de estado
+```
+
+dependiendo de la ruta correspondiente.
+
+Un token inexistente o incorrecto produce:
+
+```text
+403 Forbidden
+```
+
+---
+
+# Validación de origen
+
+Para métodos distintos de:
+
+```text
+GET
+HEAD
+OPTIONS
+```
+
+el servidor comprueba el origen de la solicitud.
+
+Cuando existe un `Origin`, debe coincidir con:
+
+```text
+APP_ORIGIN
+```
+
+si fue configurado, o con el origen actual del servidor.
+
+También se rechazan Requests cuyo:
+
+```text
+Sec-Fetch-Site
+```
+
+sea:
+
+```text
+cross-site
+```
+
+---
+
+# CORS
+
+Reactiva Pereira está diseñada actualmente para funcionar con:
+
+```text
+Frontend
++
+API
+```
+
+bajo el mismo origen.
+
+No existe un CORS abierto global que permita cualquier dominio.
+
+La arquitectura principal es:
+
+```text
+http://localhost:3000
+├── frontend
+└── /api
+```
+
+durante desarrollo local.
+
+---
+
+# Autorización por roles
+
+Los roles operativos actuales son:
+
+```text
+Administrador
+Comerciante
+Comprador
+```
+
+El Middleware puede exigir uno o varios roles mediante:
+
+```javascript
+roles(...)
+```
+
+Una sesión válida no implica automáticamente permiso para cualquier operación.
+
+---
+
+# Autorización por propiedad
+
+Además del rol se valida la propiedad del recurso.
+
+Ejemplo:
+
+```text
+Comerciante A
+↓
+intenta modificar Producto
+↓
+Producto pertenece a Negocio B
+↓
+Negocio B pertenece a Comerciante B
+↓
+403 Forbidden
+```
+
+Por tanto:
+
+```text
+rol correcto
+```
+
+no es suficiente.
+
+También debe cumplirse:
+
+```text
+propiedad correcta
+```
+
+cuando corresponda.
+
+---
+
+# IDs del cliente
+
+El backend no confía en IDs enviados por el cliente para otorgar identidad.
+
+Ejemplo de Reserva:
+
+```text
+usuarioId
+```
+
+no se toma libremente del body.
+
+Se obtiene desde:
+
+```text
+sesión autenticada
+```
+
+Lo mismo ocurre con Favoritos y Pedidos cuando corresponde.
+
+---
+
+# Campos permitidos
+
+La función de validación:
+
+```text
+V.objeto()
+```
+
+trabaja mediante una lista explícita de propiedades permitidas.
+
+Ejemplo conceptual:
+
+```text
+permitidos:
+nombre
+precio
+stock
+```
+
+Si el cliente envía:
+
+```json
+{
+  "nombre": "Producto",
+  "precio": 10000,
+  "stock": 5,
+  "administrador": true
+}
+```
+
+la propiedad:
+
+```text
+administrador
+```
+
+provoca:
+
+```text
+400 Bad Request
+```
+
+Esto ayuda a prevenir asignaciones masivas de campos que el cliente no debería controlar.
+
+---
+
+# Validación de tipos
+
+El backend valida, según el caso:
+
+```text
+texto
+correo
+contraseña
+enteros
+IDs
+opciones
+precios
+stock
+fechas
+horarios
+imágenes
+estados
+```
+
+La validación frontend mejora la experiencia, pero no sustituye la validación servidor.
+
+---
+
+# Validación de correo
+
+El correo:
+
+```text
+se recorta
+se convierte a minúsculas
+se valida
+```
+
+y MySQL además mantiene:
+
+```text
+UNIQUE(correo)
+```
+
+---
+
+# Validación de IDs
+
+Los parámetros de URL deben ser enteros positivos.
+
+Ejemplos rechazados:
+
+```text
+0
+-1
+abc
+1.5
+```
+
+Un identificador inválido produce:
+
+```text
+400 Bad Request
+```
+
+---
+
+# Imágenes
+
+Las imágenes de Producto se manejan actualmente mediante Data URL.
+
+Formatos admitidos:
+
+```text
+JPEG
+PNG
+WEBP
+```
+
+El backend comprueba:
+
+```text
+tipo declarado
+formato base64
+longitud máxima
+firma básica del archivo
+```
+
+El límite actual de representación es aproximadamente:
+
+```text
+1.800.000 caracteres
+```
+
+Esta validación no equivale a un antivirus ni a análisis avanzado de archivos.
+
+---
+
+# JSON
+
+Express acepta cuerpos JSON con límite de:
+
+```text
+2 MiB
+```
+
+mediante:
+
+```javascript
+express.json({
+  limit: "2mb",
+  inflate: false
+})
+```
+
+---
+
+# Compresión de Request
+
+La API rechaza cuerpos HTTP comprimidos cuando:
+
+```text
+Content-Encoding
+```
+
+es diferente de:
+
+```text
+identity
+```
+
+La respuesta utilizada es:
+
+```text
+415 Unsupported Media Type
+```
+
+---
+
+# Query parser
+
+Express utiliza:
+
+```text
+query parser = simple
+```
+
+Esto reduce complejidad innecesaria al interpretar parámetros de consulta.
+
+---
+
+# X-Powered-By
+
+Express tiene deshabilitado:
+
+```text
+X-Powered-By
+```
+
+para no anunciar innecesariamente la tecnología del servidor mediante ese header.
+
+---
+
+# Headers de seguridad
+
+El Middleware configura:
+
+```text
+X-Content-Type-Options: nosniff
+
+Referrer-Policy: same-origin
+
+X-Frame-Options: DENY
+
+Permissions-Policy:
+camera=(),
+microphone=(),
+geolocation=()
+```
+
+---
+
+# Content Security Policy
+
+La aplicación envía una:
+
+```text
+Content-Security-Policy
+```
+
+que limita las fuentes autorizadas de:
+
+```text
+scripts
+styles
+fonts
+imágenes
+conexiones
+objetos
+frames
+base URI
+formularios
+```
+
+No se habilita:
+
+```text
+unsafe-eval
+```
+
+ni:
+
+```text
+unsafe-inline
+```
+
+para scripts.
+
+---
+
+# Protección contra frames
+
+Se utilizan:
+
+```text
+X-Frame-Options: DENY
+```
+
+y:
+
+```text
+frame-ancestors 'none'
+```
+
+dentro de CSP.
+
+Esto busca evitar que Reactiva Pereira sea incrustada arbitrariamente dentro de un frame externo.
+
+---
+
+# HSTS
+
+Cuando:
+
+```text
+NODE_ENV=production
+```
+
+el servidor agrega:
+
+```text
+Strict-Transport-Security
+```
+
+con una duración de:
+
+```text
+31536000 segundos
+```
+
+HSTS solo tiene sentido cuando la aplicación se despliega realmente sobre HTTPS.
+
+---
+
+# Rate limiting
+
+La API implementa limitación de solicitudes en memoria.
+
+## Límite general
+
+Actualmente:
+
+```text
+300 solicitudes
+por IP
+por minuto
+```
+
+sobre `/api`.
+
+---
+
+## Autenticación
+
+Registro y login comparten además un límite aproximado de:
+
+```text
+30 solicitudes
+por IP
+cada 15 minutos
+```
+
+---
+
+## Login por correo
+
+El login incorpora otro límite:
+
+```text
+12 intentos
+por correo normalizado
+cada 15 minutos
+```
+
+---
+
+## Visitas de Producto
+
+El endpoint:
+
+```text
+POST /api/productos/:id/visita
+```
+
+tiene un límite específico de:
+
+```text
+40 solicitudes
+por IP
+por minuto
+```
+
+---
+
+# Limitaciones del rate limiting
+
+Los contadores viven actualmente dentro del proceso Node.js.
+
+Por tanto:
+
+```text
+reiniciar Node
+↓
+reinicia contadores
+```
+
+Además, dos instancias independientes del backend no compartirían automáticamente sus límites.
+
+Para un despliegue distribuido sería necesaria una solución compartida.
+
+---
+
+# Timeouts
+
+Cuando el backend se ejecuta como servidor principal configura:
+
+```text
+requestTimeout = 30000 ms
+```
+
+y:
+
+```text
+headersTimeout = 15000 ms
+```
+
+Esto evita mantener determinadas conexiones abiertas indefinidamente.
+
+---
+
+# Manejo de errores
+
+Los errores esperados utilizan:
+
+```text
+AppError
+```
+
+con:
+
+```text
+status
+mensaje
+```
+
+El Middleware final responde en formato:
+
+```json
+{
+  "ok": false,
+  "mensaje": "Descripción segura."
+}
+```
+
+---
+
+# Error interno
+
+Para errores inesperados se utiliza:
+
+```text
+500 Internal Server Error
+```
+
+sin enviar al navegador:
+
+```text
+stack trace
+SQL
+credenciales
+configuración interna
+detalles del driver
+```
+
+El servidor registra únicamente información limitada para diagnóstico.
+
+---
+
+# Seguridad SQL
+
+La persistencia utiliza:
+
+```text
+mysql2/promise
+```
+
+Los valores variables se envían mediante parámetros.
+
+Ejemplo:
+
+```javascript
+connection.execute(
+  "SELECT * FROM usuario WHERE id_usuario = ?",
+  [id]
+);
+```
+
+No deben concatenarse valores recibidos del usuario directamente dentro del SQL.
+
+---
+
+# Identificadores SQL
+
+Los nombres de:
+
+```text
+tabla
+columna
+```
+
+se obtienen desde configuraciones internas cerradas del Repository.
+
+No proceden libremente del Request HTTP.
+
+---
+
+# multipleStatements
+
+El pool utiliza:
+
+```text
+multipleStatements: false
+```
+
+por lo que una llamada normal del driver no permite ejecutar arbitrariamente múltiples sentencias separadas.
+
+Esto no sustituye la parametrización.
+
+---
+
+# Integridad de base de datos
+
+MySQL/MariaDB utiliza:
+
+```text
+PRIMARY KEY
+FOREIGN KEY
+UNIQUE
+CHECK
+NOT NULL
+RESTRICT
+CASCADE
+```
+
+según la entidad.
+
+La integridad existe en dos niveles:
+
+```text
+Service
++
+Base de datos
+```
+
+---
+
+# Transacciones
+
+Operaciones complejas utilizan:
+
+```text
+repos.transaccion()
+```
+
+El MySQL Repository ejecuta:
+
+```text
+BEGIN
+↓
+operaciones
+↓
+COMMIT
+```
+
+y, ante error:
+
+```text
+ROLLBACK
+```
+
+---
+
+# Bloqueo global del Repository
+
+Existe una tabla técnica:
+
+```text
+repository_lock
+```
+
+que permite ejecutar:
+
+```sql
+SELECT id
+FROM repository_lock
+WHERE id = 1
+FOR UPDATE;
+```
+
+durante determinadas transacciones.
+
+Esto serializa escrituras realizadas mediante el Repository.
+
+---
+
+# Bloqueo de Productos
+
+La creación y cancelación de Pedidos puede bloquear Productos mediante:
+
+```text
+SELECT ... FOR UPDATE
+```
+
+para proteger las modificaciones de stock frente a operaciones concurrentes.
+
+---
+
+# Validación de stock
+
+El cliente nunca decide el stock final.
+
+Durante un Pedido:
+
+```text
+frontend envía cantidad
+↓
+backend consulta Producto
+↓
+backend comprueba stock real
+↓
+backend descuenta dentro de transacción
+```
+
+---
+
+# Validación de precios
+
+El cliente tampoco decide:
+
+```text
+precioUnitario
+subtotal
+total
+```
+
+El precio se obtiene desde Producto.
+
+Después se almacena como:
+
+```text
+detalle_pedido.precio_unitario
+```
+
+para conservar historial.
+
+---
+
+# Pedidos multinegocio
+
+Un POST puede generar varios Pedidos agrupados por Negocio.
+
+Todo el proceso se ejecuta dentro de una transacción.
+
+Si falla uno de los Productos:
+
+```text
+ROLLBACK
+```
+
+evita dejar:
+
+```text
+Pedidos parciales
+Detalles parciales
+stock parcialmente descontado
+```
+
+---
+
+# Cancelación de Pedido
+
+Al cancelar un Pedido permitido:
+
+```text
+cantidad histórica
+↓
+se devuelve al stock
+```
+
+La operación ocurre dentro de la misma transacción que modifica el estado.
+
+Una cancelación repetida no debe restaurar stock nuevamente.
+
+---
+
+# Reservas concurrentes
+
+La disponibilidad mostrada mediante GET es informativa.
+
+Durante:
+
+```text
+POST /api/reservas
+```
+
+el backend vuelve a comprobar:
+
+```text
+Servicio
+horario
+fecha
+capacidad
+Reservas Confirmadas
+```
+
+dentro de una transacción.
+
+Esto reduce la posibilidad de sobrepasar el cupo por Requests simultáneos.
+
+---
+
+# Seguridad de historial
+
+Cuando un recurso participa en información histórica, la aplicación evita determinadas eliminaciones físicas.
+
+Ejemplos:
+
+```text
+Usuario con Pedidos
+Negocio con Pedidos
+Producto presente en Detalle_Pedido
+Servicio con Reservas
+```
+
+En estos casos se favorece:
+
+```text
+estado = Inactivo
+```
+
+para conservar el historial.
+
+---
+
+# Persistencia de sesiones vs datos
+
+Es importante distinguir:
+
+```text
+datos del negocio
+```
+
+de:
+
+```text
+sesiones
+```
+
+Con:
+
+```text
+DATA_SOURCE=mysql
+```
+
+persisten:
+
+```text
+Usuarios
+Negocios
+Productos
+Servicios
+Horarios
+Reservas
+Favoritos
+Pedidos
+Detalles
+```
+
+pero actualmente no persisten entre reinicios:
+
+```text
+sesiones
+rate limits
+```
+
+porque viven en memoria del proceso Node.js.
+
+---
+
+# Dependencias
+
+Los paquetes deben revisarse mediante:
 
 ```bash
 npm audit --omit=dev --prefix backend
+```
+
+Para revisar también dependencias de desarrollo:
+
+```bash
 npm audit --prefix backend
+```
+
+Y para el paquete de pruebas:
+
+```bash
 npm audit --prefix tests
 ```
 
-En la validación de esta fundación se actualizaron `body-parser` 2.3.0 → 2.4.0 y `qs` 6.16.0 → 6.17.1 dentro de los rangos existentes, sin `--force` ni overrides. El audit de producción quedó sin avisos; tests también sin avisos. Se conservan el rechazo de compresión y el parser simple aunque esas dependencias ya estén corregidas.
+El resultado de `npm audit` depende del estado actual del registro de vulnerabilidades.
 
-En una validación anterior, el audit completo de backend reportó dos avisos moderados de desarrollo, en `minimatch` y su dependiente `nodemon`: [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249). La corrección que propone npm requiere forzar un cambio de la dependencia nodemon; no se aplicó automáticamente. nodemon solo participa en `npm run dev`, no en `npm start`. Ese audit completo retornó fallo. PR6 vuelve a ejecutar el audit de producción solicitado; no afirma un resultado nuevo del audit de desarrollo. Estos resultados son una observación de la ejecución, no una garantía permanente del registro.
+Por tanto, no debe documentarse permanentemente una afirmación como:
 
-## Ejecución reproducible
+```text
+0 vulnerabilidades para siempre
+```
 
-Node 24, indicado en `.nvmrc` y `engines`:
+Debe reportarse el resultado de cada ejecución concreta.
+
+---
+
+# Node.js
+
+La versión objetivo del proyecto es:
+
+```text
+Node.js 24
+```
+
+Está declarada mediante:
+
+```text
+.nvmrc
+backend/package.json
+.github/workflows/ci.yml
+```
+
+Las pruebas finales deben ejecutarse preferentemente con esa versión.
+
+---
+
+# Instalación reproducible
+
+Dependencias de UI:
 
 ```bash
 npm ci
+```
+
+Dependencias backend:
+
+```bash
 npm ci --prefix backend
+```
+
+Dependencias de pruebas:
+
+```bash
 npm ci --prefix tests
+```
+
+Para Playwright:
+
+```bash
 npx --prefix tests playwright install chromium
+```
+
+En CI se utiliza:
+
+```bash
+npx --prefix tests playwright install --with-deps chromium
+```
+
+---
+
+# Suite general
+
+Comando:
+
+```bash
 npm test --prefix tests
 ```
 
-Con navegador existente: `CHROMIUM_PATH=/ruta/al/chromium npm test --prefix tests`.
+Esta suite agrupa pruebas de:
+
+```text
+API
+Repository simulado
+dominio
+frontend
+estructura
+navegador
+```
+
+según los archivos configurados actualmente en:
+
+```text
+tests/package.json
+```
+
+La suite principal utiliza principalmente Memory Repository y no requiere una base MySQL real.
+
+---
+
+# Pruebas del backend
+
+Comando:
 
 ```bash
 npm test --prefix backend
-npm run test:api --prefix tests
-npm run test:browser --prefix tests
-node --test tests/structure.test.cjs
-node --test tests/mysql.test.cjs
 ```
 
-La suite normal usa repositorios memory aislados, puertos efímeros y fixtures ficticios. No lee credenciales de una base ni necesita un servidor ya iniciado. Las fuentes e iconos se sirven localmente. Chromium conserva la interceptación de fuentes externas como protección contra dependencias de red accidentales. Se requiere un entorno que permita puertos locales y lanzar el navegador.
+Ejecuta un subconjunto orientado principalmente a:
 
-Para MySQL, crear una base dedicada cuyo nombre termine en `_test`, completar las variables DB y `DATA_SOURCE=mysql` en `backend/.env` o en el entorno:
+```text
+API
+Services
+Repository
+reglas de dominio
+```
+
+El conjunto exacto de archivos se define en:
+
+```text
+backend/package.json
+```
+
+---
+
+# Pruebas API
+
+Comando:
+
+```bash
+npm run test:api --prefix tests
+```
+
+Comprueban Requests reales contra aplicaciones Express levantadas en puertos locales de prueba.
+
+Entre otras cosas pueden validar:
+
+```text
+status codes
+JSON
+sesiones
+roles
+CSRF
+ownership
+validaciones
+Pedidos
+Reservas
+```
+
+---
+
+# Pruebas de navegador
+
+Comando:
+
+```bash
+npm run test:browser --prefix tests
+```
+
+Utilizan:
+
+```text
+Playwright
+Chromium
+```
+
+para probar flujos reales del frontend.
+
+Pueden comprobar:
+
+```text
+navegación
+formularios
+roles
+carrito
+Reservas
+Favoritos
+Pedidos
+manejo de errores
+accesibilidad
+```
+
+---
+
+# Navegador existente
+
+También puede configurarse:
+
+```bash
+CHROMIUM_PATH=/ruta/al/chromium npm test --prefix tests
+```
+
+cuando las pruebas admitan un navegador instalado en el sistema.
+
+---
+
+# Responsive
+
+Comando:
+
+```bash
+npm run test:responsive --prefix tests
+```
+
+Comprueba la interfaz en diferentes dimensiones de viewport.
+
+Su objetivo es detectar problemas como:
+
+```text
+overflow
+elementos superpuestos
+navegación móvil incorrecta
+layout roto
+```
+
+Estas pruebas no sustituyen una revisión manual en dispositivos físicos.
+
+---
+
+# Accesibilidad
+
+Las dependencias de pruebas incluyen:
+
+```text
+@axe-core/playwright
+```
+
+para realizar comprobaciones automáticas de accesibilidad en determinadas vistas.
+
+Un resultado limpio de axe no significa:
+
+```text
+certificación WCAG
+```
+
+La accesibilidad requiere también revisión humana.
+
+---
+
+# Pruebas de estructura
+
+Existen pruebas que comprueban aspectos como:
+
+```text
+rutas locales válidas
+assets existentes
+labels relacionados
+compatibilidad con CSP
+CSS válido
+preferencias de movimiento
+```
+
+Estas pruebas ayudan a detectar errores que no requieren abrir un navegador completo.
+
+---
+
+# Pruebas MySQL reales
+
+Comando:
 
 ```bash
 npm run test:mysql --prefix tests
 ```
 
-Esta suite aplica/verifica migraciones y **borra las entidades de esa base antes de cada prueba**. Rechaza otro modo o un nombre sin ese sufijo. No ejecutarla contra datos reales ni simultáneamente con otras suites que usen la misma base. No omite pruebas SQL si falta el entorno: el comando separado falla con instrucciones claras.
+Estas pruebas utilizan un servidor SQL real.
 
-## Cobertura actual
+Deben ejecutarse únicamente con:
 
-| Grupo                           | Casos | Comportamiento comprobado                                                                                                                                                                      |
-| ------------------------------- | ----: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| API existente con memory        |    22 | Sesiones, hashing, CSRF/origen/CSP, roles, ownership, validación, integridad, rate limits y errores                                                                                            |
-| Adaptador MySQL simulado/config |     7 | Contrato, parámetros/DTO, bloqueo, BEGIN/COMMIT/ROLLBACK/release y errores seguros                                                                                                             |
-| Normalización memory/API        |     5 | Catálogos/FK, roles con IDs distintos, categorías activas, atributos y contador conservados                                                                                                    |
-| Chromium anterior               |    49 | Flujos de tres roles, catálogo/carrito, red, XSS, identidad/storytelling, teclado, responsive y axe                                                                                            |
-| Estructura                      |     3 | Recursos/enlaces locales, labels, CSP y CSS modular                                                                                                                                            |
-| Dominio PR6 memory              |    12 | Servicio/categoría/propiedad, horarios válidos/no superpuestos, slots/UTC, fechas, cupos concurrentes 1/3, cambios/cancelaciones/historial, cascadas y favoritos propios únicos                |
-| API PR6                         |     4 | Catálogo/horarios/disponibilidad, CRUD/roles/CSRF, carreras HTTP de reserva, gestión aislada y favoritos                                                                                       |
-| Chromium PR6                    |     7 | Reserva/cancelación reales, CRUD/horarios/recepción, favoritos API, protección de páginas, errores de red/409, responsive/axe y gestión Admin                                                  |
-| Dominio PR7 memory y adaptador  |    11 | Pedidos multinegocio, histórico, cantidades, límites de dinero/stock, rollback/aislamiento, locks ordenados, estados, permisos, historial y cancelaciones concurrentes                         |
-| API PR7                         |     3 | Sesión/CSRF/campos protegidos, ownership, estados, concurrencia HTTP, 409 seguro y cancelación idempotente                                                                                     |
-| Chromium PR7                    |     7 | Confirmar carrito real, precios históricos, fallos red/409 conservan selección, doble envío, otras pestañas/instancia, gestión por rol, responsive y axe                                       |
-| MySQL real (comando separado)   |    28 | 18 anteriores + 10 PR7: 001→002→003→004 con datos/checksums, PK/FK/UNIQUE/CHECK/índices, dos pools HTTP/stock 1 y 3, rollback multinegocio, histórico, restock concurrente, permisos y estados |
+```text
+DATA_SOURCE=mysql
+```
 
-La suite independiente de MySQL contiene 130 casos; el comando backend contiene 59 y el navegador 63 (subconjuntos de la suite general, no deben sumarse como pruebas distintas). Se conservan todas las aserciones anteriores. Los fixtures SQL se limpian en orden hijo→padre, incluyendo las nuevas asociaciones, para permitir repetir la suite sobre la misma base `_test`.
+y una base cuyo nombre termine en:
 
-`UI_SCREENSHOTS=/ruta/absoluta npm test --prefix tests` guarda 84 capturas: 72 anteriores y 12 PR7 (carrito, Mis pedidos y gestión) a 360/768/1024/1440. Son 20 páginas únicas y una segunda revisión del carrito. Axe A/AA revisa 42 combinaciones en total (36 anteriores + 6 PR7 a 360/1440), con datos reales de prueba; PR6 incluye un slot ocupado, reservas y favoritos. La prueba nueva comprueba también que la marca y el menú no se superpongan en móvil. Estas comprobaciones automáticas no equivalen a certificación WCAG ni pruebas en dispositivos físicos. Se revisaron visualmente las capturas nuevas y se corrigió la cabecera móvil sin modificar CSS global, fotografías ni narrativa.
+```text
+_test
+```
 
-CI mantiene Node 24, generación/comparación de assets, sintaxis, audit, memory/navegador y MySQL 8.4. Los scripts de tests incluyen PR6 y PR7; no se retiraron jobs ni comprobaciones. El job SQL utiliza una base exclusiva y ejecuta secuencialmente los archivos de integración. Verificar el resultado de Actions del commit revisado antes de fusionar.
+Ejemplo:
 
-## Validación de PR6
+```text
+reactiva_pereira_test
+```
 
-PR5 (#5) se confirmó fusionado antes de modificar archivos. Base `42f17d4be19bd2362514e47718e9d06c01682359`; referencias y main actualizados, migración 002 presente. Baseline local: **86/86** memory/general y **11/11** MySQL, sin fallos ni omisiones. Rama exclusiva `feat/services-reservations-favorites`.
+---
 
-Se verificaron ciclos rojo→verde para ausencia de módulos, interfaces nuevas y una frontera temporal: el instante debe seguir siendo futuro después de consultar disponibilidad y antes de insertar. La creación comprueba cupos bajo el bloqueo, nunca mediante un SELECT liberado seguido de INSERT. Capacidad 1 con dos solicitudes simultáneas: exactamente una Confirmada y un 409; capacidad 3 con cuatro: tres Confirmadas y un 409. La prueba SQL alterna dos pools independientes; se cuentan las filas persistidas. Las ventanas cambiadas conservan ocupación de las reservas anteriores mediante intersección/pico de intervalos, sin crear Disponibilidad.
+# Regla crítica de seguridad para tests MySQL
 
-Validación local con Node 24.22.2, Chrome del sistema y MySQL 8.0.46 aislado: suite general **109/109**, backend **45/45**, MySQL **18/18**, navegador **56** incluido en la suite general, sin omisiones. Sintaxis **76/76** archivos JS/CJS; assets regenerados reproduciblemente; `git diff --check` correcto; audit `--omit=dev --prefix backend`: **0 vulnerabilidades**. Arranque CLI y cierre SIGTERM correctos en memory y mysql, con ocho rutas HTTP 200 y favorito protegido 401 por modo. No hay dependencias nuevas del proyecto.
+Nunca ejecutar la suite destructiva contra:
 
-Las ejecuciones de agenda/API/MySQL con `TZ=Asia/Tokyo` y de la suite general con `TZ=Pacific/Honolulu` conservan instantes UTC y horarios de America/Bogota. 001 y 002 permanecen intactas; solo 003 crea las cuatro tablas. La prueba de actualización compara todas las filas y columnas de PR5 y valida las tres versiones/checksums. Drift de 003 o intento incompleto bloquea migración/arranque según corresponda.
+```text
+reactiva_pereira
+```
 
-Las protecciones existentes de sesiones HttpOnly/SameSite, scrypt, origen/CSRF, CSP, límites, ownership, bloqueo de escrituras y SQL parametrizado se conservan. Solo Comprador crea reserva/favorito y usuarioId se toma de sesión; Comerciante no consulta/cancela reservas ni modifica servicios/horarios ajenos. El frontend protege navegación y el servidor aplica permisos. Favoritos de productos desactivados conservan asociación con producto null; el borrado físico de dependientes usa CASCADE documentado. Reserva y servicio con historial se protegen mediante RESTRICT y conflictos de dominio.
+si contiene información que debe conservarse.
 
-Deuda: sesiones/rate limits siguen por proceso; el bloqueo global serializa escrituras y los listados de agenda todavía no tienen paginación/consultas SQL específicas. No se protege a escritores SQL externos que ignoren el bloqueo. En el cierre de PR6, Memory no ofrecía rollback de callbacks arbitrarios; PR7 añade copias privadas y commit/rollback. Sigue sin persistencia entre reinicios. Ventanas de horario son intradía, sin horario nocturno que cruce medianoche. Safari/Firefox, dispositivos físicos y revisión humana quedan pendientes. Pedido y Detalle_Pedido, pendientes al cerrar PR6, quedan implementados en PR7; no hay pagos, facturas, inventario, checkout ni carrito persistente.
+Las pruebas pueden:
 
-## Validación de PR5
+```text
+INSERT
+UPDATE
+DELETE
+DROP
+crear fixtures
+limpiar tablas
+```
 
-Base actualizada: `bf8e12f21a10b2818e491e29d0e41ee891549d74`, después de confirmar el merge del PR visual #4 y actualizar referencias/main. Baseline en Node 24.22.2: **78/78** independientes de MySQL y **7/7** MySQL real, sin omisiones. Se conservan las aserciones anteriores.
+según el escenario que están comprobando.
 
-Las regresiones nuevas se ejecutaron primero en rojo: faltaban FK/catálogo/visitas y los campos/carga de categorías en frontend. Por bloques: modelo y backend **82/82** con las cuatro pruebas iniciales de normalización y **7/7** SQL existentes; se añadió después el caso de roles con IDs diferentes. La suite completa con frontend y cinco casos de normalización queda en **86/86**, sin omisiones. La suite MySQL normalizada queda en **11/11** (7 existentes + 4 nuevos), contra MySQL 8.0.46 en una instancia/base dedicada nueva, sin datos reales.
+Por eso requieren una base separada.
 
-Validaciones finales adicionales: backend/adaptador simulado **29/29**; **49** casos de navegador dentro de la suite completa, **48** capturas responsive y axe A/AA sin infracciones detectadas en 12 vistas × 360/1440. Sintaxis **58/58** archivos JS/CJS, assets regenerados sin diferencias, `git diff --check` correcto. El programa principal arranca, sirve salud/frontend/categorías y cierra con SIGTERM tanto en `memory` como en `mysql`.
+---
 
-Los cuatro casos SQL nuevos reconstruyen exclusivamente la base `_test` desde 001, crean tres usuarios con hashes y estados distintos, un negocio y dos productos históricos con 37/0 visitas. Comparan cada atributo preservado, FK/categorías normalizadas, ausencia de información inventada, UNIQUE/FK/CHECK, InnoDB/utf8mb4, catálogos activos y checksum de ambas versiones. Una categoría histórica `Todas` aborta antes de retirar datos y deja el intento incompleto visible. Se conserva la verificación existente de rollback, concurrencia, cookies/CSRF y persistencia al recrear aplicación/pools.
+# Variables para pruebas MySQL
 
-`001` conserva su SHA-256. La normalización no incorpora dependencias al proyecto ni cambia CSS, fuentes, imágenes, SVG o storytelling. El frontend conserva los controles de permisos y el backend rechaza IDs de rol y contadores enviados por HTTP. El catálogo público devuelve solo Activas y no ofrece escrituras. Audit de producción en esta ejecución: **0 vulnerabilidades**. No se afirma un resultado actualizado del audit completo de desarrollo: las observaciones de la sección de dependencias corresponden a la fase anterior.
+Ejemplo:
 
-## Validación de la dirección visual
+```bash
+export DATA_SOURCE=mysql
+export DB_HOST=127.0.0.1
+export DB_PORT=3306
+export DB_NAME=reactiva_pereira_test
+export DB_USER=root
+export DB_PASSWORD=""
+```
 
-Baseline de `main` (`0e0f1c6`): 72/72 casos, 48 capturas y axe sin infracciones detectadas. La nueva apertura tuvo pruebas fallando por ausencia del elemento antes de incorporarla; el salto vertical del Coverflow se reprodujo con una regresión que observó 209 px de scroll al iniciar. La primera revisión completa detectó contraste en números narrativos y etiquetas atenuadas del carrusel; se corrigieron colores y opacidad sin omitir reglas de axe.
+Después:
 
-La revisión visual usa los mismos fixtures ficticios (no son datos de producción) en las doce vistas y cuatro anchos, con reduced motion para comparar estados estables. Para las capturas completas se espera a fuentes e imágenes diferidas, se vuelve al inicio y se fija el límite del documento; esta preparación no se usa para medir el arranque. El PR adjunta comparativas antes/después, medidas locales de LCP/CLS y tamaño de recursos; estas mediciones de laboratorio no equivalen a métricas de campo. No se modifican backend, CSP, autenticación, roles ni MySQL en esta fase.
+```bash
+npm run test:mysql --prefix tests
+```
 
-### Resultado local de la fase visual
+En un entorno no local deben usarse credenciales adecuadas.
 
-Node 24.22.2 y Chrome del sistema: 78/78 pruebas completas; backend/adaptador simulado 29/29; MySQL 8.0.46 en base aislada nueva 7/7. Axe A/AA no detectó infracciones en las 24 combinaciones de vista/ancho verificadas; responsive generó 48 capturas sin overflow. Sintaxis válida en 53 archivos, regeneración reproducible de 10 assets y audit de producción con 0 vulnerabilidades detectadas.
+---
 
-| Landing / mediana de 3 ejecuciones |       Antes |     Después |
-| ---------------------------------- | ----------: | ----------: |
-| LCP, 360 px                        |     1236 ms |      476 ms |
-| LCP, 1440 px                       |      556 ms |      484 ms |
-| CLS, 360 px                        |           0 |           0 |
-| CLS, 1440 px                       |    0.000334 |    0.000334 |
-| Transferencia de recursos, 360 px  | 1 348 906 B | 1 085 324 B |
-| Transferencia de recursos, 1440 px | 1 467 546 B | 1 203 964 B |
+# Qué deben comprobar las pruebas MySQL
 
-Medición de laboratorio en Chrome local: caché fría, CPU 4×, red 10 Mbit/s, latencia 40 ms y ventana de observación de 5,5 s; movimiento permitido y apertura incluida. La transferencia cuenta recursos observados en esa ventana, no el peso total del sitio. El arranque mantiene 0 triggers en móvil y 4 en escritorio. Datos completos y tamaños del bundle en [visual](visual/); [galería offline](visual/index.html), con 48 pares antes/después. Las PNG originales se entregan como evidencia externa; el repositorio conserva WebP de las mismas capturas para reducir su tamaño.
+Entre otros comportamientos:
 
-Deuda de validación: Safari/Firefox, dispositivos físicos y métricas de campo (incluido INP) siguen pendientes. Las imágenes de producto dependen del catálogo del comerciante; los fixtures de comparación usan explícitamente el estado sin fotografía. La revisión humana de dirección de arte queda pendiente en el PR. No se implementan checkout, pagos ni infraestructura fuera del alcance visual.
+```text
+conexión real
+migraciones
+Repository
+PK
+FK
+UNIQUE
+CHECK
+persistencia
+transacciones
+rollback
+concurrencia
+stock
+Reservas
+Pedidos
+errores seguros
+```
 
-## Método XP
+---
 
-Baseline → prueba de comportamiento/regresión → cambio pequeño → prueba relacionada → refactor con comportamiento probado → suite completa. La caracterización del Coverflow detectó que limpiar filtros no restauraba `aria-pressed` ni la clase activa por usar un selector anterior; se corrigió la referencia conservando el componente. Las pruebas del adaptador se escribieron antes de implementarlo y la integración real descubrió una incompatibilidad de collation del handshake, corregida y verificada contra el servidor.
+# Migraciones en pruebas
 
-Cambios posteriores deben conservar estos controles y contratos. No generar documentos por cada paso: el historial y el PR registran los cambios; este documento mantiene cómo verificar el sistema.
+La suite SQL debe validar las migraciones actuales:
 
-## Límites y operación
+```text
+001_foundation.sql
+002_reference_data.sql
+003_services_reservations_favorites.sql
+004_orders_and_details.sql
+```
 
-- Con memory, reiniciar borra entidades. Con MySQL persisten entidades, pero sesiones y rate limits continúan por proceso. Reiniciar invalida sesiones y separa carritos por instancia. No hay almacén compartido ni revocación distribuida para múltiples instancias.
-- La fila de bloqueo MySQL serializa escrituras para conservar reglas existentes; limita throughput. No coordina escritores que ignoren el adaptador.
-- Carrito manipulable por el usuario y temporal: no reserva stock ni autoriza cobros. POST de pedidos revalida precio/stock en servidor y realiza el descuento dentro de la transacción. No hay pagos.
-- Imágenes verificadas por tipo/firma/tamaño, sin análisis externo ni uploads multipart. Se conserva Data URL en el DTO y MEDIUMTEXT en MySQL para no romper el flujo actual; revisar almacenamiento de objetos al escalar.
-- DDL no tiene rollback global ni down destructivo automático. Preparar respaldos y restauración de operación antes de usar datos únicos. No hay importación automática de memory/LocalStorage ni recuperación de desastre certificada.
-- Exposición externa: HTTPS, `NODE_ENV=production`, `APP_ORIGIN` exacto, secretos fuera de Git, usuario DB con privilegios mínimos y revisión de proxy/IP. El pool actual está destinado a DB local o red privada de confianza; TLS hacia una DB remota requiere configuración adicional antes del despliegue.
-- Las pruebas no constituyen pentest, certificación WCAG, validación Safari/Firefox, prueba de alta disponibilidad ni certificación de producción. No se añaden pagos; pedidos se implementa exclusivamente mediante PR7.
+No debe depender de migraciones eliminadas o de versiones antiguas del esquema.
 
-## Validación de PR7
+---
 
-PR6 (#6) se confirmó fusionado antes de modificar archivos. Ambas referencias remotas (main y feat/orders-and-domain-completion) tenían la base `e9018c572039c71283bed4d7eeab34bbc27aaaf6`. Baseline sin modificaciones: **109/109** pruebas generales y **18/18** MySQL real, sin fallos ni omisiones. No se reimplementan PR5/PR6.
+# Integración continua
 
-Node **24.22.2**, Chrome del sistema y MySQL **8.0.46** en instancia/base nueva dedicada `_test`, sin datos del usuario:
+Workflow:
 
-| Comprobación                                  | Resultado local                                                                                                              |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Suite completa independiente de MySQL         | **130/130**, sin fallos ni omisiones                                                                                         |
-| Backend/adaptador (subconjunto)               | **59/59**                                                                                                                    |
-| Chromium (incluido en la suite general)       | **63/63**                                                                                                                    |
-| MySQL real, con TZ=Asia/Tokyo                 | **28/28**, sin omisiones                                                                                                     |
-| Carreras HTTP, dos pools                      | Stock 1: un éxito/un 409; stock 3: tres éxitos/un 409; stock final 0 y filas exactas                                         |
-| Rollback multinegocio                         | POST con segundo producto sin stock y fallo provocado después del primer INSERT/descuento, sin filas ni descuentos parciales |
-| Cancelación simultánea / rollback de restock  | Stock 5 → compra 2 → 3 → cancelar dos veces → 5; fallo durante restitución revierte estado y stock                           |
-| Responsive                                    | **84 capturas** a 360/768/1024/1440 (12 nuevas PR7); revisión visual de las nuevas vistas móvil/escritorio                   |
-| Axe A/AA                                      | **42 combinaciones**, sin infracciones detectadas                                                                            |
-| Sintaxis JS/CJS                               | **85/85** archivos                                                                                                           |
-| Assets / diff                                 | Regeneración reproducible; `git diff --check` correcto                                                                       |
-| Audit producción backend                      | **0 vulnerabilidades** (`npm audit --omit=dev --prefix backend`)                                                             |
-| Arranque CLI / cierre SIGTERM                 | memory y mysql: 11 rutas HTTP 200 y 4 rutas protegidas 401 por modo                                                          |
-| Dependencias, migraciones y assets históricos | Ninguna dependencia nueva; 001/002/003, fotografías, vendor y fuentes intactos                                               |
+```text
+.github/workflows/ci.yml
+```
 
-Los subconjuntos backend/navegador no se suman al total general. Los scripts de CI conservan memory, Chromium, MySQL 8.4, sintaxis, assets, audit y diff; incorporan los cuatro archivos nuevos de tests sin retirar los anteriores. Los fixtures SQL se limpian hijo→padre y las expectativas de versiones/tablas reflejan 004. La validación local 8.0.46 no sustituye la ejecución remota 8.4 del commit revisado.
+Actualmente existen dos grupos principales:
 
-Las regresiones se comprobaron en rojo antes de sus cambios: ausencia del módulo Pedido, ausencia del formulario de confirmación, escritura directa de memory perdida durante una transacción y cambio de instancia durante la compra. Pasan tras implementar cada comportamiento. Las suites completas intermedias fueron 120/120 para backend integrado y 126/126 al incorporar interfaz; el resultado final incluye aislamiento, límites y protección ante cambio de instancia. Se corrigió contraste del label del carrito sin omitir reglas de axe y se verificó menú móvil/teclado.
+```text
+memory
+mysql
+```
 
-Se preservan scrypt, cookies HttpOnly/SameSite, CSRF/origen, CSP sin excepciones, rate limits, roles/propiedad y SQL parametrizado. Campos controlados por servidor se rechazan; precios históricos y totales usan registros persistidos. Las cuatro FK de 004 son RESTRICT y los services ofrecen errores de historial antes de depender del driver. Solo hay once entidades de negocio; no hay pagos, envíos, ORM ni carrito persistente.
+---
 
-Límites vigentes: sesiones/rate limits por proceso; bloqueo global serializa escrituras; listados de pedidos con consultas por relación y sin paginación; escritores SQL externos deben respetar reglas de aplicación. Memory no es duradero ni distribuido. POST no tiene idempotencia ante pérdida de respuesta y no se reintenta automáticamente: se ofrece Mis pedidos antes de volver a confirmar. La restitución que supera el límite previo de stock produce 409 sin cambios. Safari/Firefox y dispositivos físicos no se verificaron; axe no certifica WCAG. El PR queda para revisión humana, sin merge automático.
+# Job memory
+
+Utiliza:
+
+```text
+Ubuntu
+Node.js 24
+```
+
+y ejecuta aproximadamente:
+
+```text
+checkout
+↓
+npm ci
+↓
+regenerar assets
+↓
+comprobar drift de assets
+↓
+instalar backend
+↓
+instalar tests
+↓
+instalar Chromium
+↓
+suite general
+↓
+responsive
+↓
+audit producción backend
+↓
+sintaxis JavaScript
+↓
+git diff --check
+```
+
+---
+
+# Job MySQL
+
+Utiliza un servicio temporal:
+
+```text
+MySQL 8.4
+```
+
+con una base exclusiva llamada:
+
+```text
+reactiva_ci_test
+```
+
+y credenciales ficticias exclusivas del job.
+
+Después ejecuta:
+
+```bash
+npm run test:mysql --prefix tests
+```
+
+---
+
+# Sintaxis JavaScript
+
+CI revisa archivos:
+
+```text
+.js
+.cjs
+```
+
+mediante:
+
+```bash
+node --check
+```
+
+Esto detecta errores sintácticos antes de fusionar cambios.
+
+---
+
+# Assets
+
+El comando:
+
+```bash
+npm run assets
+```
+
+regenera determinados archivos de UI.
+
+CI comprueba que esa generación no produzca diferencias inesperadas en archivos versionados.
+
+Esto ayuda a detectar que alguien haya modificado manualmente un archivo generado sin actualizar su fuente.
+
+---
+
+# git diff --check
+
+Se utiliza:
+
+```bash
+git diff --check
+```
+
+para detectar problemas como:
+
+```text
+espacios innecesarios al final
+errores de whitespace
+```
+
+antes de entregar cambios.
+
+---
+
+# Tests y nombres históricos
+
+Algunos archivos de pruebas pueden conservar temporalmente nombres heredados de fases anteriores del desarrollo.
+
+El nombre del archivo no determina si una prueba sigue siendo útil.
+
+Antes de eliminar o renombrar una prueba se debe comprobar:
+
+```text
+qué comportamiento valida
+si sigue representando el sistema actual
+si utiliza el esquema SQL vigente
+si está incluida en package.json o CI
+```
+
+El objetivo de la limpieza es conservar cobertura útil y eliminar únicamente expectativas obsoletas.
+
+---
+
+# Regla al corregir tests
+
+Si una prueba falla porque comprueba un comportamiento legítimo:
+
+```text
+corregir implementación
+```
+
+Si falla porque todavía representa una arquitectura eliminada:
+
+```text
+actualizar prueba
+```
+
+No debe hacerse:
+
+```text
+borrar o comentar la prueba
+```
+
+únicamente para conseguir un resultado verde.
+
+---
+
+# Datos ficticios
+
+Los tests deben utilizar:
+
+```text
+correos .invalid
+contraseñas ficticias
+Negocios ficticios
+Productos ficticios
+datos de prueba
+```
+
+Nunca:
+
+```text
+contraseñas reales
+correos privados reales
+credenciales MySQL de producción
+datos personales reales
+```
+
+---
+
+# Evidencia de pruebas
+
+Cuando se cierre un bloque importante de desarrollo se debe registrar:
+
+```text
+comando ejecutado
+resultado
+fallos encontrados
+cambios realizados
+riesgos pendientes
+```
+
+pero estos resultados corresponden a esa ejecución concreta.
+
+No deben convertirse en cifras permanentes dentro de la documentación si cambian frecuentemente.
+
+GitHub Actions proporciona evidencia reproducible adicional para cada commit o Pull Request.
+
+---
+
+# No afirmar pruebas no ejecutadas
+
+Una regla importante es:
+
+```text
+No afirmar que una prueba pasó
+si no fue ejecutada.
+```
+
+Si solo se realizó:
+
+```text
+node --check
+```
+
+se puede afirmar:
+
+```text
+sintaxis válida
+```
+
+pero no:
+
+```text
+funcionalidad completa verificada
+```
+
+---
+
+# Diferencia entre pruebas
+
+## Unitarias o de dominio
+
+Comprueban funciones o reglas aisladas.
+
+---
+
+## API
+
+Comprueban el sistema a través de HTTP.
+
+---
+
+## Navegador
+
+Comprueban la interacción desde una página real.
+
+---
+
+## Integración MySQL
+
+Comprueban la interacción contra un servidor SQL real.
+
+---
+
+## Responsive
+
+Comprueban comportamiento visual en diferentes tamaños.
+
+---
+
+## Auditoría de dependencias
+
+Comprueba vulnerabilidades conocidas reportadas por el ecosistema npm.
+
+Ninguna categoría sustituye completamente a las demás.
+
+---
+
+# Limitaciones conocidas
+
+## Sesiones en memoria
+
+Las sesiones no son compartidas entre varias instancias del backend.
+
+Reiniciar Node.js las invalida.
+
+---
+
+## Rate limiting en memoria
+
+Los límites tampoco son distribuidos.
+
+Varias instancias independientes tendrían contadores separados.
+
+---
+
+## Bloqueo global
+
+`repository_lock` simplifica la consistencia, pero serializa escrituras.
+
+Esto puede reducir rendimiento bajo alta concurrencia.
+
+Para el alcance académico actual se prioriza simplicidad y corrección.
+
+---
+
+## Escritores externos
+
+Las reglas del Service y el bloqueo del Repository solo protegen operaciones que utilizan la aplicación.
+
+Una persona con acceso directo a MySQL podría ejecutar SQL fuera de esas reglas.
+
+Por eso los permisos de base deben restringirse en producción.
+
+---
+
+## Carrito
+
+El carrito es manipulable desde el navegador y no reserva stock.
+
+Esto es aceptable porque antes de crear un Pedido el servidor vuelve a consultar:
+
+```text
+Producto
+precio
+stock
+Negocio
+Categoria
+```
+
+---
+
+## Idempotencia del POST de Pedido
+
+Actualmente la creación de Pedido no utiliza una clave de idempotencia distribuida.
+
+Si el servidor confirma la operación pero el cliente pierde la respuesta, el frontend no debe reintentar automáticamente sin comprobar primero los Pedidos existentes.
+
+---
+
+## Imágenes
+
+Las imágenes se almacenan actualmente como Data URL / MEDIUMTEXT.
+
+Esto simplifica el proyecto académico, pero no es necesariamente la estrategia óptima para un marketplace de gran escala.
+
+---
+
+## Paginación
+
+Algunos listados todavía trabajan obteniendo colecciones completas.
+
+Un sistema con grandes volúmenes debería implementar:
+
+```text
+paginación
+consultas SQL específicas
+índices revisados
+```
+
+---
+
+## MySQL remoto
+
+El pool actual está orientado principalmente a un servidor local o una red controlada.
+
+Una base remota de producción debería revisar:
+
+```text
+TLS
+certificados
+firewall
+usuario de mínimo privilegio
+backups
+monitoreo
+```
+
+---
+
+## Memory Repository
+
+Memory es útil para pruebas, pero:
+
+```text
+no es persistente
+no es distribuido
+no reemplaza MySQL
+```
+
+---
+
+# Lo que las pruebas no garantizan
+
+La suite automatizada no constituye por sí sola:
+
+```text
+pentest profesional
+certificación de seguridad
+certificación WCAG
+prueba de alta disponibilidad
+prueba de recuperación ante desastre
+prueba completa de carga
+certificación de producción
+```
+
+---
+
+# Requisitos mínimos antes de exposición pública
+
+Un despliegue real debería revisar al menos:
+
+```text
+HTTPS
+NODE_ENV=production
+APP_ORIGIN exacto
+secretos fuera de Git
+usuario DB de mínimo privilegio
+contraseña DB segura
+backups
+procedimiento de restauración
+logs
+monitoreo
+actualización de dependencias
+proxy seguro
+configuración correcta de IP real
+TLS hacia DB remota si corresponde
+```
+
+---
+
+# Flujo recomendado de validación
+
+Antes de entregar un cambio:
+
+```text
+1. Revisar git status
+2. Ejecutar pruebas relacionadas
+3. Ejecutar suite general
+4. Ejecutar pruebas MySQL si el cambio afecta persistencia
+5. Ejecutar responsive si afecta UI
+6. Ejecutar npm audit cuando corresponda
+7. Ejecutar node --check o CI de sintaxis
+8. Ejecutar git diff --check
+9. Revisar git diff
+10. Documentar únicamente el comportamiento vigente
+```
+
+---
+
+# Método incremental
+
+El proyecto sigue una estrategia similar a:
+
+```text
+baseline
+↓
+cambio pequeño
+↓
+prueba relacionada
+↓
+corrección
+↓
+refactor
+↓
+suite completa
+```
+
+Los cambios grandes deben dividirse cuando sea razonable.
+
+Esto facilita identificar regresiones.
+
+---
+
+# Qué probar según el tipo de cambio
+
+## Cambio frontend
+
+Ejecutar principalmente:
+
+```text
+suite general
+browser
+responsive
+structure
+```
+
+---
+
+## Cambio Service
+
+Ejecutar:
+
+```text
+tests de dominio
+API
+suite general
+```
+
+---
+
+## Cambio Repository
+
+Ejecutar:
+
+```text
+Repository simulado
+suite general
+MySQL real
+```
+
+---
+
+## Cambio de migraciones
+
+Ejecutar:
+
+```text
+MySQL real
+migraciones sobre base _test limpia
+migraciones repetidas
+verificación de checksum
+integridad PK/FK/UNIQUE/CHECK
+```
+
+---
+
+## Cambio de autenticación o seguridad
+
+Ejecutar pruebas relacionadas con:
+
+```text
+login
+sesión
+cookies
+CSRF
+roles
+ownership
+origen
+rate limits
+errores
+```
+
+y después la suite general.
+
+---
+
+# Protección de la base principal
+
+La regla más importante para las pruebas SQL es:
+
+```text
+reactiva_pereira
+=
+datos de desarrollo que queremos conservar
+```
+
+y:
+
+```text
+reactiva_pereira_test
+=
+base descartable para pruebas
+```
+
+Nunca deben confundirse.
+
+Antes de una suite destructiva se debe verificar:
+
+```bash
+echo "$DB_NAME"
+```
+
+y confirmar que termina en:
+
+```text
+_test
+```
+
+---
+
+# Resumen para sustentación
+
+## ¿Cómo se protegen las contraseñas?
+
+Con:
+
+```text
+scrypt
++
+salt aleatoria
+```
+
+No se guardan en texto plano.
+
+---
+
+## ¿Cómo se autentica un Usuario?
+
+Mediante una sesión opaca asociada a una cookie:
+
+```text
+HttpOnly
+SameSite=Strict
+```
+
+---
+
+## ¿Qué diferencia hay entre autenticación y autorización?
+
+Autenticación:
+
+```text
+¿Quién eres?
+```
+
+Autorización:
+
+```text
+¿Tienes permiso para esta operación?
+```
+
+---
+
+## ¿Cómo se protege una escritura?
+
+Según la operación:
+
+```text
+sesión
++
+rol
++
+propiedad
++
+CSRF
++
+origen
++
+validación
+```
+
+---
+
+## ¿Cómo se protege MySQL?
+
+Mediante:
+
+```text
+consultas parametrizadas
+FK
+UNIQUE
+CHECK
+transacciones
+bloqueos
+variables de entorno
+Repository
+```
+
+---
+
+## ¿Cómo se evita que el cliente cambie el precio de un Pedido?
+
+El backend ignora precios enviados por cliente.
+
+Consulta:
+
+```text
+producto.precio
+```
+
+y genera internamente:
+
+```text
+detalle_pedido.precio_unitario
+```
+
+---
+
+## ¿Cómo se evita vender más stock del disponible?
+
+El backend:
+
+```text
+inicia transacción
+↓
+bloquea Productos
+↓
+consulta stock real
+↓
+valida
+↓
+descuenta
+↓
+COMMIT
+```
+
+---
+
+## ¿Cómo se evita superar cupos de una Reserva?
+
+Durante POST:
+
+```text
+transacción
+↓
+recalcular disponibilidad
+↓
+comprobar cupo
+↓
+crear Reserva
+```
+
+---
+
+## ¿Dónde deben ejecutarse las pruebas MySQL?
+
+Exclusivamente en una base dedicada terminada en:
+
+```text
+_test
+```
+
+---
+
+## ¿Las pruebas garantizan que el sistema es completamente seguro?
+
+No.
+
+Proporcionan evidencia automatizada sobre comportamientos concretos, pero no sustituyen:
+
+```text
+pentesting
+revisión profesional
+pruebas de carga
+auditoría de infraestructura
+```
+
+---
+
+# Regla final
+
+La seguridad de Reactiva Pereira debe conservarse como parte de la arquitectura, no agregarse únicamente al final.
+
+Cada nueva funcionalidad debe revisar:
+
+```text
+¿Qué datos recibe?
+
+¿Quién puede ejecutarla?
+
+¿A qué recurso puede acceder?
+
+¿Qué debe validar el servidor?
+
+¿Qué ocurre si dos usuarios lo hacen al mismo tiempo?
+
+¿Qué información se devuelve?
+
+¿Qué error se expone?
+
+¿Qué prueba demuestra el comportamiento?
+```
+
+Estas preguntas forman parte del desarrollo normal del proyecto.

@@ -6,7 +6,7 @@ const fs = require("node:fs/promises");
 const path = require("node:path");
 const { createApplication } = require("../backend/app");
 const { hashPassword } = require("../backend/utils/password");
-const { fixture, agenda, comprador, inicio } = require("./pr6.helpers.cjs");
+const { fixture, agenda, comprador, inicio } = require("./marketplace.fixtures.cjs");
 let browser, context, page, server, base, ctx, hash, errors;
 const clave = "Una-clave-de-prueba-2026";
 before(async () => {
