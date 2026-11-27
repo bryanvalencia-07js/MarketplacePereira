@@ -24,5 +24,5 @@
   window.addEventListener("pagehide", descartar, { once: true });
   movimiento.addEventListener("change", descartar);
   firma.hidden = false;
-  temporizador = setTimeout(descartar, 5000);
+  temporizador = setTimeout(descartar, 3000);
 })();
